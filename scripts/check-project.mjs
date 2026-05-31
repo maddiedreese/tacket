@@ -315,7 +315,7 @@ for (const phrase of [
 }
 
 const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
-for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "Latest Release artifact", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run release:verify-artifact", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
+for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "Latest Release artifact", "Latest Release artifact contents", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run release:verify-artifact", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
   if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
 }
 

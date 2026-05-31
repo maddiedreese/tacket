@@ -137,7 +137,7 @@ Check remote release readiness:
 npm run release:status
 ```
 
-This non-failing status command summarizes the current v0.1.0 milestone issues, signing/notarization secrets, release issue checklist sync state, latest CI/Release workflow state, whether those workflow runs match local `HEAD`, whether the latest Release workflow artifact is available, whether the GitHub Release already exists, and the next commands for each remaining blocker.
+This non-failing status command summarizes the current v0.1.0 milestone issues, signing/notarization secrets, release issue checklist sync state, latest CI/Release workflow state, whether those workflow runs match local `HEAD`, whether the latest Release workflow artifact is available and its contents verify, whether the GitHub Release already exists, and the next commands for each remaining blocker.
 
 Verify the latest manual Release workflow artifact contents:
 
