@@ -50,11 +50,95 @@ test("post-release local rehearsal rejects missing DMG before Gatekeeper assessm
   }
 });
 
+test("post-release check verifies published GitHub Release assets", async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), "tacket-postflight-release-pass-"));
+  try {
+    const { binDir, logPath } = await fakeReleaseTools(temp);
+
+    const result = await runPostflight(["--tag", "v0.1.0", "--skip-gatekeeper"], {
+      PATH: `${binDir}:${process.env.PATH}`
+    });
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /PASS Website verifies/u);
+    assert.match(result.stdout, /PASS Release downloads verify/u);
+    assert.match(result.stdout, /PASS GitHub Release is published with required assets/u);
+
+    const log = await readFile(logPath, "utf8");
+    assert.match(log, /npm run website:verify/u);
+    assert.match(log, /npm run release:verify-download -- --tag v0\.1\.0/u);
+    assert.match(log, /gh release view v0\.1\.0 --repo maddiedreese\/tacket --json tagName,isDraft,isPrerelease,url,assets/u);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("post-release check rejects draft releases", async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), "tacket-postflight-release-fail-"));
+  try {
+    const { binDir } = await fakeReleaseTools(temp, { draft: true });
+
+    const result = await runPostflight(["--tag", "v0.1.0", "--skip-gatekeeper"], {
+      PATH: `${binDir}:${process.env.PATH}`
+    });
+
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /FAIL GitHub Release is published with required assets - release must not be a draft/u);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("post-release check rejects missing required release assets", async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), "tacket-postflight-release-asset-fail-"));
+  try {
+    const { binDir } = await fakeReleaseTools(temp, { omitAsset: "SHA256SUMS" });
+
+    const result = await runPostflight(["--tag", "v0.1.0", "--skip-gatekeeper"], {
+      PATH: `${binDir}:${process.env.PATH}`
+    });
+
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /FAIL GitHub Release is published with required assets - GitHub Release missing asset SHA256SUMS/u);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
 async function localArtifacts(temp) {
   const artifactDir = path.join(temp, "dist");
   await mkdir(path.join(artifactDir, "Tacket.app"), { recursive: true });
   await writeFile(path.join(artifactDir, "Tacket.dmg"), "synthetic dmg placeholder\n");
   return artifactDir;
+}
+
+async function fakeReleaseTools(temp, options = {}) {
+  const binDir = path.join(temp, "bin");
+  const logPath = path.join(temp, "commands.log");
+  await mkdir(binDir, { recursive: true });
+  await fakeExecutable(binDir, "npm", `#!/usr/bin/env bash
+set -euo pipefail
+printf 'npm %s\\n' "$*" >> "${logPath}"
+exit 0
+`);
+  const assetNames = ["Tacket.dmg", "tacket-chrome-extension.zip", "SHA256SUMS"]
+    .filter((name) => name !== options.omitAsset);
+  await fakeExecutable(binDir, "gh", `#!/usr/bin/env bash
+set -euo pipefail
+printf 'gh %s\\n' "$*" >> "${logPath}"
+case "$*" in
+  "release view v0.1.0 --repo maddiedreese/tacket --json tagName,isDraft,isPrerelease,url,assets")
+    cat <<'JSON'
+{"tagName":"v0.1.0","isDraft":${options.draft ? "true" : "false"},"isPrerelease":${options.prerelease ? "true" : "false"},"url":"https://github.com/maddiedreese/tacket/releases/tag/v0.1.0","assets":[${assetNames.map((name) => `{"name":"${name}"}`).join(",")}]}
+JSON
+    ;;
+  *)
+    echo "unexpected gh invocation: $*" >&2
+    exit 1
+    ;;
+esac
+`);
+  return { binDir, logPath };
 }
 
 async function fakeNpm(temp) {
@@ -72,6 +156,12 @@ exit 0
   );
   await chmod(npmPath, 0o755);
   return { binDir, logPath };
+}
+
+async function fakeExecutable(binDir, name, source) {
+  const file = path.join(binDir, name);
+  await writeFile(file, source);
+  await chmod(file, 0o755);
 }
 
 function runPostflight(args, env = {}) {
