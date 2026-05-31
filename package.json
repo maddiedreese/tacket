@@ -24,6 +24,7 @@
     "qa:live": "node scripts/new-live-qa.mjs",
     "qa:live:verify": "node scripts/verify-live-qa.mjs",
     "release:readiness": "node scripts/check-release-readiness.mjs",
+    "release:pretag": "node scripts/check-pretag-release.mjs",
     "store:screenshots": "node scripts/generate-store-screenshots.mjs",
     "store:prepare": "node scripts/prepare-chrome-web-store.mjs"
   },

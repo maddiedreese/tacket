@@ -69,6 +69,7 @@ const requiredFiles = [
   "scripts/new-live-qa.mjs",
   "scripts/verify-live-qa.mjs",
   "scripts/check-release-readiness.mjs",
+  "scripts/check-pretag-release.mjs",
   "scripts/generate-store-screenshots.mjs",
   "scripts/prepare-chrome-web-store.mjs"
 ];
@@ -183,6 +184,9 @@ if (rootPackage.scripts?.["qa:live:verify"] !== "node scripts/verify-live-qa.mjs
 if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-readiness.mjs") {
   throw new Error("package.json must expose npm run release:readiness.");
 }
+if (rootPackage.scripts?.["release:pretag"] !== "node scripts/check-pretag-release.mjs") {
+  throw new Error("package.json must expose npm run release:pretag.");
+}
 if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-screenshots.mjs") {
   throw new Error("package.json must expose npm run store:screenshots.");
 }
@@ -216,9 +220,23 @@ for (const phrase of [
   if (!readiness.includes(phrase)) throw new Error(`Release readiness checker missing: ${phrase}`);
 }
 
+const pretag = await readFile("scripts/check-pretag-release.mjs", "utf8");
+for (const phrase of [
+  "Chrome Web Store submission folder is ready",
+  "CHANGELOG.md has a final dated",
+  "v0.1.0 milestone has no open issues",
+  "Signing and notarization secrets are configured",
+  "Latest Release workflow run passed"
+]) {
+  if (!pretag.includes(phrase)) throw new Error(`Pre-tag release checker missing: ${phrase}`);
+}
+
 const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
 if (!releaseDocs.includes("npm run release:readiness")) {
   throw new Error("Release docs must mention npm run release:readiness.");
+}
+if (!releaseDocs.includes("npm run release:pretag")) {
+  throw new Error("Release docs must mention npm run release:pretag.");
 }
 if (!releaseDocs.includes("docs/STORE_ASSETS.md")) {
   throw new Error("Release docs must mention docs/STORE_ASSETS.md.");
