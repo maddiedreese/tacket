@@ -1,6 +1,6 @@
 # Privacy
 
-Tacket is local-only by design.
+Tacket is local-only and local-first by design.
 
 - No backend
 - No analytics
@@ -10,9 +10,9 @@ Tacket is local-only by design.
 - No model calls
 - No summarization
 
-The extension captures content only after the user clicks **Capture This Thread** on a supported AI chat page. The popup checks the active tab host and refuses capture outside ChatGPT, Claude, and Gemini.
+The extension captures content only after the user clicks **Capture This Thread** on a supported AI chat page. The popup checks the active tab host and refuses capture outside ChatGPT, Claude, and Gemini. Captured thread content is sent to the local Tacket app through Chrome Native Messaging, not to a backend service.
 
-Captured content is written to local `.tacket` bundles. If a user chooses to place those bundles inside a git repository, normal git hygiene applies. Future versions may add secret detection before writing to repo folders, but v1 treats files as user-controlled local artifacts.
+Captured thread content is stored locally in `.tacket` bundles. If a user chooses to place those bundles inside a git repository, normal git hygiene applies. Future versions may add secret detection before writing to repo folders, but v1 treats files as user-controlled local artifacts.
 
 Tacket may add local-only warnings to `manifest.json` when captured text appears to contain common token formats such as API keys or private keys. These warnings do not redact, summarize, upload, or otherwise alter the raw transcript.
 

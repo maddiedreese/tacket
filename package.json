@@ -32,6 +32,7 @@
     "release:assess": "node scripts/assess-release-gatekeeper.mjs",
     "store:screenshots": "node scripts/generate-store-screenshots.mjs",
     "store:prepare": "node scripts/prepare-chrome-web-store.mjs",
+    "store:verify": "node scripts/verify-chrome-web-store-package.mjs",
     "store:verify-id": "node scripts/verify-web-store-extension-id.mjs"
   },
   "engines": {

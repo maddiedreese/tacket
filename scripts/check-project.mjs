@@ -78,6 +78,7 @@ const requiredFiles = [
   "scripts/assess-release-gatekeeper.mjs",
   "scripts/generate-store-screenshots.mjs",
   "scripts/prepare-chrome-web-store.mjs",
+  "scripts/verify-chrome-web-store-package.mjs",
   "scripts/verify-web-store-extension-id.mjs"
 ];
 
@@ -224,6 +225,9 @@ if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-
 if (rootPackage.scripts?.["store:prepare"] !== "node scripts/prepare-chrome-web-store.mjs") {
   throw new Error("package.json must expose npm run store:prepare.");
 }
+if (rootPackage.scripts?.["store:verify"] !== "node scripts/verify-chrome-web-store-package.mjs") {
+  throw new Error("package.json must expose npm run store:verify.");
+}
 if (rootPackage.scripts?.["store:verify-id"] !== "node scripts/verify-web-store-extension-id.mjs") {
   throw new Error("package.json must expose npm run store:verify-id.");
 }
@@ -294,6 +298,9 @@ const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
 if (!releaseDocs.includes("npm run release:status")) {
   throw new Error("Release docs must mention npm run release:status.");
 }
+if (!releaseDocs.includes("npm run store:verify")) {
+  throw new Error("Release docs must mention npm run store:verify.");
+}
 if (!releaseDocs.includes("npm run release:readiness")) {
   throw new Error("Release docs must mention npm run release:readiness.");
 }
@@ -317,8 +324,8 @@ const chromeStore = await readFile("docs/CHROME_WEB_STORE.md", "utf8");
 if (!chromeStore.includes("docs/STORE_ASSETS.md")) {
   throw new Error("Chrome Web Store docs must link to docs/STORE_ASSETS.md.");
 }
-if (!chromeStore.includes("npm run store:prepare")) {
-  throw new Error("Chrome Web Store docs must mention npm run store:prepare.");
+for (const command of ["npm run store:prepare", "npm run store:verify"]) {
+  if (!chromeStore.includes(command)) throw new Error(`Chrome Web Store docs must mention ${command}.`);
 }
 for (const phrase of ["listing.md", "privacy.md"]) {
   if (!chromeStore.includes(phrase)) throw new Error(`Chrome Web Store docs must mention generated ${phrase}.`);
@@ -342,8 +349,13 @@ for (const phrase of [
 }
 
 const storePrepare = await readFile("scripts/prepare-chrome-web-store.mjs", "utf8");
-for (const phrase of ["assertExtensionZip", "listing.md", "privacy.md", "manifest.dev.json"]) {
+for (const phrase of ["assertExtensionZip", "listing.md", "privacy.md", "manifest.dev.json", "store:verify", "generate:checksums"]) {
   if (!storePrepare.includes(phrase)) throw new Error(`Chrome Web Store prep script missing: ${phrase}`);
+}
+
+const storeVerify = await readFile("scripts/verify-chrome-web-store-package.mjs", "utf8");
+for (const phrase of ["Extension permissions", "Extension host permissions", "secret-like text", "does not match dist/tacket-chrome-extension.zip", "Chrome Web Store package checks passed"]) {
+  if (!storeVerify.includes(phrase)) throw new Error(`Chrome Web Store package verifier missing: ${phrase}`);
 }
 
 const storeVerifyId = await readFile("scripts/verify-web-store-extension-id.mjs", "utf8");

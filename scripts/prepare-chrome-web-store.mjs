@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 
@@ -44,6 +44,7 @@ const assets = [
 await run("npm", ["run", "generate:icons"]);
 await run("npm", ["run", "store:screenshots"]);
 await run("bash", ["scripts/package-extension.sh"]);
+await refreshReleaseChecksumsIfPresent();
 await assertExtensionZip(extensionZip);
 
 await rm(outputDir, { recursive: true, force: true });
@@ -58,6 +59,7 @@ for (const asset of assets) {
 }
 
 await writeFile(path.join(outputDir, "README.md"), readme(), "utf8");
+await run("npm", ["run", "store:verify"]);
 console.log(outputDir);
 
 function readme() {
@@ -85,6 +87,16 @@ Reference docs:
 
 Review every image before upload. The generated screenshots are synthetic and should not contain private transcripts, private code, tokens, local usernames, or personal file names.
 `;
+}
+
+async function refreshReleaseChecksumsIfPresent() {
+  try {
+    await access(path.join(root, "dist", "Tacket.dmg"));
+    await access(extensionZip);
+  } catch {
+    return;
+  }
+  await run("npm", ["run", "generate:checksums"]);
 }
 
 async function assertExtensionZip(file) {

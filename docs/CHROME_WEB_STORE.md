@@ -81,6 +81,16 @@ npm run store:prepare
 
 This writes `dist/chrome-web-store/` with the extension zip, required icon, small promotional image, screenshots, `listing.md`, `privacy.md`, and a short upload README. Review every generated image before submitting.
 
+If release artifacts already exist in `dist/`, `store:prepare` refreshes `SHA256SUMS` after rebuilding the extension zip so the release checksums do not go stale.
+
+Verify the prepared upload folder independently with:
+
+```bash
+npm run store:verify
+```
+
+This checks the extension zip contents, confirms the upload zip matches `dist/tacket-chrome-extension.zip`, verifies production manifest permissions and host permissions, generated image dimensions, listing/privacy copy, and obvious secret-like text.
+
 ## Published Extension ID
 
 After Chrome Web Store approval, verify the published extension ID can be used by the local native messaging connector:

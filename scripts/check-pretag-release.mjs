@@ -1,6 +1,5 @@
 import { execFile } from "node:child_process";
-import { access, readFile } from "node:fs/promises";
-import { constants } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import path from "node:path";
 
@@ -25,19 +24,7 @@ await check("Release artifacts verify", async () => {
 });
 
 await check("Chrome Web Store submission folder is ready", async () => {
-  for (const file of [
-    "tacket-chrome-extension.zip",
-    "icon-128.png",
-    "small-promo-440x280.png",
-    "listing.md",
-    "privacy.md",
-    "README.md",
-    "screenshots/01-capture-popup-1280x800.png",
-    "screenshots/02-local-bundle-1280x800.png",
-    "screenshots/03-transfer-targets-1280x800.png"
-  ]) {
-    await assertReadable(path.join(root, "dist", "chrome-web-store", file));
-  }
+  await run("npm", ["run", "store:verify"]);
 });
 
 await check("Versions are aligned", async () => {
@@ -138,10 +125,6 @@ function printSummary() {
     const mark = item.status === "pass" ? "PASS" : "FAIL";
     console.log(`${mark} ${item.label}${item.message ? ` - ${item.message}` : ""}`);
   }
-}
-
-async function assertReadable(file) {
-  await access(file, constants.R_OK);
 }
 
 async function ghJson(args) {
