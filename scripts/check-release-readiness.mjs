@@ -28,6 +28,12 @@ await check("Working tree is clean", async () => {
   assert(status.trim() === "", "working tree has uncommitted changes");
 });
 
+await check("Website verifier passes", async () => {
+  await execFileAsync("npm", ["run", "website:verify"], {
+    maxBuffer: 1024 * 1024 * 10
+  });
+});
+
 await check("Repository is reachable", async () => {
   const repoInfo = await ghJson([
     "repo",
@@ -42,12 +48,6 @@ await check("Repository is reachable", async () => {
   assert(repoInfo.hasProjectsEnabled === false, "expected repository projects disabled");
   assert(repoInfo.hasWikiEnabled === false, "expected wiki disabled");
   assert(repoInfo.isSecurityPolicyEnabled === true, "expected SECURITY.md policy enabled");
-});
-
-await check("GitHub Pages is enabled", async () => {
-  const pages = await ghJson(["api", `repos/${repo}/pages`]);
-  assert(pages.build_type === "workflow", `expected workflow Pages build, found ${pages.build_type}`);
-  assert(pages.https_enforced === true, "expected HTTPS enforcement");
 });
 
 await check("Security reporting and dependency alerts are enabled", async () => {

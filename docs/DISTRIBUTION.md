@@ -31,12 +31,18 @@ The app installer can still install the local native messaging host, then open t
 
 ## No Backend
 
-Tacket should not require hosted infrastructure. The repository includes a GitHub Pages workflow that publishes the static `website/` directory from `main`. A custom domain can be added later without changing the app architecture.
+Tacket should not require hosted infrastructure. The public website is the static `website/` directory and is deployed by Netlify from GitHub. The repository includes `netlify.toml` with:
+
+- build command: `npm run website:verify`
+- publish directory: `website`
+
+No Netlify environment variables are required for v1. A custom domain can be added in Netlify later without changing the app architecture.
 
 ## Expected Costs
 
 - Apple Developer Program: yearly cost for Developer ID signing and notarization.
 - Chrome Web Store developer registration: one-time registration fee.
 - Domain: yearly registrar cost.
-- Hosting/backend: none required for v1.
+- Website hosting: Netlify free tier should be enough for v1.
+- Backend: none required for v1.
 - AI/API usage: none required for v1.

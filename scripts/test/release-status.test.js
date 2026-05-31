@@ -17,7 +17,7 @@ test("release status summarizes current green automation and external blockers",
     assert.equal(result.code, 0, result.stderr);
     assert.match(result.stdout, /Tacket v0\.1\.0 release status/u);
     assert.match(result.stdout, /Repository settings: configured/u);
-    assert.match(result.stdout, /GitHub Pages: configured/u);
+    assert.match(result.stdout, /Website build config: configured/u);
     assert.match(result.stdout, /Security reporting\/dependency alerts: configured/u);
     assert.match(result.stdout, /Local HEAD: 1234567890ab/u);
     assert.match(result.stdout, /Latest CI on main: completed\/success @ 1234567890ab \(matches HEAD\)/u);
@@ -74,11 +74,6 @@ case "$args" in
   "repo view maddiedreese/tacket --json nameWithOwner,visibility,deleteBranchOnMerge,hasProjectsEnabled,hasWikiEnabled,isSecurityPolicyEnabled")
     cat <<'JSON'
 {"nameWithOwner":"maddiedreese/tacket","visibility":"PUBLIC","deleteBranchOnMerge":true,"hasProjectsEnabled":false,"hasWikiEnabled":false,"isSecurityPolicyEnabled":true}
-JSON
-    ;;
-  "api repos/maddiedreese/tacket/pages")
-    cat <<'JSON'
-{"build_type":"workflow","https_enforced":true}
 JSON
     ;;
   "api repos/maddiedreese/tacket/private-vulnerability-reporting")

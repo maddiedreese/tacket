@@ -1,6 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Tacket icon">
-  <rect width="1024" height="1024" rx="224" fill="#245f73"/>
-  <path d="M276 290h472v114H568v330H456V404H276z" fill="#f8f7f4"/>
-  <path d="M290 646h196v88H290zM538 646h196v88H538z" fill="#d9c88f"/>
-  <path d="M288 514h448v72H288z" fill="#f8f7f4" opacity=".92"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Tacket app icon</title>
+  <desc id="desc">A brass tack pinning a chat sheet on a teal field.</desc>
+  <defs>
+    <linearGradient id="field" x1="96" x2="416" y1="56" y2="456" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f7181"/>
+      <stop offset="1" stop-color="#17495b"/>
+    </linearGradient>
+    <linearGradient id="brass" x1="164" x2="330" y1="128" y2="332" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f1df9c"/>
+      <stop offset=".55" stop-color="#d6b45b"/>
+      <stop offset="1" stop-color="#9f7a2d"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#field)"/>
+  <path fill="#103947" opacity=".22" d="M165 373 336 202l86 86-171 171z"/>
+  <rect x="132" y="160" width="248" height="188" rx="28" fill="#fffdf7" transform="rotate(-7 256 254)"/>
+  <path fill="#e5dfd2" d="M181 224h150v18H181zm13 54h108v18H194z" transform="rotate(-7 256 254)"/>
+  <path fill="#1d4250" opacity=".36" d="M272 261 374 411l-52 29-73-164z"/>
+  <path fill="#2b2b28" d="M261 250 376 426l-26 14-98-184z"/>
+  <path fill="#caa448" d="M224 249h86v56h-86z" transform="rotate(-24 267 277)"/>
+  <circle cx="228" cy="182" r="76" fill="url(#brass)"/>
+  <circle cx="205" cy="155" r="24" fill="#fff4bb" opacity=".72"/>
 </svg>

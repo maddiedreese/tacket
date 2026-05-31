@@ -52,8 +52,7 @@ async function renderPromoPng(width, height) {
   const ink = [0x15, 0x15, 0x15, 0xff];
   const muted = [0x5f, 0x63, 0x68, 0xff];
   const line = [0xdd, 0xd8, 0xce, 0xff];
-  const paper = [0xff, 0xff, 0xff, 0xff];
-  const tack = [0xd9, 0xc8, 0x8f, 0xff];
+  const tack = [0xd9, 0xb4, 0x5b, 0xff];
 
   fill(pixels, width, height, bg);
   drawRect(pixels, width, height, 0, 0, width, 12, accent);
@@ -78,19 +77,33 @@ async function renderPromoPng(width, height) {
 function renderIconPixels(size) {
   const pixels = Buffer.alloc(size * size * 4);
   const radius = size * 0.22;
-  const bg = [0x24, 0x5f, 0x73, 0xff];
+  const bgTop = [0x2f, 0x71, 0x81, 0xff];
+  const bgBottom = [0x17, 0x49, 0x5b, 0xff];
   const paper = [0xf8, 0xf7, 0xf4, 0xff];
+  const paperLine = [0xdd, 0xd8, 0xce, 0xff];
   const tack = [0xd9, 0xc8, 0x8f, 0xff];
+  const tackDark = [0x9f, 0x7a, 0x2d, 0xff];
+  const highlight = [0xff, 0xf1, 0xb2, 0xd8];
+  const needle = [0x2b, 0x2b, 0x28, 0xff];
+  const shadow = [0x10, 0x39, 0x47, 0x52];
   const transparent = [0, 0, 0, 0];
 
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      let color = roundedRectContains(x, y, size, size, radius, size) ? bg : transparent;
-      if (inRect(x, y, size, 0.27, 0.28, 0.46, 0.11)) color = paper;
-      if (inRect(x, y, size, 0.445, 0.36, 0.11, 0.36)) color = paper;
-      if (inRect(x, y, size, 0.28, 0.50, 0.44, 0.07)) color = [0xf8, 0xf7, 0xf4, 0xea];
-      if (inRect(x, y, size, 0.28, 0.63, 0.19, 0.09)) color = tack;
-      if (inRect(x, y, size, 0.525, 0.63, 0.19, 0.09)) color = tack;
+      let color = roundedRectContains(x, y, size, size, radius, size) ?
+        mix(bgTop, bgBottom, y / Math.max(1, size - 1)) :
+        transparent;
+
+      if (inSoftRotatedRect(x, y, size, 0.50, 0.49, 0.54, 0.38, -0.12, 0.08)) color = paper;
+      if (inSoftRotatedRect(x, y, size, 0.50, 0.44, 0.32, 0.035, -0.12, 0.015)) color = paperLine;
+      if (inSoftRotatedRect(x, y, size, 0.48, 0.55, 0.24, 0.035, -0.12, 0.015)) color = paperLine;
+
+      if (inTriangle(x, y, size, 0.53, 0.47, 0.78, 0.86, 0.70, 0.90)) color = shadow;
+      if (inTriangle(x, y, size, 0.51, 0.48, 0.76, 0.86, 0.70, 0.89)) color = needle;
+      if (inSoftRotatedRect(x, y, size, 0.53, 0.54, 0.22, 0.12, -0.42, 0.025)) color = tackDark;
+      if (inCircle(x, y, size, 0.43, 0.35, 0.17)) color = tack;
+      if (inCircle(x, y, size, 0.37, 0.29, 0.055)) color = highlight;
+      if (inCircle(x, y, size, 0.49, 0.44, 0.07)) color = tackDark;
       const offset = (y * size + x) * 4;
       pixels[offset] = color[0];
       pixels[offset + 1] = color[1];
@@ -175,10 +188,43 @@ function inRect(x, y, size, left, top, width, height) {
     y >= size * top && y <= size * (top + height);
 }
 
+function inCircle(x, y, size, centerX, centerY, radius) {
+  return (x - size * centerX) ** 2 + (y - size * centerY) ** 2 <= (size * radius) ** 2;
+}
+
+function inTriangle(x, y, size, ax, ay, bx, by, cx, cy) {
+  const px = x / size;
+  const py = y / size;
+  const area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+  const s = ((ay - cy) * (px - cx) + (cx - ax) * (py - cy)) / area;
+  const t = ((cy - by) * (px - cx) + (bx - cx) * (py - cy)) / area;
+  const u = 1 - s - t;
+  return s >= 0 && t >= 0 && u >= 0;
+}
+
+function inSoftRotatedRect(x, y, size, centerX, centerY, width, height, angle, radius) {
+  const dx = x / size - centerX;
+  const dy = y / size - centerY;
+  const cos = Math.cos(-angle);
+  const sin = Math.sin(-angle);
+  const rx = dx * cos - dy * sin + width / 2;
+  const ry = dx * sin + dy * cos + height / 2;
+  return roundedRectContains(rx * size, ry * size, width * size, height * size, radius * size);
+}
+
 function roundedRectContains(x, y, width, height, radius) {
   const cx = x < radius ? radius : x > width - radius ? width - radius : x;
   const cy = y < radius ? radius : y > height - radius ? height - radius : y;
   return (x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2;
+}
+
+function mix(start, end, amount) {
+  return [
+    Math.round(start[0] * (1 - amount) + end[0] * amount),
+    Math.round(start[1] * (1 - amount) + end[1] * amount),
+    Math.round(start[2] * (1 - amount) + end[2] * amount),
+    0xff
+  ];
 }
 
 function ihdr(width, height) {

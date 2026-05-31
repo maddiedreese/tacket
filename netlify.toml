@@ -1,0 +1,9 @@
+[build]
+  command = "npm run website:verify"
+  publish = "website"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Referrer-Policy = "no-referrer"
+    X-Content-Type-Options = "nosniff"

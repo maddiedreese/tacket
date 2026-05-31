@@ -1,108 +1,84 @@
 # Tacket
 
-Tacket is a local-first Mac app and Chrome extension for moving complete AI chat threads into coding agents without summarizing them.
+Tacket moves complete AI chat threads into coding agents without turning them into summaries.
 
-The v1 goal is deliberately narrow:
+It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gemini. Click the extension on a supported chat page, save the full thread as a local `.tacket` bundle, then transfer the raw transcript into Codex or Claude Code.
 
-- capture raw threads from ChatGPT, Claude, and Gemini in Chrome when the user clicks capture
-- preserve text, code blocks, images, and attachment references in an inspectable `.tacket` bundle
-- write the bundle locally
-- copy and paste the raw transcript into Codex or Claude Code
-- use no backend, no analytics, and no cloud storage
+Tacket is pre-release. Signed direct-download builds are coming with the first public release.
 
-Tacket is not an agent harness and does not try to mutate private app session stores. It transfers user-owned conversation artifacts as local files and raw transcript text.
+## What It Does
 
-## Project Layout
+- Captures supported AI chats only after you click the extension.
+- Saves readable local bundles in `~/Documents/Tacket Captures`.
+- Preserves the raw transcript as Markdown and structured JSONL.
+- Transfers to Clipboard, Codex, or Claude Code.
+- Uses no backend, no analytics, no telemetry, and no model/API calls.
 
-```text
-.github/workflows/      GitHub Actions CI
-apps/chrome-extension/  Chrome MV3 extension for user-click thread capture
-apps/cli/               `tacket` CLI for installing the host, packing, and transferring
-apps/native-host/       Chrome Native Messaging host
-apps/mac/               SwiftUI Mac app and packaged native messaging host
-packages/thread-format/ Shared `.tacket` bundle writer and transcript renderer
-schemas/                JSON Schemas for portable thread data
-docs/                   Architecture, privacy, distribution, and format docs
-website/                Static website and public privacy page
-```
+Tacket is not an agent harness. It does not run agents for you or reach into private app session stores.
 
-For setup or first-run issues, see `docs/TROUBLESHOOTING.md`.
-For release notes, see `CHANGELOG.md`.
-For the v0.1.0 release blockers and later ideas, see `docs/ROADMAP.md`.
+## Install
 
-## Current Development Flow
+Public releases will be the shortest path:
+
+1. Download `Tacket.dmg` from the [latest release](https://github.com/maddiedreese/tacket/releases).
+2. Open the DMG and drag Tacket into Applications.
+3. Add the Tacket Chrome extension.
+4. Open Tacket once so it can install its local Chrome connector.
+
+Until the signed release is ready, you can try it from source:
 
 ```bash
-cd Tacket
 npm install
-npm run generate:icons
-npm run verify
-sample_path=$(node apps/cli/bin/tacket.js sample --out /tmp/tacket-demo)
-node apps/cli/bin/tacket.js transfer "$sample_path" --to clipboard
+npm run package:release
+open dist/Tacket.app
 ```
 
-Install the native messaging host for Chrome development:
+Then load `apps/chrome-extension` as an unpacked Chrome extension and install the connector:
 
 ```bash
-node apps/cli/bin/tacket.js install-native-host \
-  --extension-id <chrome-extension-id>
-node apps/cli/bin/tacket.js status-native-host
+node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension-id>
 ```
 
-Then load `apps/chrome-extension` as an unpacked extension in Chrome, open a supported thread, and click **Capture This Thread** from the extension popup.
+## Use
 
-Transfer a saved bundle into a coding agent:
+1. Open a ChatGPT, Claude, or Gemini thread in Chrome.
+2. Click the Tacket extension.
+3. Choose **Capture This Thread**.
+4. Open Tacket and select the saved bundle.
+5. Transfer it to Clipboard, Codex, or Claude Code.
 
-```bash
-node apps/cli/bin/tacket.js transfer ~/Documents/Tacket\ Captures/example.tacket --to codex
-node apps/cli/bin/tacket.js transfer ~/Documents/Tacket\ Captures/example.tacket --to claude-code
-```
+The first automated transfer may trigger a macOS permission prompt. Tacket uses that permission only to open Terminal and paste the transcript after you choose a transfer target.
 
-Tacket copies the raw transcript and requests a paste into Terminal. Use `--no-paste` to launch/copy without the automation step.
-Long transcripts are copied as ordered raw chunks. The Mac app exposes the chunk size in the transfer panel; the CLI uses `--chunk-size`. Chunk size must be at least 1000 characters.
+## Local Bundles
 
-Run the Mac shell during development:
-
-```bash
-cd apps/mac/TacketApp
-swift run
-```
-
-## End-to-End Development Checklist
-
-1. Run `npm install` from the repository root.
-2. Open `chrome://extensions`.
-3. Enable Developer Mode.
-4. Load `apps/chrome-extension` as an unpacked extension.
-5. Copy the generated extension ID.
-6. Run `node apps/cli/bin/tacket.js install-native-host --extension-id <id>`.
-7. Open a ChatGPT, Claude, or Gemini thread in Chrome.
-8. Click the Tacket extension and choose **Capture This Thread**.
-9. Choose the saved `.tacket` bundle from `~/Documents/Tacket Captures`.
-10. Review the selected bundle manifest, warnings, and raw transcript in the Mac app.
-11. Transfer it with the CLI or Mac app.
-
-The first time Tacket requests automated paste into Terminal, macOS may ask for Automation and Accessibility permission. Tacket copies the transcript locally first; those permissions are only used to open Terminal and press paste for the selected coding agent.
-
-Chrome extension IDs are 32 lowercase letters from `a` to `p`. Copy the exact ID from `chrome://extensions`; Tacket rejects malformed IDs before writing the connector manifest.
-
-The Mac app stores its capture-folder preference at:
+Each capture is saved as a folder ending in `.tacket`:
 
 ```text
-~/Library/Application Support/Tacket/config.json
+example.tacket/
+  manifest.json
+  messages.jsonl
+  transcript.md
+  attachments/
+  targets/
+    codex.md
+    claude-code.md
 ```
 
-Remove the development connector:
+You can inspect the files yourself. The transcript is plain Markdown.
+
+## Privacy
+
+Tacket is designed to stay on your Mac. See [docs/PRIVACY.md](docs/PRIVACY.md) and the public [privacy page](website/privacy.html) for the current privacy contract.
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a PR, run:
 
 ```bash
-node apps/cli/bin/tacket.js uninstall-native-host
+npm run verify
 ```
 
-Package local development artifacts:
-
-```bash
-npm run package:release
-```
+Release planning lives in [docs/ROADMAP.md](docs/ROADMAP.md). Troubleshooting lives in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## License
 

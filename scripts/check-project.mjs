@@ -15,8 +15,8 @@ const requiredFiles = [
   ".github/dependabot.yml",
   ".github/pull_request_template.md",
   ".github/workflows/ci.yml",
-  ".github/workflows/pages.yml",
   ".github/workflows/release.yml",
+  "netlify.toml",
   "qa/live-capture/.gitkeep",
   "release.json",
   "README.md",
@@ -53,6 +53,7 @@ const requiredFiles = [
   "docs/STORE_ASSETS.md",
   "docs/TESTING.md",
   "docs/TROUBLESHOOTING.md",
+  "docs/WEBSITE.md",
   "scripts/package-mac-dev.sh",
   "scripts/package-dmg.sh",
   "scripts/sign-mac-app.sh",
@@ -345,6 +346,7 @@ const readiness = await readFile("scripts/check-release-readiness.mjs", "utf8");
 for (const phrase of [
   "GitHub CLI authenticated",
   "Working tree is clean",
+  "Website verifier passes",
   "Security reporting and dependency alerts are enabled",
   "does not match local HEAD",
   "latest Release head",
@@ -360,7 +362,7 @@ for (const phrase of [
 }
 
 const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
-for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "Latest Release artifact", "Latest Release artifact contents", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run release:verify-artifact", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
+for (const phrase of ["Open blockers", "Next commands", "Website build config", "Local HEAD", "matches HEAD", "Latest Release artifact", "Latest Release artifact contents", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run release:verify-artifact", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
   if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
 }
 
@@ -543,19 +545,16 @@ for (const phrase of ["verifyPackagedNativeMessagingManifest", "verifyMacConnect
   if (!verifyRelease.includes(phrase)) throw new Error(`Release verifier missing: ${phrase}`);
 }
 
-const pagesWorkflow = await readFile(".github/workflows/pages.yml", "utf8");
+const netlifyConfig = await readFile("netlify.toml", "utf8");
 for (const phrase of [
-  "actions/configure-pages",
-  "actions/upload-pages-artifact",
-  "actions/deploy-pages",
-  "path: website"
+  'command = "npm run website:verify"',
+  'publish = "website"'
 ]) {
-  if (!pagesWorkflow.includes(phrase)) throw new Error(`Pages workflow missing: ${phrase}`);
+  if (!netlifyConfig.includes(phrase)) throw new Error(`Netlify config missing: ${phrase}`);
 }
 
 for (const file of [
   ".github/workflows/ci.yml",
-  ".github/workflows/pages.yml",
   ".github/workflows/release.yml"
 ]) {
   const workflow = await readFile(file, "utf8");

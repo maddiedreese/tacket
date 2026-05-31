@@ -18,7 +18,7 @@ const requiredSecrets = [
 ];
 
 const repoState = await githubRepoState();
-const pagesState = await githubPagesState();
+const websiteState = await websiteBuildConfigState();
 const securityState = await githubSecurityState();
 const openIssues = await safeGhJson([
   "issue",
@@ -44,7 +44,7 @@ const releaseExists = await githubReleaseExists(tag);
 console.log(`Tacket ${tag} release status`);
 console.log("");
 printState("Repository settings", repoState);
-printState("GitHub Pages", pagesState);
+printState("Website build config", websiteState);
 printState("Security reporting/dependency alerts", securityState);
 printState("Local HEAD", currentHead ? currentHead.slice(0, 12) : "unknown");
 printState("Latest CI on main", ciRunState(latestCi, currentHead));
@@ -205,10 +205,15 @@ async function githubRepoState() {
   return ok ? "configured" : "review";
 }
 
-async function githubPagesState() {
-  const pages = await safeGhJson(["api", `repos/${repo}/pages`]);
-  if (!pages) return "unknown";
-  return pages.build_type === "workflow" && pages.https_enforced === true ? "configured" : "review";
+async function websiteBuildConfigState() {
+  try {
+    const config = await readFile("netlify.toml", "utf8");
+    return config.includes('command = "npm run website:verify"') && config.includes('publish = "website"') ?
+      "configured" :
+      "review";
+  } catch {
+    return "unknown";
+  }
 }
 
 async function githubSecurityState() {
