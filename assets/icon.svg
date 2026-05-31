@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Tacket icon">
+  <rect width="1024" height="1024" rx="224" fill="#245f73"/>
+  <path d="M276 290h472v114H568v330H456V404H276z" fill="#f8f7f4"/>
+  <path d="M290 646h196v88H290zM538 646h196v88H538z" fill="#d9c88f"/>
+  <path d="M288 514h448v72H288z" fill="#f8f7f4" opacity=".92"/>
+</svg>

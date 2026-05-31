@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/tacket-dev/tacket/security/advisories/new
+    about: Report vulnerabilities privately. Do not post exploit details or private transcripts in public issues.
+  - name: Privacy policy
+    url: https://tacket.dev/privacy.html
+    about: Read Tacket's local-first privacy policy.

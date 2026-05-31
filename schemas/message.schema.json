@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacket.dev/schemas/message.schema.json",
+  "title": "Tacket Message",
+  "type": "object",
+  "required": ["id", "role", "content", "source"],
+  "properties": {
+    "id": { "type": "string" },
+    "role": {
+      "type": "string",
+      "enum": ["user", "assistant", "system", "tool", "unknown"]
+    },
+    "author": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "content": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "text"],
+            "properties": {
+              "type": { "const": "text" },
+              "text": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "text"],
+            "properties": {
+              "type": { "const": "code" },
+              "text": { "type": "string" },
+              "language": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "status"],
+            "properties": {
+              "type": { "const": "attachment" },
+              "status": {
+                "type": "string",
+                "enum": ["captured", "referenced", "unavailable"]
+              },
+              "name": { "type": "string" },
+              "mimeType": { "type": "string" },
+              "url": { "type": "string" },
+              "path": { "type": "string" },
+              "dataUrl": { "type": "string" },
+              "alt": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["platform"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["chatgpt", "claude", "gemini", "unknown"]
+        },
+        "url": { "type": "string" },
+        "selector": { "type": "string" }
+      }
+    }
+  }
+}

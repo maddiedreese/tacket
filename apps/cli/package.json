@@ -1,0 +1,13 @@
+{
+  "name": "@tacket/cli",
+  "version": "0.1.0",
+  "description": "CLI for local Tacket capture and raw transcript transfer.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "tacket": "./bin/tacket.js"
+  },
+  "dependencies": {
+    "@tacket/thread-format": "0.1.0"
+  }
+}

@@ -1,0 +1,147 @@
+import { access, readFile } from "node:fs/promises";
+import path from "node:path";
+
+const requiredFiles = [
+  "LICENSE",
+  "CHANGELOG.md",
+  "SECURITY.md",
+  "CONTRIBUTING.md",
+  ".editorconfig",
+  ".gitattributes",
+  ".gitignore",
+  ".github/ISSUE_TEMPLATE/bug_report.yml",
+  ".github/ISSUE_TEMPLATE/feature_request.yml",
+  ".github/ISSUE_TEMPLATE/config.yml",
+  ".github/pull_request_template.md",
+  ".github/workflows/ci.yml",
+  ".github/workflows/release.yml",
+  "release.json",
+  "README.md",
+  "assets/icon.svg",
+  "apps/chrome-extension/manifest.json",
+  "apps/chrome-extension/manifest.dev.json",
+  "apps/chrome-extension/icons/tacket-16.png",
+  "apps/chrome-extension/icons/tacket-32.png",
+  "apps/chrome-extension/icons/tacket-48.png",
+  "apps/chrome-extension/icons/tacket-128.png",
+  "apps/chrome-extension/src/adapters/capture.js",
+  "examples/capture-demo/index.html",
+  "website/index.html",
+  "website/privacy.html",
+  "website/styles.css",
+  "website/assets/favicon.png",
+  "website/assets/icon-180.png",
+  "apps/native-host/bin/tacket-native-host.js",
+  "apps/cli/bin/tacket.js",
+  "apps/mac/TacketApp/Sources/TacketApp/TacketApp.swift",
+  "apps/mac/TacketApp/Sources/TacketNativeHost/main.swift",
+  "apps/mac/TacketApp/Tacket.entitlements",
+  "packages/thread-format/src/index.js",
+  "schemas/manifest.schema.json",
+  "schemas/message.schema.json",
+  "docs/PRIVACY.md",
+  "docs/CHROME_WEB_STORE.md",
+  "docs/RELEASE.md",
+  "docs/TESTING.md",
+  "docs/TROUBLESHOOTING.md",
+  "scripts/package-mac-dev.sh",
+  "scripts/package-dmg.sh",
+  "scripts/sign-mac-app.sh",
+  "scripts/notarize-dmg.sh",
+  "scripts/package-extension.sh",
+  "scripts/package-release.sh",
+  "scripts/generate-icons.mjs",
+  "scripts/generate-checksums.mjs",
+  "scripts/check-versions.mjs",
+  "scripts/validate-bundle.mjs",
+  "scripts/verify-release.mjs",
+  "scripts/smoke-swift-host.mjs"
+];
+
+for (const file of requiredFiles) {
+  await access(path.resolve(file));
+}
+
+const manifest = JSON.parse(await readFile("apps/chrome-extension/manifest.json", "utf8"));
+const hosts = new Set(manifest.host_permissions ?? []);
+for (const host of ["https://chatgpt.com/*", "https://claude.ai/*", "https://gemini.google.com/*"]) {
+  if (!hosts.has(host)) throw new Error(`Missing extension host permission: ${host}`);
+}
+
+const popup = await readFile("apps/chrome-extension/src/popup.js", "utf8");
+for (const host of ["chatgpt.com", "chat.openai.com", "claude.ai", "gemini.google.com"]) {
+  if (!popup.includes(host)) throw new Error(`Popup must block capture outside supported host: ${host}`);
+}
+if (!popup.includes("isSupportedChatUrl")) {
+  throw new Error("Popup must validate the active tab URL before injecting capture code.");
+}
+if (!popup.includes("manifestAllowsFileUrls")) {
+  throw new Error("Popup file URL support must be gated by manifest permissions.");
+}
+
+const cli = await readFile("apps/cli/bin/tacket.js", "utf8");
+for (const command of ["install-native-host", "status-native-host", "uninstall-native-host"]) {
+  if (!cli.includes(command)) throw new Error(`CLI missing ${command}`);
+}
+if (!cli.includes("validateChromeExtensionId")) {
+  throw new Error("CLI must validate Chrome extension IDs before writing native host manifests.");
+}
+
+const macApp = await readFile("apps/mac/TacketApp/Sources/TacketApp/TacketApp.swift", "utf8");
+if (!macApp.includes("isValidChromeExtensionId")) {
+  throw new Error("Mac app must validate Chrome extension IDs before writing native host manifests.");
+}
+
+const entitlements = await readFile("apps/mac/TacketApp/Tacket.entitlements", "utf8");
+if (!entitlements.includes("com.apple.security.automation.apple-events")) {
+  throw new Error("Mac app entitlements must include Apple Events for Terminal transfer automation.");
+}
+
+const signScript = await readFile("scripts/sign-mac-app.sh", "utf8");
+for (const phrase of ["--options runtime", "--entitlements", "Tacket.entitlements"]) {
+  if (!signScript.includes(phrase)) throw new Error(`Signing script missing: ${phrase}`);
+}
+
+const issueConfig = await readFile(".github/ISSUE_TEMPLATE/config.yml", "utf8");
+if (!issueConfig.includes("/security/advisories/new")) {
+  throw new Error("Issue template config must direct vulnerabilities to private security advisories.");
+}
+
+const troubleshooting = await readFile("docs/TROUBLESHOOTING.md", "utf8");
+for (const phrase of [
+  "Native Host Not Found",
+  "Captures Go to the Wrong Folder",
+  "Terminal Paste Does Not Happen",
+  "Uninstall Tacket",
+  "dev.tacket.host.json",
+  "Tacket Captures"
+]) {
+  if (!troubleshooting.includes(phrase)) throw new Error(`Troubleshooting guide missing: ${phrase}`);
+}
+
+const changelog = await readFile("CHANGELOG.md", "utf8");
+for (const phrase of ["0.1.0", "Chrome extension capture", "Raw transcript transfer"]) {
+  if (!changelog.includes(phrase)) throw new Error(`Changelog missing: ${phrase}`);
+}
+
+for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {
+  const text = await readFile(file, "utf8");
+  if (!text.includes("npm run package:release")) {
+    throw new Error(`${file} must point release-affecting changes to npm run package:release`);
+  }
+}
+
+const releaseWorkflow = await readFile(".github/workflows/release.yml", "utf8");
+for (const phrase of [
+  "DEVELOPER_ID_CERTIFICATE_BASE64",
+  "scripts/sign-mac-app.sh",
+  "scripts/notarize-dmg.sh",
+  "dist/Tacket.dmg",
+  "dist/tacket-chrome-extension.zip",
+  "dist/SHA256SUMS",
+  "gh release create"
+]) {
+  if (!releaseWorkflow.includes(phrase)) throw new Error(`Release workflow missing: ${phrase}`);
+}
+
+console.log("Project checks passed.");

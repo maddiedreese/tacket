@@ -1,0 +1,13 @@
+{
+  "name": "@tacket/native-host",
+  "version": "0.1.0",
+  "description": "Chrome Native Messaging host for Tacket.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "tacket-native-host": "./bin/tacket-native-host.js"
+  },
+  "dependencies": {
+    "@tacket/thread-format": "0.1.0"
+  }
+}

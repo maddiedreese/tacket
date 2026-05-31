@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tacket Capture Demo</title>
+    <style>
+      body {
+        margin: 0;
+        color: #171717;
+        background: #f7f7f5;
+        font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 32px 18px;
+      }
+
+      article {
+        margin: 0 0 18px;
+        padding: 16px;
+        border: 1px solid #ddd8ce;
+        border-radius: 6px;
+        background: #fff;
+      }
+
+      pre {
+        overflow: auto;
+        padding: 12px;
+        border-radius: 6px;
+        background: #202124;
+        color: #f1f3f4;
+      }
+
+      img {
+        max-width: 180px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Tacket Capture Demo</h1>
+      <p>This page mimics AI chat DOM patterns for local extension testing.</p>
+
+      <article data-message-author-role="user">
+        <p>I want the full raw transcript transferred, including code and images.</p>
+        <img
+          alt="tiny sample"
+          src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+        />
+      </article>
+
+      <article data-message-author-role="assistant">
+        <p>Here is a small implementation sketch.</p>
+        <pre class="language-js">const transfer = (thread) =&gt; {
+  return thread.messages.map((message) =&gt; message.content).join("\n");
+};</pre>
+        <a href="example-context.pdf">example-context.pdf</a>
+      </article>
+
+      <article data-message-author-role="user">
+        <p>Make sure this is raw transfer, not summary generation.</p>
+      </article>
+    </main>
+  </body>
+</html>

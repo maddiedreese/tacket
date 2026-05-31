@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest an improvement to Tacket.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tacket v1 is local-first and does not summarize raw transfer payloads. Please avoid including private transcript content in public feature requests.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow
+      description: What are you trying to do?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Chat-to-coding transfer
+        - Coding-to-coding transfer
+        - Chrome capture
+        - Mac app
+        - CLI
+        - .tacket bundle format
+        - Packaging/release
+        - Website/docs
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful version of the feature.
+    validations:
+      required: true
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Local-first constraints
+      options:
+        - label: This can work without a backend.
+        - label: This can work without analytics or telemetry.
+        - label: This preserves raw transcript transfer without forced summarization.

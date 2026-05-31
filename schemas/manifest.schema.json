@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacket.dev/schemas/manifest.schema.json",
+  "title": "Tacket Manifest",
+  "type": "object",
+  "required": ["schemaVersion", "id", "title", "source", "capturedAt", "messageCount"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["platform", "url"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["chatgpt", "claude", "gemini", "unknown"]
+        },
+        "url": { "type": "string" }
+      }
+    },
+    "capturedAt": { "type": "string" },
+    "messageCount": { "type": "integer", "minimum": 0 },
+    "attachments": {
+      "type": "object",
+      "properties": {
+        "captured": { "type": "integer", "minimum": 0 },
+        "referenced": { "type": "integer", "minimum": 0 },
+        "unavailable": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "kind", "count", "messageIds"],
+        "properties": {
+          "type": { "const": "possible_secret" },
+          "kind": { "type": "string" },
+          "count": { "type": "integer", "minimum": 1 },
+          "messageIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

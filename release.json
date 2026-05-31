@@ -1,0 +1,7 @@
+{
+  "version": "0.1.0",
+  "build": "1",
+  "schemaVersion": "0.1.0",
+  "bundleIdentifier": "dev.tacket.app",
+  "nativeHostName": "dev.tacket.host"
+}

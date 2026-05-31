@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tacket Privacy</title>
+    <link rel="icon" href="./assets/favicon.png" />
+    <link rel="apple-touch-icon" href="./assets/icon-180.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a class="brand" href="./"><img src="./assets/favicon.png" alt="" />Tacket</a>
+        <div>
+          <a href="./privacy.html">Privacy</a>
+          <a href="https://github.com/tacket-dev/tacket">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="document">
+      <h1>Privacy Policy</h1>
+      <p>Last updated: May 31, 2026</p>
+
+      <h2>Local-only by design</h2>
+      <p>
+        Tacket captures AI chat threads only when you explicitly click Capture This Thread.
+        Captured data is sent to the local Tacket app through Chrome Native Messaging and
+        written to local files on your Mac.
+      </p>
+
+      <h2>What Tacket does not collect</h2>
+      <ul>
+        <li>No analytics</li>
+        <li>No telemetry</li>
+        <li>No remote crash reports</li>
+        <li>No background chat collection</li>
+        <li>No model/API calls</li>
+        <li>No Tacket backend account</li>
+      </ul>
+
+      <h2>Browser permissions</h2>
+      <p>
+        The Chrome extension requests access only to supported AI chat domains and only
+        uses that access after you click the extension capture button. The popup refuses
+        capture outside ChatGPT, Claude, and Gemini hosts.
+      </p>
+
+      <h2>Local files</h2>
+      <p>
+        Captured `.tacket` bundles may contain private conversation text, code, images,
+        and attachment references. You control where those files are stored and whether
+        they are committed to git or shared with other tools.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Open an issue on the Tacket GitHub repository for general privacy questions.
+        For security vulnerabilities, use GitHub private vulnerability reporting when
+        available, or open a minimal public issue asking for a maintainer security
+        contact without including private details.
+      </p>
+    </main>
+  </body>
+</html>

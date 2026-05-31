@@ -1,0 +1,70 @@
+name: Bug report
+description: Report a reproducible Tacket problem.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Tacket. Do not include private chat transcripts, API keys, tokens, screenshots with sensitive content, or vulnerability exploit details in public issues.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Chrome capture
+        - Native messaging connector
+        - Mac app
+        - CLI
+        - .tacket bundle format
+        - Transfer to Codex
+        - Transfer to Claude Code
+        - Packaging/release
+        - Website/docs
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source app
+      description: ChatGPT, Claude, Gemini, or not applicable.
+      placeholder: ChatGPT
+  - type: input
+    id: version
+    attributes:
+      label: Tacket version or commit
+      placeholder: 0.1.0 or commit SHA
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 15.x
+  - type: input
+    id: chrome
+    attributes:
+      label: Chrome version
+      placeholder: Chrome 1xx.x
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use a minimal synthetic example when possible.
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Paste only non-sensitive logs. Redact local usernames, tokens, and transcript text.
+      render: text
