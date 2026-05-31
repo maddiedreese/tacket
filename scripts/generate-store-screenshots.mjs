@@ -312,6 +312,7 @@ function run(command, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
     const stderr = [];
+    child.stdout.resume();
     child.stderr.on("data", (chunk) => stderr.push(chunk));
     child.on("error", reject);
     child.on("exit", (code) => {

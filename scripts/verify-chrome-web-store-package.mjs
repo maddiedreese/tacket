@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 
-const root = path.resolve(new URL("..", import.meta.url).pathname);
+const root = path.resolve(process.env.TACKET_RELEASE_ROOT ?? new URL("..", import.meta.url).pathname);
 const release = JSON.parse(await readFile(path.join(root, "release.json"), "utf8"));
 const storeDir = path.join(root, "dist", "chrome-web-store");
 const extensionZip = path.join(storeDir, "tacket-chrome-extension.zip");
