@@ -10,5 +10,6 @@ bash "$ROOT_DIR/scripts/package-mac-dev.sh"
 bash "$ROOT_DIR/scripts/package-dmg.sh"
 npm --prefix "$ROOT_DIR" run generate:checksums
 npm --prefix "$ROOT_DIR" run verify:release
+npm --prefix "$ROOT_DIR" run smoke:dmg-install
 
 printf "Release artifacts ready in %s/dist\n" "$ROOT_DIR"

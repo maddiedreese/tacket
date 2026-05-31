@@ -68,6 +68,7 @@ const requiredFiles = [
   "scripts/verify-release.mjs",
   "scripts/smoke-swift-host.mjs",
   "scripts/smoke-first-run.mjs",
+  "scripts/smoke-dmg-install.mjs",
   "scripts/new-live-qa.mjs",
   "scripts/verify-live-qa.mjs",
   "scripts/test/verify-live-qa.test.js",
@@ -195,6 +196,9 @@ if (!rootPackage.scripts?.verify?.includes("npm run website:verify")) {
 if (rootPackage.scripts?.["smoke:first-run"] !== "node scripts/smoke-first-run.mjs") {
   throw new Error("package.json must expose npm run smoke:first-run.");
 }
+if (rootPackage.scripts?.["smoke:dmg-install"] !== "node scripts/smoke-dmg-install.mjs") {
+  throw new Error("package.json must expose npm run smoke:dmg-install.");
+}
 if (!rootPackage.scripts?.verify?.includes("npm run smoke:first-run")) {
   throw new Error("npm run verify must include the first-run smoke test.");
 }
@@ -243,7 +247,7 @@ for (const phrase of ["ChatGPT", "Claude", "Gemini", "validate-bundle.mjs", "Rel
 }
 
 const testing = await readFile("docs/TESTING.md", "utf8");
-for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run smoke:first-run", "npm run website:verify", "qa/live-capture/", "git-ignored", "message/attachment/warning evidence"]) {
+for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run smoke:first-run", "npm run smoke:dmg-install", "npm run website:verify", "qa/live-capture/", "git-ignored", "message/attachment/warning evidence"]) {
   if (!testing.includes(phrase)) throw new Error(`Testing guide missing live QA guidance: ${phrase}`);
 }
 
@@ -255,6 +259,11 @@ for (const phrase of ["releasesUrl", "SHA256SUMS", "Website checks passed"]) {
 const firstRunSmoke = await readFile("scripts/smoke-first-run.mjs", "utf8");
 for (const phrase of ["install-native-host", "saveCapture", "validate-bundle.mjs", "claude-code", "First-run smoke passed"]) {
   if (!firstRunSmoke.includes(phrase)) throw new Error(`First-run smoke script missing: ${phrase}`);
+}
+
+const dmgInstallSmoke = await readFile("scripts/smoke-dmg-install.mjs", "utf8");
+for (const phrase of ["Tacket.dmg", "Tacket.app", "TacketNativeHost", "validate-bundle.mjs", "DMG install smoke passed"]) {
+  if (!dmgInstallSmoke.includes(phrase)) throw new Error(`DMG install smoke script missing: ${phrase}`);
 }
 
 const readiness = await readFile("scripts/check-release-readiness.mjs", "utf8");
@@ -361,6 +370,11 @@ for (const phrase of ["Extension permissions", "Extension host permissions", "se
 const storeVerifyId = await readFile("scripts/verify-web-store-extension-id.mjs", "utf8");
 for (const phrase of ["--extension-id", "allowed_origins", "uninstall-native-host", "Chrome Web Store extension ID verification passed"]) {
   if (!storeVerifyId.includes(phrase)) throw new Error(`Chrome Web Store extension ID verifier missing: ${phrase}`);
+}
+
+const packageRelease = await readFile("scripts/package-release.sh", "utf8");
+if (!packageRelease.includes("smoke:dmg-install")) {
+  throw new Error("Release package script must run npm run smoke:dmg-install.");
 }
 
 for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {

@@ -28,6 +28,14 @@ Run only the first-run smoke path with:
 npm run smoke:first-run
 ```
 
+After `npm run package:release` builds `dist/Tacket.dmg`, rehearse the direct-download install path with:
+
+```bash
+npm run smoke:dmg-install
+```
+
+This mounts the DMG, copies `Tacket.app` into a temporary Applications-like folder, runs the packaged Swift native host with an isolated `HOME` and capture directory, validates the captured `.tacket` bundle, then unmounts and removes all temporary files.
+
 ## Manual Browser Checks
 
 Live AI apps change their DOMs. Before a release, test capture manually against:
