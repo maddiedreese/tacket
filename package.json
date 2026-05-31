@@ -34,6 +34,7 @@
     "release:pretag": "node scripts/check-pretag-release.mjs",
     "release:tag": "node scripts/create-release-tag.mjs",
     "release:verify-download": "node scripts/verify-release-download.mjs",
+    "release:verify-artifact": "node scripts/verify-release-artifact.mjs",
     "release:assess": "node scripts/assess-release-gatekeeper.mjs",
     "release:postflight": "node scripts/check-post-release.mjs",
     "store:screenshots": "node scripts/generate-store-screenshots.mjs",

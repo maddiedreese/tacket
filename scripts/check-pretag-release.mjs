@@ -129,6 +129,10 @@ await check("Latest Release workflow artifact is available", async () => {
   assert(artifact.size_in_bytes > 0, "tacket-release artifact is empty");
 });
 
+await check("Latest Release workflow artifact contents verify", async () => {
+  await run("npm", ["run", "release:verify-artifact"]);
+});
+
 await check("Latest Release workflow signed and notarized when secrets are configured", async () => {
   const missing = await missingSigningSecrets();
   if (missing.length > 0) return;

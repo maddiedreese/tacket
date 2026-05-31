@@ -239,6 +239,9 @@ if (rootPackage.scripts?.["release:tag"] !== "node scripts/create-release-tag.mj
 if (rootPackage.scripts?.["release:verify-download"] !== "node scripts/verify-release-download.mjs") {
   throw new Error("package.json must expose npm run release:verify-download.");
 }
+if (rootPackage.scripts?.["release:verify-artifact"] !== "node scripts/verify-release-artifact.mjs") {
+  throw new Error("package.json must expose npm run release:verify-artifact.");
+}
 if (rootPackage.scripts?.["release:assess"] !== "node scripts/assess-release-gatekeeper.mjs") {
   throw new Error("package.json must expose npm run release:assess.");
 }
@@ -301,6 +304,7 @@ for (const phrase of [
   "does not match local HEAD",
   "latest Release head",
   "Latest Release workflow artifact is available",
+  "Latest Release workflow artifact contents verify",
   "Latest Release workflow signed and notarized when secrets are configured",
   "Release issue checklists are synced",
   "v0.1.0 milestone has no open issues",
@@ -311,7 +315,7 @@ for (const phrase of [
 }
 
 const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
-for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "Latest Release artifact", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
+for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "Latest Release artifact", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run release:verify-artifact", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
   if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
 }
 
@@ -332,6 +336,7 @@ for (const phrase of [
   "does not match local HEAD",
   "latest Release head",
   "Latest Release workflow artifact is available",
+  "Latest Release workflow artifact contents verify",
   "Latest Release workflow signed and notarized when secrets are configured",
   "CHANGELOG.md has a final dated",
   "Release issue checklists are synced",
@@ -350,6 +355,11 @@ for (const phrase of ["release:pretag", "git\", [\"tag\", \"-a\"", "--push", "--
 const verifyDownload = await readFile("scripts/verify-release-download.mjs", "utf8");
 for (const phrase of ["gh", "release", "download", "SHA256SUMS", "hdiutil", "manifest.dev.json"]) {
   if (!verifyDownload.includes(phrase)) throw new Error(`Release download verifier missing: ${phrase}`);
+}
+
+const verifyArtifact = await readFile("scripts/verify-release-artifact.mjs", "utf8");
+for (const phrase of ["gh", "run", "download", "tacket-release", "chrome-web-store", "release:verify-download"]) {
+  if (!verifyArtifact.includes(phrase)) throw new Error(`Release artifact verifier missing: ${phrase}`);
 }
 
 const gatekeeperAssess = await readFile("scripts/assess-release-gatekeeper.mjs", "utf8");
@@ -386,6 +396,9 @@ if (!releaseDocs.includes("npm run release:tag")) {
 }
 if (!releaseDocs.includes("npm run release:verify-download")) {
   throw new Error("Release docs must mention npm run release:verify-download.");
+}
+if (!releaseDocs.includes("npm run release:verify-artifact")) {
+  throw new Error("Release docs must mention npm run release:verify-artifact.");
 }
 if (!releaseDocs.includes("npm run release:postflight")) {
   throw new Error("Release docs must mention npm run release:postflight.");

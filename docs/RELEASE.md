@@ -139,6 +139,18 @@ npm run release:status
 
 This non-failing status command summarizes the current v0.1.0 milestone issues, signing/notarization secrets, release issue checklist sync state, latest CI/Release workflow state, whether those workflow runs match local `HEAD`, whether the latest Release workflow artifact is available, whether the GitHub Release already exists, and the next commands for each remaining blocker.
 
+Verify the latest manual Release workflow artifact contents:
+
+```bash
+npm run release:verify-artifact
+```
+
+This downloads the latest `tacket-release` workflow artifact for the local `HEAD`, confirms it contains the public release downloads plus the Chrome Web Store upload folder, confirms the store zip matches the release extension zip, then runs the download verifier against the extracted files. To inspect a specific run or keep the downloaded copy:
+
+```bash
+npm run release:verify-artifact -- --run-id <github-actions-run-id> --keep
+```
+
 Check that v0.1.0 GitHub issue bodies match the canonical release checklist text:
 
 ```bash
@@ -157,7 +169,7 @@ Run the strict remote release gate:
 npm run release:readiness
 ```
 
-This command uses GitHub CLI to confirm the working tree is clean, the public repository is reachable, Pages is enabled, latest CI passed for the local `HEAD`, the latest manual Release workflow run passed for the local `HEAD`, the `tacket-release` workflow artifact is available, signing/notarization Release workflow steps ran successfully when signing secrets are configured, release issue checklists are synced, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
+This command uses GitHub CLI to confirm the working tree is clean, the public repository is reachable, Pages is enabled, latest CI passed for the local `HEAD`, the latest manual Release workflow run passed for the local `HEAD`, the `tacket-release` workflow artifact is available and its contents verify, signing/notarization Release workflow steps ran successfully when signing secrets are configured, release issue checklists are synced, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
 
 When the external release gates are complete, date the changelog entry:
 
@@ -177,7 +189,7 @@ Check final pre-tag release state:
 npm run release:pretag
 ```
 
-This command verifies the working tree is clean, local release artifacts, the Chrome Web Store submission folder prepared by `npm run package:release` or `npm run store:prepare`, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, synced release issue checklists, no open v0.1.0 milestone issues, configured signing/notarization secrets, current green CI for the local `HEAD`, the latest green Release workflow run for the local `HEAD`, an available `tacket-release` workflow artifact, and successful signing/notarization workflow steps when signing secrets are configured. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
+This command verifies the working tree is clean, local release artifacts, the Chrome Web Store submission folder prepared by `npm run package:release` or `npm run store:prepare`, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, synced release issue checklists, no open v0.1.0 milestone issues, configured signing/notarization secrets, current green CI for the local `HEAD`, the latest green Release workflow run for the local `HEAD`, an available `tacket-release` workflow artifact with verified contents, and successful signing/notarization workflow steps when signing secrets are configured. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
 
 Create the release tag after `release:pretag` passes:
 
