@@ -134,7 +134,9 @@ for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {
 
 const releaseWorkflow = await readFile(".github/workflows/release.yml", "utf8");
 for (const phrase of [
+  "Require signed tag release credentials",
   "DEVELOPER_ID_CERTIFICATE_BASE64",
+  "APPLE_APP_SPECIFIC_PASSWORD",
   "scripts/sign-mac-app.sh",
   "scripts/notarize-dmg.sh",
   "dist/Tacket.dmg",
@@ -153,6 +155,17 @@ for (const phrase of [
   "path: website"
 ]) {
   if (!pagesWorkflow.includes(phrase)) throw new Error(`Pages workflow missing: ${phrase}`);
+}
+
+for (const file of [
+  ".github/workflows/ci.yml",
+  ".github/workflows/pages.yml",
+  ".github/workflows/release.yml"
+]) {
+  const workflow = await readFile(file, "utf8");
+  if (!workflow.includes("FORCE_JAVASCRIPT_ACTIONS_TO_NODE24")) {
+    throw new Error(`${file} must opt GitHub JavaScript actions into Node 24.`);
+  }
 }
 
 console.log("Project checks passed.");
