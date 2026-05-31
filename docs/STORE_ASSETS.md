@@ -30,6 +30,14 @@ npm run store:screenshots
 
 This script uses local Google Chrome in headless mode to render demo-only HTML scenes. Review the generated screenshots before submission.
 
+Prepare the local Chrome Web Store upload folder with:
+
+```bash
+npm run store:prepare
+```
+
+This writes `dist/chrome-web-store/` with the extension zip, required 128 pixel icon, small promotional image, screenshots, and a short upload README. The command regenerates icons and synthetic screenshots before copying assets.
+
 ## Screenshot Set
 
 Prepare screenshots from synthetic data that show:

@@ -68,7 +68,8 @@ const requiredFiles = [
   "scripts/smoke-swift-host.mjs",
   "scripts/new-live-qa.mjs",
   "scripts/check-release-readiness.mjs",
-  "scripts/generate-store-screenshots.mjs"
+  "scripts/generate-store-screenshots.mjs",
+  "scripts/prepare-chrome-web-store.mjs"
 ];
 
 for (const file of requiredFiles) {
@@ -181,6 +182,9 @@ if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-r
 if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-screenshots.mjs") {
   throw new Error("package.json must expose npm run store:screenshots.");
 }
+if (rootPackage.scripts?.["store:prepare"] !== "node scripts/prepare-chrome-web-store.mjs") {
+  throw new Error("package.json must expose npm run store:prepare.");
+}
 
 const liveQa = await readFile("scripts/new-live-qa.mjs", "utf8");
 for (const phrase of ["Do not paste private transcript text", "ChatGPT", "Claude", "Gemini", "Release Decision"]) {
@@ -218,6 +222,9 @@ const chromeStore = await readFile("docs/CHROME_WEB_STORE.md", "utf8");
 if (!chromeStore.includes("docs/STORE_ASSETS.md")) {
   throw new Error("Chrome Web Store docs must link to docs/STORE_ASSETS.md.");
 }
+if (!chromeStore.includes("npm run store:prepare")) {
+  throw new Error("Chrome Web Store docs must mention npm run store:prepare.");
+}
 
 const storeAssets = await readFile("docs/STORE_ASSETS.md", "utf8");
 for (const phrase of [
@@ -226,6 +233,7 @@ for (const phrase of [
   "440 by 280",
   "store-assets/chrome-web-store/small-promo-440x280.png",
   "npm run store:screenshots",
+  "npm run store:prepare",
   "store-assets/chrome-web-store/screenshots/",
   "Do not use private AI chat transcripts",
   "https://developer.chrome.com/docs/webstore/images"

@@ -23,7 +23,8 @@
     "verify:release": "node scripts/verify-release.mjs",
     "qa:live": "node scripts/new-live-qa.mjs",
     "release:readiness": "node scripts/check-release-readiness.mjs",
-    "store:screenshots": "node scripts/generate-store-screenshots.mjs"
+    "store:screenshots": "node scripts/generate-store-screenshots.mjs",
+    "store:prepare": "node scripts/prepare-chrome-web-store.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -70,3 +70,13 @@ Prepare Chrome Web Store screenshots showing:
 - local `.tacket` bundle files in Finder
 
 The extension package includes generated PNG icons at 16, 32, 48, and 128 pixels.
+
+## Submission Folder
+
+Prepare a local upload folder with:
+
+```bash
+npm run store:prepare
+```
+
+This writes `dist/chrome-web-store/` with the extension zip, required icon, small promotional image, screenshots, and a short upload README. Review every generated image before submitting.
