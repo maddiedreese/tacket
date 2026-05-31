@@ -73,6 +73,7 @@ const requiredFiles = [
   "scripts/check-release-readiness.mjs",
   "scripts/check-pretag-release.mjs",
   "scripts/verify-release-download.mjs",
+  "scripts/assess-release-gatekeeper.mjs",
   "scripts/generate-store-screenshots.mjs",
   "scripts/prepare-chrome-web-store.mjs"
 ];
@@ -205,6 +206,9 @@ if (rootPackage.scripts?.["release:pretag"] !== "node scripts/check-pretag-relea
 if (rootPackage.scripts?.["release:verify-download"] !== "node scripts/verify-release-download.mjs") {
   throw new Error("package.json must expose npm run release:verify-download.");
 }
+if (rootPackage.scripts?.["release:assess"] !== "node scripts/assess-release-gatekeeper.mjs") {
+  throw new Error("package.json must expose npm run release:assess.");
+}
 if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-screenshots.mjs") {
   throw new Error("package.json must expose npm run store:screenshots.");
 }
@@ -264,6 +268,11 @@ for (const phrase of ["gh", "release", "download", "SHA256SUMS", "hdiutil", "man
   if (!verifyDownload.includes(phrase)) throw new Error(`Release download verifier missing: ${phrase}`);
 }
 
+const gatekeeperAssess = await readFile("scripts/assess-release-gatekeeper.mjs", "utf8");
+for (const phrase of ["spctl", "stapler", "Developer ID Application", "Gatekeeper assessment passed", "--dry-run"]) {
+  if (!gatekeeperAssess.includes(phrase)) throw new Error(`Gatekeeper assessment script missing: ${phrase}`);
+}
+
 const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
 if (!releaseDocs.includes("npm run release:readiness")) {
   throw new Error("Release docs must mention npm run release:readiness.");
@@ -273,6 +282,9 @@ if (!releaseDocs.includes("npm run release:pretag")) {
 }
 if (!releaseDocs.includes("npm run release:verify-download")) {
   throw new Error("Release docs must mention npm run release:verify-download.");
+}
+if (!releaseDocs.includes("npm run release:assess")) {
+  throw new Error("Release docs must mention npm run release:assess.");
 }
 if (!releaseDocs.includes("docs/STORE_ASSETS.md")) {
   throw new Error("Release docs must mention docs/STORE_ASSETS.md.");

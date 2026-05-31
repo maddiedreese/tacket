@@ -23,6 +23,7 @@ Tacket v1 is direct-download and local-only.
 - Run `npm run release:readiness` before pushing the release tag.
 - Run `npm run release:pretag` immediately before creating the release tag.
 - After the GitHub Release is published, run `npm run release:verify-download`.
+- Confirm Gatekeeper accepts the signed/notarized artifacts with `npm run release:assess`.
 
 The repository can build unsigned local artifacts without paid accounts. Public distribution additionally requires:
 
@@ -150,6 +151,18 @@ This downloads `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS` fro
 
 ```bash
 npm run release:verify-download -- --dir dist
+```
+
+Assess signed and notarized artifacts with Gatekeeper:
+
+```bash
+npm run release:assess
+```
+
+This verifies the app signature, confirms the app is signed by a Developer ID Application certificate, asks Gatekeeper to assess the app and DMG, verifies the DMG, and validates the notarization staple. It is expected to fail for unsigned local development artifacts. To preview the exact commands without running assessment:
+
+```bash
+npm run release:assess -- --dry-run
 ```
 
 ## Versioning
