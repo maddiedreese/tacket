@@ -61,6 +61,7 @@ const requiredFiles = [
   "scripts/package-extension.sh",
   "scripts/package-release.sh",
   "scripts/generate-icons.mjs",
+  "scripts/verify-website.mjs",
   "scripts/generate-checksums.mjs",
   "scripts/check-versions.mjs",
   "scripts/validate-bundle.mjs",
@@ -180,6 +181,12 @@ const rootPackage = JSON.parse(await readFile("package.json", "utf8"));
 if (rootPackage.scripts?.["qa:live"] !== "node scripts/new-live-qa.mjs") {
   throw new Error("package.json must expose npm run qa:live for live provider QA reports.");
 }
+if (rootPackage.scripts?.["website:verify"] !== "node scripts/verify-website.mjs") {
+  throw new Error("package.json must expose npm run website:verify.");
+}
+if (!rootPackage.scripts?.verify?.includes("npm run website:verify")) {
+  throw new Error("npm run verify must include website verification.");
+}
 if (rootPackage.scripts?.["smoke:first-run"] !== "node scripts/smoke-first-run.mjs") {
   throw new Error("package.json must expose npm run smoke:first-run.");
 }
@@ -216,8 +223,13 @@ for (const phrase of ["ChatGPT", "Claude", "Gemini", "validate-bundle.mjs", "Rel
 }
 
 const testing = await readFile("docs/TESTING.md", "utf8");
-for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run smoke:first-run", "qa/live-capture/", "git-ignored"]) {
+for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run smoke:first-run", "npm run website:verify", "qa/live-capture/", "git-ignored"]) {
   if (!testing.includes(phrase)) throw new Error(`Testing guide missing live QA guidance: ${phrase}`);
+}
+
+const websiteVerifier = await readFile("scripts/verify-website.mjs", "utf8");
+for (const phrase of ["releasesUrl", "SHA256SUMS", "Website checks passed"]) {
+  if (!websiteVerifier.includes(phrase)) throw new Error(`Website verifier missing: ${phrase}`);
 }
 
 const firstRunSmoke = await readFile("scripts/smoke-first-run.mjs", "utf8");

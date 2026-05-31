@@ -73,7 +73,7 @@ nav div {
 h1 {
   max-width: 780px;
   margin: 0;
-  font-size: clamp(42px, 7vw, 76px);
+  font-size: 72px;
   line-height: 0.98;
 }
 
@@ -107,6 +107,18 @@ h1 {
   border-color: var(--accent);
   color: white;
   background: var(--accent);
+}
+
+.download-note,
+.release-links {
+  max-width: 680px;
+  margin: 16px 0 0;
+  color: var(--muted);
+}
+
+.release-links {
+  display: flex;
+  gap: 10px;
 }
 
 .grid {
@@ -161,6 +173,10 @@ pre {
 }
 
 @media (max-width: 760px) {
+  h1 {
+    font-size: 44px;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }

@@ -16,6 +16,7 @@ Tacket v1 is direct-download and local-only.
 - Confirm the macOS Automation prompt explains that Tacket opens Terminal and pastes raw transcripts.
 - Update `CHANGELOG.md`.
 - Review `docs/PRIVACY.md` and Chrome listing copy for consistency.
+- Confirm `npm run website:verify` passes before publishing Pages changes.
 - Review `docs/CHROME_WEB_STORE.md` before submitting the extension.
 - Prepare Chrome Web Store images using `docs/STORE_ASSETS.md`.
 - Prepare the Chrome Web Store upload folder with `npm run store:prepare`, then review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image before uploading.
