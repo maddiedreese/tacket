@@ -13,8 +13,14 @@ https://developer.chrome.com/docs/webstore/images
 ## Required Assets
 
 - Extension icon: already generated at `apps/chrome-extension/icons/tacket-128.png`.
-- Small promotional image: 440 by 280 pixels, PNG or JPEG.
+- Small promotional image: generated at `store-assets/chrome-web-store/small-promo-440x280.png`.
 - Screenshots: one to five images, 1280 by 800 pixels or 640 by 400 pixels, PNG or JPEG.
+
+Regenerate icons and the small promotional image with:
+
+```bash
+npm run generate:icons
+```
 
 ## Screenshot Set
 

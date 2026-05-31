@@ -5,10 +5,12 @@ import path from "node:path";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 const extensionDir = path.join(root, "apps/chrome-extension/icons");
+const storeAssetsDir = path.join(root, "store-assets/chrome-web-store");
 const websiteDir = path.join(root, "website/assets");
 const iconsetDir = path.join(root, "dist/Tacket.iconset");
 
 await mkdir(extensionDir, { recursive: true });
+await mkdir(storeAssetsDir, { recursive: true });
 await mkdir(websiteDir, { recursive: true });
 await mkdir(iconsetDir, { recursive: true });
 
@@ -18,6 +20,7 @@ for (const size of [16, 32, 48, 128]) {
 
 await writeFile(path.join(websiteDir, "icon-180.png"), await renderPng(180));
 await writeFile(path.join(websiteDir, "favicon.png"), await renderPng(32));
+await writeFile(path.join(storeAssetsDir, "small-promo-440x280.png"), await renderPromoPng(440, 280));
 
 const iconsetSizes = [
   ["icon_16x16.png", 16],
@@ -39,6 +42,40 @@ for (const [name, size] of iconsetSizes) {
 console.log("Generated Tacket icons.");
 
 async function renderPng(size) {
+  return pngFromPixels(size, size, renderIconPixels(size));
+}
+
+async function renderPromoPng(width, height) {
+  const pixels = Buffer.alloc(width * height * 4);
+  const bg = [0xf8, 0xf7, 0xf4, 0xff];
+  const accent = [0x24, 0x5f, 0x73, 0xff];
+  const ink = [0x15, 0x15, 0x15, 0xff];
+  const muted = [0x5f, 0x63, 0x68, 0xff];
+  const line = [0xdd, 0xd8, 0xce, 0xff];
+  const paper = [0xff, 0xff, 0xff, 0xff];
+  const tack = [0xd9, 0xc8, 0x8f, 0xff];
+
+  fill(pixels, width, height, bg);
+  drawRect(pixels, width, height, 0, 0, width, 12, accent);
+  drawRoundedRect(pixels, width, height, 34, 52, 174, 174, 36, [0xff, 0xff, 0xff, 0xff]);
+  drawIcon(pixels, width, height, 57, 75, 128);
+
+  drawRoundedRect(pixels, width, height, 236, 54, 156, 28, 8, accent);
+  drawRoundedRect(pixels, width, height, 236, 98, 116, 14, 5, ink);
+  drawRoundedRect(pixels, width, height, 236, 126, 136, 10, 5, muted);
+  drawRoundedRect(pixels, width, height, 236, 148, 122, 10, 5, muted);
+
+  drawRoundedRect(pixels, width, height, 236, 184, 56, 20, 6, tack);
+  drawRoundedRect(pixels, width, height, 304, 184, 86, 20, 6, line);
+  drawRoundedRect(pixels, width, height, 236, 224, 154, 2, 1, line);
+
+  drawRoundedRect(pixels, width, height, 32, 238, 376, 10, 5, line);
+  drawRoundedRect(pixels, width, height, 32, 238, 250, 10, 5, accent);
+
+  return pngFromPixels(width, height, pixels);
+}
+
+function renderIconPixels(size) {
   const pixels = Buffer.alloc(size * size * 4);
   const radius = size * 0.22;
   const bg = [0x24, 0x5f, 0x73, 0xff];
@@ -62,19 +99,75 @@ async function renderPng(size) {
     }
   }
 
-  const raw = Buffer.alloc((size * 4 + 1) * size);
-  for (let y = 0; y < size; y += 1) {
-    const rowStart = y * (size * 4 + 1);
+  return pixels;
+}
+
+async function pngFromPixels(width, height, pixels) {
+  const rowStride = width * 4 + 1;
+  const raw = Buffer.alloc(rowStride * height);
+  for (let y = 0; y < height; y += 1) {
+    const rowStart = y * rowStride;
     raw[rowStart] = 0;
-    pixels.copy(raw, rowStart + 1, y * size * 4, (y + 1) * size * 4);
+    pixels.copy(raw, rowStart + 1, y * width * 4, (y + 1) * width * 4);
   }
 
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk("IHDR", ihdr(size, size)),
+    chunk("IHDR", ihdr(width, height)),
     chunk("IDAT", await deflate(raw)),
     chunk("IEND", Buffer.alloc(0))
   ]);
+}
+
+function fill(pixels, width, height, color) {
+  drawRect(pixels, width, height, 0, 0, width, height, color);
+}
+
+function drawIcon(pixels, canvasWidth, canvasHeight, left, top, size) {
+  const icon = renderIconPixels(size);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const source = (y * size + x) * 4;
+      const alpha = icon[source + 3] / 255;
+      if (alpha === 0) continue;
+      blendPixel(
+        pixels,
+        canvasWidth,
+        canvasHeight,
+        left + x,
+        top + y,
+        [icon[source], icon[source + 1], icon[source + 2], icon[source + 3]]
+      );
+    }
+  }
+}
+
+function drawRoundedRect(pixels, canvasWidth, canvasHeight, left, top, width, height, radius, color) {
+  for (let y = Math.floor(top); y < Math.ceil(top + height); y += 1) {
+    for (let x = Math.floor(left); x < Math.ceil(left + width); x += 1) {
+      if (roundedRectContains(x - left, y - top, width, height, radius)) {
+        blendPixel(pixels, canvasWidth, canvasHeight, x, y, color);
+      }
+    }
+  }
+}
+
+function drawRect(pixels, canvasWidth, canvasHeight, left, top, width, height, color) {
+  for (let y = Math.max(0, Math.floor(top)); y < Math.min(canvasHeight, Math.ceil(top + height)); y += 1) {
+    for (let x = Math.max(0, Math.floor(left)); x < Math.min(canvasWidth, Math.ceil(left + width)); x += 1) {
+      blendPixel(pixels, canvasWidth, canvasHeight, x, y, color);
+    }
+  }
+}
+
+function blendPixel(pixels, width, height, x, y, color) {
+  if (x < 0 || y < 0 || x >= width || y >= height) return;
+  const offset = (Math.floor(y) * width + Math.floor(x)) * 4;
+  const alpha = color[3] / 255;
+  pixels[offset] = Math.round(color[0] * alpha + pixels[offset] * (1 - alpha));
+  pixels[offset + 1] = Math.round(color[1] * alpha + pixels[offset + 1] * (1 - alpha));
+  pixels[offset + 2] = Math.round(color[2] * alpha + pixels[offset + 2] * (1 - alpha));
+  pixels[offset + 3] = Math.max(pixels[offset + 3], color[3]);
 }
 
 function inRect(x, y, size, left, top, width, height) {

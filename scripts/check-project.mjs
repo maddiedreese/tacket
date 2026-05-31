@@ -42,6 +42,7 @@ const requiredFiles = [
   "packages/thread-format/src/index.js",
   "schemas/manifest.schema.json",
   "schemas/message.schema.json",
+  "store-assets/chrome-web-store/small-promo-440x280.png",
   "docs/PRIVACY.md",
   "docs/CHROME_WEB_STORE.md",
   "docs/RELEASE.md",
@@ -201,6 +202,7 @@ for (const phrase of [
   "1280 by 800",
   "640 by 400",
   "440 by 280",
+  "store-assets/chrome-web-store/small-promo-440x280.png",
   "Do not use private AI chat transcripts",
   "https://developer.chrome.com/docs/webstore/images"
 ]) {

@@ -22,6 +22,7 @@ await assertFile(dmg);
 await assertFile(extensionZip);
 await assertFile(checksums);
 await assertFile(path.join(root, "apps/mac/TacketApp/Tacket.entitlements"));
+await assertPngDimensions(path.join(root, "store-assets/chrome-web-store/small-promo-440x280.png"), 440, 280);
 
 await verifyInfoPlist(path.join(app, "Contents/Info.plist"));
 await verifyMacSigningInputs();
@@ -218,6 +219,17 @@ async function assertExecutable(file) {
   await access(file, constants.R_OK | constants.X_OK);
   const info = await stat(file);
   if (!info.isFile()) throw new Error(`Expected executable file: ${file}`);
+}
+
+async function assertPngDimensions(file, width, height) {
+  const bytes = await readFile(file);
+  const signature = bytes.subarray(0, 8).toString("hex");
+  if (signature !== "89504e470d0a1a0a") throw new Error(`Expected PNG file: ${file}`);
+  const actualWidth = bytes.readUInt32BE(16);
+  const actualHeight = bytes.readUInt32BE(20);
+  if (actualWidth !== width || actualHeight !== height) {
+    throw new Error(`Expected ${file} to be ${width}x${height}, found ${actualWidth}x${actualHeight}.`);
+  }
 }
 
 function run(command, args, options = {}) {
