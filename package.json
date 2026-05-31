@@ -26,6 +26,7 @@
     "verify:release": "node scripts/verify-release.mjs",
     "qa:live": "node scripts/new-live-qa.mjs",
     "qa:live:verify": "node scripts/verify-live-qa.mjs",
+    "qa:live:summary": "node scripts/summarize-live-qa.mjs",
     "release:status": "node scripts/release-status.mjs",
     "release:readiness": "node scripts/check-release-readiness.mjs",
     "release:date-changelog": "node scripts/date-changelog-release.mjs",

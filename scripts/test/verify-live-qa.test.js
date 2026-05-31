@@ -21,6 +21,25 @@ test("verifies live QA report evidence against provider manifests", async () => 
   assert.match(result.stdout, /Live QA verification passed/u);
 });
 
+test("summarizes live QA reports without leaking local bundle paths", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-summary-"));
+  const bundles = {
+    ChatGPT: await providerBundle(root, "chatgpt", "https://chatgpt.com/c/live"),
+    Claude: await providerBundle(root, "claude", "https://claude.ai/chat/live"),
+    Gemini: await providerBundle(root, "gemini", "https://gemini.google.com/app/live")
+  };
+  const reportPath = path.join(root, "report.md");
+  await writeFile(reportPath, liveQaReport(bundles), "utf8");
+
+  const result = await runScript("scripts/summarize-live-qa.mjs", [reportPath]);
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /## Live QA Summary/u);
+  assert.match(result.stdout, /\| ChatGPT \| 2 \| 0 \/ 0 \/ 0 \| none/u);
+  assert.match(result.stdout, /Release decision: Pass/u);
+  assert.doesNotMatch(result.stdout, /Bundle path/u);
+  assert.doesNotMatch(result.stdout, new RegExp(escapeRegex(root), "u"));
+});
+
 test("rejects live QA reports with mismatched evidence or secret-like text", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-fail-"));
   const bundles = {
@@ -114,8 +133,12 @@ Capture evidence:
 }
 
 function runVerify(reportPath) {
+  return runScript("scripts/verify-live-qa.mjs", [reportPath]);
+}
+
+function runScript(script, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn("node", ["scripts/verify-live-qa.mjs", reportPath], {
+    const child = spawn("node", [script, ...args], {
       cwd: path.resolve(new URL("../..", import.meta.url).pathname),
       stdio: ["ignore", "pipe", "pipe"]
     });
@@ -132,4 +155,8 @@ function runVerify(reportPath) {
       });
     });
   });
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }

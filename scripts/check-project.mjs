@@ -71,6 +71,7 @@ const requiredFiles = [
   "scripts/smoke-dmg-install.mjs",
   "scripts/new-live-qa.mjs",
   "scripts/verify-live-qa.mjs",
+  "scripts/summarize-live-qa.mjs",
   "scripts/test/verify-live-qa.test.js",
   "scripts/test/date-changelog-release.test.js",
   "scripts/test/create-release-tag.test.js",
@@ -210,6 +211,9 @@ if (!rootPackage.scripts?.verify?.includes("npm run smoke:first-run")) {
 if (rootPackage.scripts?.["qa:live:verify"] !== "node scripts/verify-live-qa.mjs") {
   throw new Error("package.json must expose npm run qa:live:verify.");
 }
+if (rootPackage.scripts?.["qa:live:summary"] !== "node scripts/summarize-live-qa.mjs") {
+  throw new Error("package.json must expose npm run qa:live:summary.");
+}
 if (!rootPackage.scripts?.test?.includes("scripts/test/*.test.js")) {
   throw new Error("npm test must include script tests.");
 }
@@ -260,8 +264,13 @@ for (const phrase of ["ChatGPT", "Claude", "Gemini", "validate-bundle.mjs", "Rel
   if (!verifyLiveQa.includes(phrase)) throw new Error(`Live QA verifier missing: ${phrase}`);
 }
 
+const summarizeLiveQa = await readFile("scripts/summarize-live-qa.mjs", "utf8");
+for (const phrase of ["Live QA Summary", "verify-live-qa.mjs", "Follow-up issue links", "Attachments captured"]) {
+  if (!summarizeLiveQa.includes(phrase)) throw new Error(`Live QA summary script missing: ${phrase}`);
+}
+
 const testing = await readFile("docs/TESTING.md", "utf8");
-for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run smoke:first-run", "npm run smoke:dmg-install", "npm run website:verify", "qa/live-capture/", "git-ignored", "message/attachment/warning evidence"]) {
+for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run qa:live:summary", "npm run smoke:first-run", "npm run smoke:dmg-install", "npm run website:verify", "qa/live-capture/", "git-ignored", "message/attachment/warning evidence"]) {
   if (!testing.includes(phrase)) throw new Error(`Testing guide missing live QA guidance: ${phrase}`);
 }
 

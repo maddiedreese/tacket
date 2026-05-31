@@ -61,6 +61,14 @@ npm run qa:live:verify -- qa/live-capture/<report>.md
 
 If no report path is supplied, the verifier uses the newest markdown report in `qa/live-capture/`. The verifier fails if required checkboxes are incomplete, if a provider bundle path is missing, if a bundle fails schema validation, if a provider bundle manifest does not match the expected source platform, if reported message/attachment/warning evidence does not match `manifest.json`, or if the report appears to contain private secret-like text.
 
+Generate a public-safe summary for the v0.1.0 live QA issue after verification passes:
+
+```bash
+npm run qa:live:summary -- qa/live-capture/<report>.md
+```
+
+The summary omits bundle paths, local capture folders, tester names, extension IDs, and provider notes. It includes provider names, counts, pass/fail evidence fields, release decision, and follow-up issue links.
+
 For local extension plumbing, open:
 
 ```text
