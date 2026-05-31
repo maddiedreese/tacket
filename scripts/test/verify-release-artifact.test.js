@@ -36,9 +36,24 @@ test("release artifact verifier rejects mismatched store extension zip", async (
   }
 });
 
+test("release artifact verifier rejects a selected run from a different commit", async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), "tacket-release-artifact-head-fail-"));
+  try {
+    const { binDir } = await fakeArtifactTools(temp, { releaseHead: "0000000000000000000000000000000000000000" });
+    const result = await runVerifyArtifact({ PATH: `${binDir}:${process.env.PATH}` }, ["--run-id", "202"]);
+
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /Release workflow run 202 head 0000000000000000000000000000000000000000 does not match local HEAD/u);
+    assert.doesNotMatch(result.stdout, /Release workflow artifact verification passed/u);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
 async function fakeArtifactTools(temp, options = {}) {
   const binDir = path.join(temp, "bin");
   const npmLogPath = path.join(temp, "npm.log");
+  const releaseHead = options.releaseHead ?? head;
   await mkdir(binDir, { recursive: true });
   await fakeExecutable(binDir, "git", `#!/usr/bin/env bash
 set -euo pipefail
@@ -68,7 +83,12 @@ args="$*"
 case "$args" in
   "run list --repo maddiedreese/tacket --workflow Release --limit 1 --json databaseId,status,conclusion,headSha,url")
     cat <<JSON
-[{"databaseId":202,"status":"completed","conclusion":"success","headSha":"${head}","url":"https://github.com/maddiedreese/tacket/actions/runs/202"}]
+[{"databaseId":202,"status":"completed","conclusion":"success","headSha":"${releaseHead}","url":"https://github.com/maddiedreese/tacket/actions/runs/202"}]
+JSON
+    ;;
+  "run view 202 --repo maddiedreese/tacket --json databaseId,status,conclusion,headSha,url")
+    cat <<JSON
+{"databaseId":202,"status":"completed","conclusion":"success","headSha":"${releaseHead}","url":"https://github.com/maddiedreese/tacket/actions/runs/202"}
 JSON
     ;;
   run\\ download\\ 202\\ --repo\\ maddiedreese/tacket\\ --name\\ tacket-release\\ --dir\\ *)
@@ -106,9 +126,9 @@ async function fakeExecutable(binDir, name, source) {
   await chmod(file, 0o755);
 }
 
-function runVerifyArtifact(env = {}) {
+function runVerifyArtifact(env = {}, args = []) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["scripts/verify-release-artifact.mjs"], {
+    const child = spawn(process.execPath, ["scripts/verify-release-artifact.mjs", ...args], {
       cwd: root,
       env: { ...process.env, ...env },
       stdio: ["ignore", "pipe", "pipe"]
