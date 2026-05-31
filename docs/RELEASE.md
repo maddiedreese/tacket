@@ -27,8 +27,7 @@ Tacket v1 is direct-download and local-only.
 - Date the changelog with `npm run release:date-changelog -- --date YYYY-MM-DD` only after external release gates are complete.
 - Run `npm run release:pretag` immediately before creating the release tag.
 - Create and push the tag with `npm run release:tag -- --push`.
-- After the GitHub Release is published, run `npm run release:verify-download`.
-- Confirm Gatekeeper accepts the signed/notarized artifacts with `npm run release:assess`.
+- After the GitHub Release is published, run `npm run release:postflight`.
 
 The repository can build unsigned local artifacts without paid accounts. Public distribution additionally requires:
 
@@ -188,6 +187,18 @@ This downloads `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS` fro
 
 ```bash
 npm run release:verify-download -- --dir dist
+```
+
+Run the full post-release verification:
+
+```bash
+npm run release:postflight
+```
+
+This verifies the website, downloads and checks the GitHub Release artifacts, confirms the published GitHub Release has `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS`, then runs Gatekeeper assessment. To rehearse against local `dist/` artifacts before the GitHub Release exists:
+
+```bash
+npm run release:postflight -- --dir dist --dry-run-gatekeeper
 ```
 
 Assess signed and notarized artifacts with Gatekeeper:

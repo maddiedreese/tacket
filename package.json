@@ -33,6 +33,7 @@
     "release:tag": "node scripts/create-release-tag.mjs",
     "release:verify-download": "node scripts/verify-release-download.mjs",
     "release:assess": "node scripts/assess-release-gatekeeper.mjs",
+    "release:postflight": "node scripts/check-post-release.mjs",
     "store:screenshots": "node scripts/generate-store-screenshots.mjs",
     "store:prepare": "node scripts/prepare-chrome-web-store.mjs",
     "store:verify": "node scripts/verify-chrome-web-store-package.mjs",

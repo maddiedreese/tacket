@@ -79,6 +79,7 @@ const requiredFiles = [
   "scripts/create-release-tag.mjs",
   "scripts/check-release-readiness.mjs",
   "scripts/check-pretag-release.mjs",
+  "scripts/check-post-release.mjs",
   "scripts/verify-release-download.mjs",
   "scripts/assess-release-gatekeeper.mjs",
   "scripts/generate-store-screenshots.mjs",
@@ -233,6 +234,9 @@ if (rootPackage.scripts?.["release:verify-download"] !== "node scripts/verify-re
 if (rootPackage.scripts?.["release:assess"] !== "node scripts/assess-release-gatekeeper.mjs") {
   throw new Error("package.json must expose npm run release:assess.");
 }
+if (rootPackage.scripts?.["release:postflight"] !== "node scripts/check-post-release.mjs") {
+  throw new Error("package.json must expose npm run release:postflight.");
+}
 if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-screenshots.mjs") {
   throw new Error("package.json must expose npm run store:screenshots.");
 }
@@ -323,6 +327,11 @@ for (const phrase of ["spctl", "stapler", "Developer ID Application", "Gatekeepe
   if (!gatekeeperAssess.includes(phrase)) throw new Error(`Gatekeeper assessment script missing: ${phrase}`);
 }
 
+const postRelease = await readFile("scripts/check-post-release.mjs", "utf8");
+for (const phrase of ["Release downloads verify", "GitHub Release is published with required assets", "Gatekeeper assessment", "--dry-run-gatekeeper", "release:verify-download"]) {
+  if (!postRelease.includes(phrase)) throw new Error(`Post-release checker missing: ${phrase}`);
+}
+
 const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
 if (!releaseDocs.includes("npm run release:status")) {
   throw new Error("Release docs must mention npm run release:status.");
@@ -344,6 +353,9 @@ if (!releaseDocs.includes("npm run release:tag")) {
 }
 if (!releaseDocs.includes("npm run release:verify-download")) {
   throw new Error("Release docs must mention npm run release:verify-download.");
+}
+if (!releaseDocs.includes("npm run release:postflight")) {
+  throw new Error("Release docs must mention npm run release:postflight.");
 }
 if (!releaseDocs.includes("npm run release:assess")) {
   throw new Error("Release docs must mention npm run release:assess.");

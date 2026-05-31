@@ -75,7 +75,7 @@ console.log("- Chrome store: `npm run store:prepare` then `npm run store:verify-
 console.log("- Date changelog: `npm run release:date-changelog -- --date YYYY-MM-DD` when the external gates are complete");
 console.log("- Release gate: `npm run package:release && npm run store:prepare && npm run release:pretag`");
 console.log("- Create tag: `npm run release:tag -- --push`");
-console.log("- Post release: `npm run release:verify-download && npm run release:assess`");
+console.log("- Post release: `npm run release:postflight`");
 
 function printState(label, value) {
   console.log(`${label}: ${value}`);
