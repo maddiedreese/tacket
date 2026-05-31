@@ -75,7 +75,11 @@ test("signing secret helper refuses to run when required secret env is missing",
       "release@example.com",
       "--apple-team-id",
       "TEAMID"
-    ]);
+    ], {
+      DEVELOPER_ID_CERTIFICATE_PASSWORD: null,
+      KEYCHAIN_PASSWORD: "keychain-password-secret",
+      APPLE_APP_SPECIFIC_PASSWORD: "apple-app-specific-password-secret"
+    });
 
     assert.equal(result.code, 2);
     assert.match(result.stderr, /Set DEVELOPER_ID_CERTIFICATE_PASSWORD before running this script\./u);
@@ -117,9 +121,14 @@ async function fakeExecutable(binDir, name, source) {
 
 function runSigningSecrets(args, env = {}) {
   return new Promise((resolve, reject) => {
+    const childEnv = { ...process.env };
+    for (const [name, value] of Object.entries(env)) {
+      if (value === null) delete childEnv[name];
+      else childEnv[name] = value;
+    }
     const child = spawn("bash", ["scripts/prepare-signing-secrets.sh", ...args], {
       cwd: root,
-      env: { ...process.env, ...env },
+      env: childEnv,
       stdio: ["ignore", "pipe", "pipe"]
     });
     const stdout = [];
