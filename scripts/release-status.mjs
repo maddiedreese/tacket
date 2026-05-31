@@ -46,7 +46,7 @@ printState("GitHub Pages", pagesState);
 printState("Security reporting/dependency alerts", securityState);
 printState("Local HEAD", currentHead ? currentHead.slice(0, 12) : "unknown");
 printState("Latest CI on main", ciRunState(latestCi, currentHead));
-printState("Latest manual Release workflow", runState(latestRelease));
+printState("Latest manual Release workflow", headRunState(latestRelease, currentHead));
 printState("Release issue checklists", releaseIssuesState);
 printState("Open v0.1.0 milestone issues", openIssues ? (openIssues.length === 0 ? "clear" : `${openIssues.length} open`) : "unknown");
 printState("Signing/notarization secrets", missingSecrets ? (missingSecrets.length === 0 ? "configured" : `${missingSecrets.length} missing`) : "unknown");
@@ -96,6 +96,10 @@ function runState(run) {
 }
 
 function ciRunState(run, head) {
+  return headRunState(run, head);
+}
+
+function headRunState(run, head) {
   const state = runState(run);
   if (!run || !head || !run.headSha) return state;
   const match = run.headSha === head ? "matches HEAD" : `does not match HEAD ${head.slice(0, 12)}`;

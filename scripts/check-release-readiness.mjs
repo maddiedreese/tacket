@@ -89,11 +89,12 @@ await check("Latest manual Release run passed", async () => {
     "--limit",
     "1",
     "--json",
-    "status,conclusion,event,url"
+    "status,conclusion,event,headSha,url"
   ]);
   assert(runs[0], "no Release runs found");
   assert(runs[0].status === "completed", `latest Release run is ${runs[0].status}`);
   assert(runs[0].conclusion === "success", `latest Release conclusion is ${runs[0].conclusion}`);
+  assert(runs[0].headSha === currentHead, `latest Release head ${runs[0].headSha} does not match local HEAD ${currentHead}`);
 });
 
 await check("Release issue checklists are synced", async () => {
