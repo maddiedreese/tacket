@@ -42,7 +42,7 @@ for (const [name, size] of iconsetSizes) {
 console.log("Generated Tacket icons.");
 
 async function renderPng(size) {
-  return pngFromPixels(size, size, renderIconPixels(size));
+  return pngFromPixels(size, size, renderIconAtSize(size));
 }
 
 async function renderPromoPng(width, height) {
@@ -79,13 +79,10 @@ function renderIconPixels(size) {
   const radius = size * 0.22;
   const bgTop = [0x2f, 0x71, 0x81, 0xff];
   const bgBottom = [0x17, 0x49, 0x5b, 0xff];
-  const paper = [0xf8, 0xf7, 0xf4, 0xff];
-  const paperLine = [0xdd, 0xd8, 0xce, 0xff];
   const tack = [0xd9, 0xc8, 0x8f, 0xff];
   const tackDark = [0x9f, 0x7a, 0x2d, 0xff];
   const highlight = [0xff, 0xf1, 0xb2, 0xd8];
-  const needle = [0x2b, 0x2b, 0x28, 0xff];
-  const shadow = [0x10, 0x39, 0x47, 0x52];
+  const shadow = [0x10, 0x39, 0x47, 0x3d];
   const transparent = [0, 0, 0, 0];
 
   for (let y = 0; y < size; y += 1) {
@@ -94,16 +91,12 @@ function renderIconPixels(size) {
         mix(bgTop, bgBottom, y / Math.max(1, size - 1)) :
         transparent;
 
-      if (inSoftRotatedRect(x, y, size, 0.50, 0.49, 0.54, 0.38, -0.12, 0.08)) color = paper;
-      if (inSoftRotatedRect(x, y, size, 0.50, 0.44, 0.32, 0.035, -0.12, 0.015)) color = paperLine;
-      if (inSoftRotatedRect(x, y, size, 0.48, 0.55, 0.24, 0.035, -0.12, 0.015)) color = paperLine;
-
-      if (inTriangle(x, y, size, 0.53, 0.47, 0.78, 0.86, 0.70, 0.90)) color = shadow;
-      if (inTriangle(x, y, size, 0.51, 0.48, 0.76, 0.86, 0.70, 0.89)) color = needle;
-      if (inSoftRotatedRect(x, y, size, 0.53, 0.54, 0.22, 0.12, -0.42, 0.025)) color = tackDark;
-      if (inCircle(x, y, size, 0.43, 0.35, 0.17)) color = tack;
-      if (inCircle(x, y, size, 0.37, 0.29, 0.055)) color = highlight;
-      if (inCircle(x, y, size, 0.49, 0.44, 0.07)) color = tackDark;
+      if (inCircle(x, y, size, 0.54, 0.56, 0.23)) color = shadow;
+      if (inTriangle(x, y, size, 0.43, 0.65, 0.57, 0.65, 0.50, 0.82)) color = tackDark;
+      if (inSoftRotatedRect(x, y, size, 0.50, 0.58, 0.20, 0.26, 0, 0.045)) color = tackDark;
+      if (inCircle(x, y, size, 0.50, 0.38, 0.24)) color = tack;
+      if (inCircle(x, y, size, 0.39, 0.29, 0.06)) color = highlight;
+      if (inCircle(x, y, size, 0.57, 0.47, 0.08)) color = tackDark;
       const offset = (y * size + x) * 4;
       pixels[offset] = color[0];
       pixels[offset + 1] = color[1];
@@ -113,6 +106,11 @@ function renderIconPixels(size) {
   }
 
   return pixels;
+}
+
+function renderIconAtSize(size) {
+  const scale = size <= 64 ? 4 : 2;
+  return downsamplePixels(renderIconPixels(size * scale), size * scale, size * scale, size, size);
 }
 
 async function pngFromPixels(width, height, pixels) {
@@ -137,7 +135,7 @@ function fill(pixels, width, height, color) {
 }
 
 function drawIcon(pixels, canvasWidth, canvasHeight, left, top, size) {
-  const icon = renderIconPixels(size);
+  const icon = renderIconAtSize(size);
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
       const source = (y * size + x) * 4;
@@ -225,6 +223,37 @@ function mix(start, end, amount) {
     Math.round(start[2] * (1 - amount) + end[2] * amount),
     0xff
   ];
+}
+
+function downsamplePixels(source, sourceWidth, sourceHeight, width, height) {
+  const pixels = Buffer.alloc(width * height * 4);
+  const scaleX = sourceWidth / width;
+  const scaleY = sourceHeight / height;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let red = 0;
+      let green = 0;
+      let blue = 0;
+      let alpha = 0;
+      let count = 0;
+      for (let sy = Math.floor(y * scaleY); sy < Math.floor((y + 1) * scaleY); sy += 1) {
+        for (let sx = Math.floor(x * scaleX); sx < Math.floor((x + 1) * scaleX); sx += 1) {
+          const sourceOffset = (sy * sourceWidth + sx) * 4;
+          red += source[sourceOffset];
+          green += source[sourceOffset + 1];
+          blue += source[sourceOffset + 2];
+          alpha += source[sourceOffset + 3];
+          count += 1;
+        }
+      }
+      const offset = (y * width + x) * 4;
+      pixels[offset] = Math.round(red / count);
+      pixels[offset + 1] = Math.round(green / count);
+      pixels[offset + 2] = Math.round(blue / count);
+      pixels[offset + 3] = Math.round(alpha / count);
+    }
+  }
+  return pixels;
 }
 
 function ihdr(width, height) {
