@@ -36,6 +36,7 @@ const secrets = await configuredSecrets();
 const missingSecrets = secrets ? requiredSecrets.filter((secret) => !secrets.has(secret)) : null;
 const latestCi = await latestRun("CI", ["--branch", "main"]);
 const latestRelease = await latestRun("Release", []);
+const releaseIssuesState = await releaseIssueChecklistState();
 const releaseExists = await githubReleaseExists(tag);
 
 console.log(`Tacket ${tag} release status`);
@@ -46,13 +47,14 @@ printState("Security reporting/dependency alerts", securityState);
 printState("Local HEAD", currentHead ? currentHead.slice(0, 12) : "unknown");
 printState("Latest CI on main", ciRunState(latestCi, currentHead));
 printState("Latest manual Release workflow", runState(latestRelease));
+printState("Release issue checklists", releaseIssuesState);
 printState("Open v0.1.0 milestone issues", openIssues ? (openIssues.length === 0 ? "clear" : `${openIssues.length} open`) : "unknown");
 printState("Signing/notarization secrets", missingSecrets ? (missingSecrets.length === 0 ? "configured" : `${missingSecrets.length} missing`) : "unknown");
 printState(`${tag} GitHub Release`, releaseExists === null ? "unknown" : (releaseExists ? "already exists" : "not published"));
 
 console.log("");
 console.log("Open blockers:");
-if (openIssues?.length === 0 && missingSecrets?.length === 0 && releaseExists === false) {
+if (openIssues?.length === 0 && missingSecrets?.length === 0 && releaseIssuesState === "synced" && releaseExists === false) {
   console.log("- No tracked blockers detected. Run `npm run release:pretag` before tagging.");
 } else {
   for (const issue of openIssues ?? []) {
@@ -60,6 +62,9 @@ if (openIssues?.length === 0 && missingSecrets?.length === 0 && releaseExists ==
   }
   if (missingSecrets?.length > 0) {
     console.log(`- Missing signing/notarization secrets: ${missingSecrets.join(", ")}`);
+  }
+  if (releaseIssuesState !== "synced") {
+    console.log("- Release issue checklists are not confirmed synced. Run `npm run release:issues`.");
   }
   if (releaseExists === true) {
     console.log(`- ${tag} already exists on GitHub Releases.`);
@@ -129,6 +134,17 @@ async function githubReleaseExists(releaseTag) {
     return output.split("\n").some((line) => line.split(/\s+/u).includes(releaseTag));
   } catch {
     return null;
+  }
+}
+
+async function releaseIssueChecklistState() {
+  try {
+    await execFileAsync("node", ["scripts/check-release-issues.mjs"], {
+      maxBuffer: 1024 * 1024 * 10
+    });
+    return "synced";
+  } catch {
+    return "drift or unreadable";
   }
 }
 
