@@ -44,6 +44,7 @@ const requiredFiles = [
   "docs/PRIVACY.md",
   "docs/CHROME_WEB_STORE.md",
   "docs/RELEASE.md",
+  "docs/ROADMAP.md",
   "docs/TESTING.md",
   "docs/TROUBLESHOOTING.md",
   "scripts/package-mac-dev.sh",
@@ -125,6 +126,16 @@ for (const phrase of [
 const changelog = await readFile("CHANGELOG.md", "utf8");
 for (const phrase of ["0.1.0", "Chrome extension capture", "Raw transcript transfer"]) {
   if (!changelog.includes(phrase)) throw new Error(`Changelog missing: ${phrase}`);
+}
+
+const readme = await readFile("README.md", "utf8");
+if (!readme.includes("docs/ROADMAP.md")) {
+  throw new Error("README.md must link to docs/ROADMAP.md.");
+}
+
+const roadmap = await readFile("docs/ROADMAP.md", "utf8");
+for (const phrase of ["milestone/1", "live capture validation", "Developer ID signing", "Chrome Web Store"]) {
+  if (!roadmap.includes(phrase)) throw new Error(`Roadmap missing: ${phrase}`);
 }
 
 const rootPackage = JSON.parse(await readFile("package.json", "utf8"));

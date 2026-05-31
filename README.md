@@ -28,6 +28,7 @@ website/                Static website and public privacy page
 
 For setup or first-run issues, see `docs/TROUBLESHOOTING.md`.
 For release notes, see `CHANGELOG.md`.
+For the v0.1.0 release blockers and later ideas, see `docs/ROADMAP.md`.
 
 ## Current Development Flow
 
