@@ -292,7 +292,9 @@ for (const phrase of ["Tacket.dmg", "Tacket.app", "TacketNativeHost", "validate-
 const readiness = await readFile("scripts/check-release-readiness.mjs", "utf8");
 for (const phrase of [
   "GitHub CLI authenticated",
+  "Working tree is clean",
   "Security reporting and dependency alerts are enabled",
+  "does not match local HEAD",
   "v0.1.0 milestone has no open issues",
   "Signing and notarization secrets are configured",
   "Latest manual Release run passed"
@@ -301,7 +303,7 @@ for (const phrase of [
 }
 
 const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
-for (const phrase of ["Open blockers", "Next commands", "npm run qa:live:verify", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
+for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "npm run qa:live:verify", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
   if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
 }
 
@@ -313,6 +315,8 @@ for (const phrase of ["--date YYYY-MM-DD", "Unreleased", "--check", "Dated CHANG
 const pretag = await readFile("scripts/check-pretag-release.mjs", "utf8");
 for (const phrase of [
   "Chrome Web Store submission folder is ready",
+  "Working tree is clean",
+  "does not match local HEAD",
   "CHANGELOG.md has a final dated",
   "v0.1.0 milestone has no open issues",
   "Signing and notarization secrets are configured",

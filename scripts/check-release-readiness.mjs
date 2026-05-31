@@ -17,9 +17,15 @@ const requiredSecrets = [
 ];
 
 const checks = [];
+const currentHead = await git(["rev-parse", "HEAD"]);
 
 await check("GitHub CLI authenticated", async () => {
   await gh(["auth", "status"]);
+});
+
+await check("Working tree is clean", async () => {
+  const status = await git(["status", "--porcelain"]);
+  assert(status.trim() === "", "working tree has uncommitted changes");
 });
 
 await check("Repository is reachable", async () => {
@@ -69,6 +75,7 @@ await check("Latest CI run passed on main", async () => {
   assert(runs[0], "no CI runs found");
   assert(runs[0].status === "completed", `latest CI is ${runs[0].status}`);
   assert(runs[0].conclusion === "success", `latest CI conclusion is ${runs[0].conclusion}`);
+  assert(runs[0].headSha === currentHead, `latest CI head ${runs[0].headSha} does not match local HEAD ${currentHead}`);
 });
 
 await check("Latest manual Release run passed", async () => {
@@ -139,6 +146,13 @@ function printSummary() {
 
 async function gh(args) {
   const { stdout } = await execFileAsync("gh", args, {
+    maxBuffer: 1024 * 1024 * 10
+  });
+  return stdout.trim();
+}
+
+async function git(args) {
+  const { stdout } = await execFileAsync("git", args, {
     maxBuffer: 1024 * 1024 * 10
   });
   return stdout.trim();

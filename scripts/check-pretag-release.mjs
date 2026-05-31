@@ -18,6 +18,12 @@ const requiredSecrets = [
   "APPLE_APP_SPECIFIC_PASSWORD"
 ];
 const checks = [];
+const currentHead = await run("git", ["rev-parse", "HEAD"]);
+
+await check("Working tree is clean", async () => {
+  const status = await run("git", ["status", "--porcelain"]);
+  assert(status.trim() === "", "working tree has uncommitted changes");
+});
 
 await check("Release artifacts verify", async () => {
   await run("npm", ["run", "verify:release"]);
@@ -83,11 +89,12 @@ await check("Latest CI run passed on main", async () => {
     "--limit",
     "1",
     "--json",
-    "status,conclusion,url"
+    "status,conclusion,headSha,url"
   ]);
   assert(runs[0], "no CI runs found");
   assert(runs[0].status === "completed", `latest CI is ${runs[0].status}`);
   assert(runs[0].conclusion === "success", `latest CI conclusion is ${runs[0].conclusion}`);
+  assert(runs[0].headSha === currentHead, `latest CI head ${runs[0].headSha} does not match local HEAD ${currentHead}`);
 });
 
 await check("Latest Release workflow run passed", async () => {

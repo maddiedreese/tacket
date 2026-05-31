@@ -6,6 +6,7 @@ const execFileAsync = promisify(execFile);
 const repo = "maddiedreese/tacket";
 const release = JSON.parse(await readFile("release.json", "utf8"));
 const tag = `v${release.version}`;
+const currentHead = await git(["rev-parse", "HEAD"]).catch(() => null);
 const requiredSecrets = [
   "DEVELOPER_ID_APPLICATION",
   "DEVELOPER_ID_CERTIFICATE_BASE64",
@@ -42,7 +43,8 @@ console.log("");
 printState("Repository settings", repoState);
 printState("GitHub Pages", pagesState);
 printState("Security reporting/dependency alerts", securityState);
-printState("Latest CI on main", runState(latestCi));
+printState("Local HEAD", currentHead ? currentHead.slice(0, 12) : "unknown");
+printState("Latest CI on main", ciRunState(latestCi, currentHead));
 printState("Latest manual Release workflow", runState(latestRelease));
 printState("Open v0.1.0 milestone issues", openIssues ? (openIssues.length === 0 ? "clear" : `${openIssues.length} open`) : "unknown");
 printState("Signing/notarization secrets", missingSecrets ? (missingSecrets.length === 0 ? "configured" : `${missingSecrets.length} missing`) : "unknown");
@@ -87,6 +89,13 @@ function runState(run) {
   return `${run.status}/${run.conclusion ?? "none"}`;
 }
 
+function ciRunState(run, head) {
+  const state = runState(run);
+  if (!run || !head || !run.headSha) return state;
+  const match = run.headSha === head ? "matches HEAD" : `does not match HEAD ${head.slice(0, 12)}`;
+  return `${state} @ ${run.headSha.slice(0, 12)} (${match})`;
+}
+
 async function configuredSecrets() {
   try {
     const output = await gh(["secret", "list", "--repo", repo]);
@@ -107,7 +116,7 @@ async function latestRun(workflow, extraArgs) {
     "--limit",
     "1",
     "--json",
-    "status,conclusion,url",
+    "status,conclusion,headSha,url",
     ...extraArgs
   ]);
   return runs ? (runs[0] ?? undefined) : null;
@@ -174,6 +183,13 @@ async function safeGhJson(args) {
 
 async function gh(args) {
   const { stdout } = await execFileAsync("gh", args, {
+    maxBuffer: 1024 * 1024 * 10
+  });
+  return stdout.trim();
+}
+
+async function git(args) {
+  const { stdout } = await execFileAsync("git", args, {
     maxBuffer: 1024 * 1024 * 10
   });
   return stdout.trim();

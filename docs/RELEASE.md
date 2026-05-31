@@ -144,7 +144,7 @@ Run the strict remote release gate:
 npm run release:readiness
 ```
 
-This command uses GitHub CLI to confirm the public repository is reachable, Pages is enabled, latest CI and manual Release workflow runs passed, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
+This command uses GitHub CLI to confirm the working tree is clean, the public repository is reachable, Pages is enabled, latest CI passed for the local `HEAD`, the latest manual Release workflow run passed, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
 
 When the external release gates are complete, date the changelog entry:
 
@@ -164,7 +164,7 @@ Check final pre-tag release state:
 npm run release:pretag
 ```
 
-This command verifies local release artifacts, the Chrome Web Store submission folder, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, no open v0.1.0 milestone issues, configured signing/notarization secrets, and current green CI/Release workflow runs. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
+This command verifies the working tree is clean, local release artifacts, the Chrome Web Store submission folder, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, no open v0.1.0 milestone issues, configured signing/notarization secrets, current green CI for the local `HEAD`, and the latest green Release workflow run. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
 
 Create the release tag after `release:pretag` passes:
 
