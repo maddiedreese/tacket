@@ -83,6 +83,8 @@ This writes `dist/chrome-web-store/` with the extension zip, required icon, smal
 
 `npm run package:release` also runs this preparation step after building the DMG and release zip. If release artifacts already exist in `dist/`, `store:prepare` refreshes `SHA256SUMS` after rebuilding the extension zip so the release checksums do not go stale.
 
+The GitHub Actions Release workflow also prepares `dist/chrome-web-store/` and includes it in the `tacket-release` Actions artifact for manual review/submission. The public GitHub Release still attaches only `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS`.
+
 Verify the prepared upload folder independently with:
 
 ```bash

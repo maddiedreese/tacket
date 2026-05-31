@@ -464,9 +464,11 @@ for (const phrase of [
   "scripts/notarize-dmg.sh",
   "Gatekeeper assessment",
   "npm run release:assess",
+  "npm run store:prepare",
   "dist/Tacket.dmg",
   "dist/tacket-chrome-extension.zip",
   "dist/SHA256SUMS",
+  "dist/chrome-web-store",
   "gh release create"
 ]) {
   if (!releaseWorkflow.includes(phrase)) throw new Error(`Release workflow missing: ${phrase}`);

@@ -57,7 +57,7 @@ The public Mac build should be signed with Developer ID and notarized. A `.dmg` 
 
 The signing script enables hardened runtime and signs the app with `apps/mac/TacketApp/Tacket.entitlements`. That entitlement file is intentionally small: it grants Apple Events automation so Tacket can open Terminal and paste the raw transcript after the user chooses Codex or Claude Code. Keep `NSAppleEventsUsageDescription` in `Info.plist` aligned with that behavior.
 
-The GitHub Actions release workflow builds `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS` on `v*` tags or manual dispatch. Manual dispatch can produce unsigned test artifacts. Tag releases are stricter: they fail unless all signing and notarization secrets are configured, then import the Developer ID certificate, sign the app, package the DMG, notarize it, run Gatekeeper assessment, verify the final artifacts, upload an Actions artifact, and publish a GitHub Release.
+The GitHub Actions release workflow builds `Tacket.dmg`, `tacket-chrome-extension.zip`, `SHA256SUMS`, and `dist/chrome-web-store/` on `v*` tags or manual dispatch. Manual dispatch can produce unsigned test artifacts. Tag releases are stricter: they fail unless all signing and notarization secrets are configured, then import the Developer ID certificate, sign the app, package the DMG, notarize it, run Gatekeeper assessment, verify the final artifacts, prepare the Chrome Web Store upload folder, upload an Actions artifact, and publish a GitHub Release.
 
 Required GitHub secrets for signed release builds:
 
