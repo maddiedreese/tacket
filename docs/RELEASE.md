@@ -5,6 +5,7 @@ Tacket v1 is direct-download and local-only.
 ## Before Release
 
 - Confirm `npm run package:release` passes.
+- Confirm `npm run smoke:first-run` passes for the local connector/capture/transfer rehearsal.
 - Create a local live-capture QA report with `npm run qa:live`.
 - Test unpacked Chrome extension capture on ChatGPT, Claude, and Gemini.
 - Test native messaging host installation with the Chrome Web Store extension ID.

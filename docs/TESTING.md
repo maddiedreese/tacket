@@ -13,6 +13,13 @@ npm run package:release
 - transcript rendering tests
 - attachment persistence tests
 - Chrome capture fixture tests for ChatGPT, Claude, and Gemini-like DOMs
+- first-run smoke coverage for connector install/status/remove, native-host capture, bundle validation, and Codex/Claude Code dry-run transfer in isolated temporary folders
+
+Run only the first-run smoke path with:
+
+```bash
+npm run smoke:first-run
+```
 
 ## Manual Browser Checks
 
