@@ -138,7 +138,7 @@ async function verifyWebsite() {
   const privacy = await readFile(path.join(root, "website/privacy.html"), "utf8");
   for (const html of [index, privacy]) {
     if (!html.includes("./assets/favicon.png")) throw new Error("Website page missing favicon.");
-    if (!html.includes("github.com/tacket-dev/tacket")) throw new Error("Website page missing GitHub link.");
+    if (!html.includes("github.com/maddiedreese/tacket")) throw new Error("Website page missing GitHub link.");
   }
   if (!privacy.includes("private vulnerability reporting")) {
     throw new Error("Privacy page must direct security vulnerabilities to private reporting.");
