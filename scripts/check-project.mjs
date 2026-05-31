@@ -234,6 +234,9 @@ if (!chromeStore.includes("docs/STORE_ASSETS.md")) {
 if (!chromeStore.includes("npm run store:prepare")) {
   throw new Error("Chrome Web Store docs must mention npm run store:prepare.");
 }
+for (const phrase of ["listing.md", "privacy.md"]) {
+  if (!chromeStore.includes(phrase)) throw new Error(`Chrome Web Store docs must mention generated ${phrase}.`);
+}
 
 const storeAssets = await readFile("docs/STORE_ASSETS.md", "utf8");
 for (const phrase of [
@@ -243,11 +246,18 @@ for (const phrase of [
   "store-assets/chrome-web-store/small-promo-440x280.png",
   "npm run store:screenshots",
   "npm run store:prepare",
+  "listing.md",
+  "privacy.md",
   "store-assets/chrome-web-store/screenshots/",
   "Do not use private AI chat transcripts",
   "https://developer.chrome.com/docs/webstore/images"
 ]) {
   if (!storeAssets.includes(phrase)) throw new Error(`Store asset guide missing: ${phrase}`);
+}
+
+const storePrepare = await readFile("scripts/prepare-chrome-web-store.mjs", "utf8");
+for (const phrase of ["assertExtensionZip", "listing.md", "privacy.md", "manifest.dev.json"]) {
+  if (!storePrepare.includes(phrase)) throw new Error(`Chrome Web Store prep script missing: ${phrase}`);
 }
 
 for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {

@@ -36,7 +36,7 @@ Prepare the local Chrome Web Store upload folder with:
 npm run store:prepare
 ```
 
-This writes `dist/chrome-web-store/` with the extension zip, required 128 pixel icon, small promotional image, screenshots, and a short upload README. The command regenerates icons and synthetic screenshots before copying assets.
+This writes `dist/chrome-web-store/` with the extension zip, required 128 pixel icon, small promotional image, screenshots, `listing.md`, `privacy.md`, and a short upload README. The command regenerates icons and synthetic screenshots, verifies the packaged extension zip, then copies assets.
 
 ## Screenshot Set
 

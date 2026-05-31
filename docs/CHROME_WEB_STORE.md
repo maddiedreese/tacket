@@ -79,4 +79,4 @@ Prepare a local upload folder with:
 npm run store:prepare
 ```
 
-This writes `dist/chrome-web-store/` with the extension zip, required icon, small promotional image, screenshots, and a short upload README. Review every generated image before submitting.
+This writes `dist/chrome-web-store/` with the extension zip, required icon, small promotional image, screenshots, `listing.md`, `privacy.md`, and a short upload README. Review every generated image before submitting.
