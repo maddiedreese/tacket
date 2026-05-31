@@ -23,15 +23,32 @@ await check("GitHub CLI authenticated", async () => {
 });
 
 await check("Repository is reachable", async () => {
-  const repoInfo = await ghJson(["repo", "view", repo, "--json", "nameWithOwner,visibility,url"]);
+  const repoInfo = await ghJson([
+    "repo",
+    "view",
+    repo,
+    "--json",
+    "nameWithOwner,visibility,url,deleteBranchOnMerge,hasProjectsEnabled,hasWikiEnabled,isSecurityPolicyEnabled"
+  ]);
   assert(repoInfo.nameWithOwner === repo, `expected ${repo}, found ${repoInfo.nameWithOwner}`);
   assert(repoInfo.visibility === "PUBLIC", `expected PUBLIC visibility, found ${repoInfo.visibility}`);
+  assert(repoInfo.deleteBranchOnMerge === true, "expected delete branch on merge");
+  assert(repoInfo.hasProjectsEnabled === false, "expected repository projects disabled");
+  assert(repoInfo.hasWikiEnabled === false, "expected wiki disabled");
+  assert(repoInfo.isSecurityPolicyEnabled === true, "expected SECURITY.md policy enabled");
 });
 
 await check("GitHub Pages is enabled", async () => {
   const pages = await ghJson(["api", `repos/${repo}/pages`]);
   assert(pages.build_type === "workflow", `expected workflow Pages build, found ${pages.build_type}`);
   assert(pages.https_enforced === true, "expected HTTPS enforcement");
+});
+
+await check("Security reporting and dependency alerts are enabled", async () => {
+  const privateReporting = await ghJson(["api", `repos/${repo}/private-vulnerability-reporting`]);
+  assert(privateReporting.enabled === true, "expected private vulnerability reporting enabled");
+  await gh(["api", `repos/${repo}/vulnerability-alerts`, "-i"]);
+  await gh(["api", `repos/${repo}/automated-security-fixes`, "-i"]);
 });
 
 await check("Latest CI run passed on main", async () => {

@@ -12,7 +12,7 @@ GitHub Dependabot alerts and automated security fixes are enabled for the public
 
 ## Reporting a Vulnerability
 
-Use GitHub private vulnerability reporting when it is enabled for the repository. If private reporting is not yet available, open a minimal public issue asking for a maintainer security contact, without including exploit details, private transcripts, tokens, screenshots, or proof-of-concept payloads.
+GitHub private vulnerability reporting is enabled for the repository. Use it for vulnerability reports instead of opening a public issue with exploit details. If private reporting is temporarily unavailable, open a minimal public issue asking for a maintainer security contact, without including exploit details, private transcripts, tokens, screenshots, or proof-of-concept payloads.
 
 Useful reports include:
 

@@ -122,6 +122,9 @@ const security = await readFile("SECURITY.md", "utf8");
 for (const phrase of ["Dependabot alerts", "automated security fixes", ".github/dependabot.yml"]) {
   if (!security.includes(phrase)) throw new Error(`Security policy missing dependency alert note: ${phrase}`);
 }
+if (!security.includes("GitHub private vulnerability reporting is enabled")) {
+  throw new Error("Security policy must state that private vulnerability reporting is enabled.");
+}
 
 const troubleshooting = await readFile("docs/TROUBLESHOOTING.md", "utf8");
 for (const phrase of [
@@ -171,6 +174,7 @@ for (const phrase of ["npm run qa:live", "qa/live-capture/", "git-ignored"]) {
 const readiness = await readFile("scripts/check-release-readiness.mjs", "utf8");
 for (const phrase of [
   "GitHub CLI authenticated",
+  "Security reporting and dependency alerts are enabled",
   "v0.1.0 milestone has no open issues",
   "Signing and notarization secrets are configured",
   "Latest manual Release run passed"
