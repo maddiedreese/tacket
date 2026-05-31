@@ -129,6 +129,25 @@ await check("Latest Release workflow artifact is available", async () => {
   assert(artifact.size_in_bytes > 0, "tacket-release artifact is empty");
 });
 
+await check("Latest Release workflow signed and notarized when secrets are configured", async () => {
+  const missing = await missingSigningSecrets();
+  if (missing.length > 0) return;
+  const run = await latestReleaseRun();
+  const jobs = await ghJson(["api", `repos/${repo}/actions/runs/${run.databaseId}/jobs`]);
+  const steps = (jobs.jobs ?? []).flatMap((job) => job.steps ?? []);
+  for (const name of [
+    "Import Developer ID certificate",
+    "Sign app",
+    "Notarize DMG",
+    "Gatekeeper assessment"
+  ]) {
+    const step = steps.find((item) => item.name === name);
+    assert(step, `missing Release workflow step: ${name}`);
+    assert(step.status === "completed", `${name} status is ${step.status}`);
+    assert(step.conclusion === "success", `${name} conclusion is ${step.conclusion}`);
+  }
+});
+
 printSummary();
 if (checks.some((item) => item.status === "fail")) process.exit(1);
 
@@ -168,6 +187,12 @@ async function latestReleaseRun() {
   ]);
   assert(runs[0], "no Release runs found");
   return runs[0];
+}
+
+async function missingSigningSecrets() {
+  const output = await run("gh", ["secret", "list", "--repo", repo]);
+  const configured = new Set(output.split("\n").map((line) => line.split(/\s+/u)[0]).filter(Boolean));
+  return requiredSecrets.filter((secret) => !configured.has(secret));
 }
 
 async function run(command, args) {
