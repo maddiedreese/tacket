@@ -298,8 +298,18 @@ for (const phrase of ["Local-first privacy checks passed", "sendBeacon", "WebSoc
 }
 
 const firstRunSmoke = await readFile("scripts/smoke-first-run.mjs", "utf8");
-for (const phrase of ["install-native-host", "saveCapture", "validate-bundle.mjs", "claude-code", "First-run smoke passed"]) {
+for (const phrase of ["install-native-host", "saveCapture", "validate-bundle.mjs", "claude-code", "--chunk-size\", \"1000", "First-run smoke passed"]) {
   if (!firstRunSmoke.includes(phrase)) throw new Error(`First-run smoke script missing: ${phrase}`);
+}
+
+const threadFormatSource = await readFile("packages/thread-format/src/index.js", "utf8");
+if (!threadFormatSource.includes("Chunk size must be an integer of at least 1000 characters.")) {
+  throw new Error("Thread formatter must reject invalid transfer chunk sizes.");
+}
+
+const macAppSource = await readFile("apps/mac/TacketApp/Sources/TacketApp/TacketApp.swift", "utf8");
+if (!macAppSource.includes("Max chunk characters must be an integer of at least 1000.")) {
+  throw new Error("Mac app must reject invalid transfer chunk sizes.");
 }
 
 const dmgInstallSmoke = await readFile("scripts/smoke-dmg-install.mjs", "utf8");

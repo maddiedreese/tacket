@@ -142,10 +142,16 @@ test("downgrades invalid captured data URL attachments to references", async () 
 });
 
 test("splits large transcript into ordered raw chunks", () => {
-  const chunks = splitTranscript("a".repeat(100), 30);
+  const chunks = splitTranscript("a".repeat(2500), 1000);
   assert.ok(chunks.length > 1);
   assert.match(chunks[0], /chunk 1 of/);
   assert.match(chunks.at(-1), /raw transcript complete/);
+});
+
+test("rejects invalid raw transcript chunk sizes", () => {
+  for (const value of [0, 999, 12.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.throws(() => splitTranscript("a".repeat(1200), value), /Chunk size must be an integer/u);
+  }
 });
 
 test("adds local possible-secret warnings without redacting raw content", async () => {

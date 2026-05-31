@@ -27,8 +27,8 @@ try {
   await assertReadable(path.join(response.bundlePath, "messages.jsonl"));
   await assertReadable(path.join(response.bundlePath, "manifest.json"));
 
-  await run(process.execPath, [cli, "transfer", response.bundlePath, "--to", "codex", "--dry-run", "--chunk-size", "500"], { HOME: home });
-  await run(process.execPath, [cli, "transfer", response.bundlePath, "--to", "claude-code", "--dry-run", "--chunk-size", "500"], { HOME: home });
+  await run(process.execPath, [cli, "transfer", response.bundlePath, "--to", "codex", "--dry-run", "--chunk-size", "1000"], { HOME: home });
+  await run(process.execPath, [cli, "transfer", response.bundlePath, "--to", "claude-code", "--dry-run", "--chunk-size", "1000"], { HOME: home });
 
   await run(process.execPath, [cli, "uninstall-native-host"], { HOME: home });
   await assertNativeHostStatus(false);

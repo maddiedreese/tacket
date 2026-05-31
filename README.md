@@ -59,7 +59,7 @@ node apps/cli/bin/tacket.js transfer ~/Documents/Tacket\ Captures/example.tacket
 ```
 
 Tacket copies the raw transcript and requests a paste into Terminal. Use `--no-paste` to launch/copy without the automation step.
-Long transcripts are copied as ordered raw chunks. The Mac app exposes the chunk size in the transfer panel; the CLI uses `--chunk-size`.
+Long transcripts are copied as ordered raw chunks. The Mac app exposes the chunk size in the transfer panel; the CLI uses `--chunk-size`. Chunk size must be at least 1000 characters.
 
 Run the Mac shell during development:
 

@@ -288,12 +288,17 @@ final class TacketModel: ObservableObject {
         status = "Transferring raw transcript..."
         commandOutput = ""
         let target = selectedTarget
-        let maxChunkCharacters = Int(maxChunkCharacters) ?? 24000
+        guard let maxChunkCharacters = Int(maxChunkCharacters.trimmingCharacters(in: .whitespacesAndNewlines)),
+              maxChunkCharacters >= 1000 else {
+            status = "Invalid chunk size."
+            commandOutput = "Max chunk characters must be an integer of at least 1000."
+            return
+        }
 
         Task {
             do {
                 let transcript = try String(contentsOf: selectedBundle.appendingPathComponent("transcript.md"), encoding: .utf8)
-                let chunks = splitTranscript(transcript, maxCharacters: max(1000, maxChunkCharacters))
+                let chunks = splitTranscript(transcript, maxCharacters: maxChunkCharacters)
                 let transferText = chunks.joined(separator: "\n\n")
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(transferText, forType: .string)

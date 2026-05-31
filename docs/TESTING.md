@@ -110,6 +110,7 @@ node apps/cli/bin/tacket.js transfer "$sample_path" --to clipboard --chunk-size 
 ```
 
 The `--dry-run` flag is useful in automated/manual testing because it avoids launching Terminal or requiring Automation or Accessibility permission.
+Chunk size must be an integer of at least 1000 characters.
 
 ## Connector Checks
 

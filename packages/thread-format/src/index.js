@@ -96,6 +96,9 @@ export function renderTranscript(capture, options = {}) {
 }
 
 export function splitTranscript(transcript, maxChars = 24000) {
+  if (!Number.isSafeInteger(maxChars) || maxChars < 1000) {
+    throw new Error("Chunk size must be an integer of at least 1000 characters.");
+  }
   if (transcript.length <= maxChars) return [transcript];
   const chunks = [];
   let cursor = 0;

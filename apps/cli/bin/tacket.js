@@ -115,6 +115,9 @@ async function transfer(options) {
 
   const target = options.to ?? "clipboard";
   const chunkSize = Number(options["chunk-size"] ?? 24000);
+  if (!Number.isSafeInteger(chunkSize) || chunkSize < 1000) {
+    throw new Error("Invalid chunk size. Expected an integer of at least 1000 characters.");
+  }
   const transcript = await readTranscript(bundlePath);
   const chunks = splitTranscript(transcript, chunkSize);
 

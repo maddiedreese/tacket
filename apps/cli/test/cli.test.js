@@ -37,6 +37,20 @@ test("install-native-host writes an allowed origin for a valid Chrome extension 
   }
 });
 
+test("transfer rejects invalid chunk sizes before copying", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-cli-transfer-"));
+  try {
+    const sample = await runCli(["sample", "--out", root]);
+    assert.equal(sample.status, 0, sample.stderr);
+    const bundlePath = sample.stdout.trim();
+    const result = await runCli(["transfer", bundlePath, "--to", "codex", "--dry-run", "--chunk-size", "nope"]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Invalid chunk size/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 function runCli(args, env = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cliPath, ...args], {
