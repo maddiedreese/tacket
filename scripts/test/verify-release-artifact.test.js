@@ -50,6 +50,13 @@ test("release artifact verifier rejects a selected run from a different commit",
   }
 });
 
+test("release artifact verifier rejects unknown arguments", async () => {
+  const result = await runVerifyArtifact({}, ["--keeep"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Unknown argument: --keeep/u);
+});
+
 async function fakeArtifactTools(temp, options = {}) {
   const binDir = path.join(temp, "bin");
   const npmLogPath = path.join(temp, "npm.log");

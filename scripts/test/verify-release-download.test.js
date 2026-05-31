@@ -46,6 +46,13 @@ test("release download verifier rejects stale checksums before shelling out", as
   }
 });
 
+test("release download verifier rejects unknown arguments", async () => {
+  const result = await runVerifyDownload(["--keeep"]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Unknown argument: --keeep/u);
+});
+
 async function releaseArtifacts(temp) {
   const artifactDir = path.join(temp, "dist");
   await mkdir(artifactDir, { recursive: true });

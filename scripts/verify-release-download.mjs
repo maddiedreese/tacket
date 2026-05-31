@@ -9,9 +9,10 @@ const execFileAsync = promisify(execFile);
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 const repo = "maddiedreese/tacket";
 const release = JSON.parse(await readFile(path.join(root, "release.json"), "utf8"));
-const tag = option("--tag") ?? `v${release.version}`;
-const providedDir = option("--dir");
-const keep = process.argv.includes("--keep");
+const options = parseArgs(process.argv.slice(2));
+const tag = options.tag ?? `v${release.version}`;
+const providedDir = options.dir;
+const keep = options.keep ?? false;
 const artifacts = ["Tacket.dmg", "tacket-chrome-extension.zip", "SHA256SUMS"];
 
 const workDir = providedDir
@@ -90,12 +91,24 @@ async function assertFile(file) {
   if (info.size <= 0) throw new Error(`File is empty: ${file}`);
 }
 
-function option(name) {
-  const index = process.argv.indexOf(name);
-  if (index === -1) return undefined;
-  const value = process.argv[index + 1];
-  if (!value || value.startsWith("--")) throw new Error(`${name} requires a value.`);
-  return value;
+function parseArgs(values) {
+  const parsed = {};
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index];
+    if (value === "--keep") {
+      parsed.keep = true;
+      continue;
+    }
+    if (value === "--tag" || value === "--dir") {
+      const next = values[index + 1];
+      if (!next || next.startsWith("--")) throw new Error(`${value} requires a value.`);
+      parsed[value.slice(2)] = next;
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unknown argument: ${value}`);
+  }
+  return parsed;
 }
 
 async function run(command, args) {
