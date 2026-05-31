@@ -340,6 +340,8 @@ for (const phrase of [
   "APPLE_APP_SPECIFIC_PASSWORD",
   "scripts/sign-mac-app.sh",
   "scripts/notarize-dmg.sh",
+  "Gatekeeper assessment",
+  "npm run release:assess",
   "dist/Tacket.dmg",
   "dist/tacket-chrome-extension.zip",
   "dist/SHA256SUMS",

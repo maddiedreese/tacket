@@ -81,6 +81,9 @@ jobs:
       - name: Notarize DMG
         if: env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && env.APPLE_ID != '' && env.APPLE_TEAM_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != ''
         run: bash scripts/notarize-dmg.sh
+      - name: Gatekeeper assessment
+        if: env.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && env.APPLE_ID != '' && env.APPLE_TEAM_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != ''
+        run: npm run release:assess
       - name: Checksums and release verification
         run: |
           npm run generate:checksums
