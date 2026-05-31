@@ -123,7 +123,9 @@ Checklist:
 Checklist:
 
 - [ ] Confirm all v0.1.0 milestone issues are closed or explicitly deferred.
-- [ ] Confirm \`npm run release:status\` shows the latest CI run matches local \`HEAD\`.
+- [ ] Confirm \`npm run release:status\` shows the latest CI and manual Release workflow runs match local \`HEAD\`.
+- [ ] Confirm \`npm run release:status\` shows latest Release artifact contents are verified.
+- [ ] Confirm \`npm run release:verify-artifact\` passes for the latest manual Release workflow run.
 - [ ] Confirm \`npm run release:readiness\` passes.
 - [ ] Date the changelog with \`npm run release:date-changelog -- --date YYYY-MM-DD\`.
 - [ ] Confirm \`CHANGELOG.md\` no longer says \`Unreleased\` for 0.1.0.

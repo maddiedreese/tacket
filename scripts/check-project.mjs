@@ -320,7 +320,7 @@ for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches H
 }
 
 const releaseIssues = await readFile("scripts/check-release-issues.mjs", "utf8");
-for (const phrase of ["qa:live:summary", "store:verify-id", "dist/chrome-web-store/", "release:postflight", "--sync", "--dry-run"]) {
+for (const phrase of ["qa:live:summary", "store:verify-id", "dist/chrome-web-store/", "release:verify-artifact", "latest Release artifact contents are verified", "release:postflight", "--sync", "--dry-run"]) {
   if (!releaseIssues.includes(phrase)) throw new Error(`Release issue checker missing: ${phrase}`);
 }
 
