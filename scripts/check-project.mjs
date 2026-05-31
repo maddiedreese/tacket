@@ -14,6 +14,7 @@ const requiredFiles = [
   ".github/ISSUE_TEMPLATE/config.yml",
   ".github/pull_request_template.md",
   ".github/workflows/ci.yml",
+  ".github/workflows/pages.yml",
   ".github/workflows/release.yml",
   "release.json",
   "README.md",
@@ -142,6 +143,16 @@ for (const phrase of [
   "gh release create"
 ]) {
   if (!releaseWorkflow.includes(phrase)) throw new Error(`Release workflow missing: ${phrase}`);
+}
+
+const pagesWorkflow = await readFile(".github/workflows/pages.yml", "utf8");
+for (const phrase of [
+  "actions/configure-pages",
+  "actions/upload-pages-artifact",
+  "actions/deploy-pages",
+  "path: website"
+]) {
+  if (!pagesWorkflow.includes(phrase)) throw new Error(`Pages workflow missing: ${phrase}`);
 }
 
 console.log("Project checks passed.");

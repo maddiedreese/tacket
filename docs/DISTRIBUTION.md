@@ -31,7 +31,7 @@ The app installer can still install the local native messaging host, then open t
 
 ## No Backend
 
-Tacket should not require hosted infrastructure. The website can use GitHub Pages, Cloudflare Pages, Netlify, or another static host.
+Tacket should not require hosted infrastructure. The repository includes a GitHub Pages workflow that publishes the static `website/` directory from `main`. A custom domain can be added later without changing the app architecture.
 
 ## Expected Costs
 
