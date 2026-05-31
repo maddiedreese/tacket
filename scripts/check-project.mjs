@@ -70,6 +70,7 @@ const requiredFiles = [
   "scripts/smoke-first-run.mjs",
   "scripts/new-live-qa.mjs",
   "scripts/verify-live-qa.mjs",
+  "scripts/release-status.mjs",
   "scripts/check-release-readiness.mjs",
   "scripts/check-pretag-release.mjs",
   "scripts/verify-release-download.mjs",
@@ -198,6 +199,9 @@ if (!rootPackage.scripts?.verify?.includes("npm run smoke:first-run")) {
 if (rootPackage.scripts?.["qa:live:verify"] !== "node scripts/verify-live-qa.mjs") {
   throw new Error("package.json must expose npm run qa:live:verify.");
 }
+if (rootPackage.scripts?.["release:status"] !== "node scripts/release-status.mjs") {
+  throw new Error("package.json must expose npm run release:status.");
+}
 if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-readiness.mjs") {
   throw new Error("package.json must expose npm run release:readiness.");
 }
@@ -256,6 +260,11 @@ for (const phrase of [
   if (!readiness.includes(phrase)) throw new Error(`Release readiness checker missing: ${phrase}`);
 }
 
+const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
+for (const phrase of ["Open blockers", "Next commands", "npm run qa:live:verify", "npm run store:verify-id", "npm run release:pretag"]) {
+  if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
+}
+
 const pretag = await readFile("scripts/check-pretag-release.mjs", "utf8");
 for (const phrase of [
   "Chrome Web Store submission folder is ready",
@@ -278,6 +287,9 @@ for (const phrase of ["spctl", "stapler", "Developer ID Application", "Gatekeepe
 }
 
 const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
+if (!releaseDocs.includes("npm run release:status")) {
+  throw new Error("Release docs must mention npm run release:status.");
+}
 if (!releaseDocs.includes("npm run release:readiness")) {
   throw new Error("Release docs must mention npm run release:readiness.");
 }
