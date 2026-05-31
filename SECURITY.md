@@ -6,6 +6,10 @@ Tacket handles raw local chat transcripts, code, images, and attachment referenc
 
 Tacket is pre-1.0. Security fixes target the current `main` branch until the first tagged release.
 
+## Dependency Alerts
+
+GitHub Dependabot alerts and automated security fixes are enabled for the public repository. Dependabot version updates are configured for npm dependencies and GitHub Actions in `.github/dependabot.yml`.
+
 ## Reporting a Vulnerability
 
 Use GitHub private vulnerability reporting when it is enabled for the repository. If private reporting is not yet available, open a minimal public issue asking for a maintainer security contact, without including exploit details, private transcripts, tokens, screenshots, or proof-of-concept payloads.

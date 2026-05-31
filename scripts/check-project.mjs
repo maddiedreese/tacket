@@ -12,6 +12,7 @@ const requiredFiles = [
   ".github/ISSUE_TEMPLATE/bug_report.yml",
   ".github/ISSUE_TEMPLATE/feature_request.yml",
   ".github/ISSUE_TEMPLATE/config.yml",
+  ".github/dependabot.yml",
   ".github/pull_request_template.md",
   ".github/workflows/ci.yml",
   ".github/workflows/pages.yml",
@@ -110,6 +111,16 @@ for (const phrase of ["--options runtime", "--entitlements", "Tacket.entitlement
 const issueConfig = await readFile(".github/ISSUE_TEMPLATE/config.yml", "utf8");
 if (!issueConfig.includes("/security/advisories/new")) {
   throw new Error("Issue template config must direct vulnerabilities to private security advisories.");
+}
+
+const dependabot = await readFile(".github/dependabot.yml", "utf8");
+for (const phrase of ["package-ecosystem: npm", "package-ecosystem: github-actions", "interval: weekly"]) {
+  if (!dependabot.includes(phrase)) throw new Error(`Dependabot config missing: ${phrase}`);
+}
+
+const security = await readFile("SECURITY.md", "utf8");
+for (const phrase of ["Dependabot alerts", "automated security fixes", ".github/dependabot.yml"]) {
+  if (!security.includes(phrase)) throw new Error(`Security policy missing dependency alert note: ${phrase}`);
 }
 
 const troubleshooting = await readFile("docs/TROUBLESHOOTING.md", "utf8");
