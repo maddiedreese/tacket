@@ -21,6 +21,7 @@ Tacket v1 is direct-download and local-only.
 - Prepare the Chrome Web Store upload folder with `npm run store:prepare`, then review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image before uploading.
 - Run `npm run release:readiness` before pushing the release tag.
 - Run `npm run release:pretag` immediately before creating the release tag.
+- After the GitHub Release is published, run `npm run release:verify-download`.
 
 The repository can build unsigned local artifacts without paid accounts. Public distribution additionally requires:
 
@@ -137,6 +138,18 @@ npm run release:pretag
 ```
 
 This command verifies local release artifacts, the Chrome Web Store submission folder, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, no open v0.1.0 milestone issues, configured signing/notarization secrets, and current green CI/Release workflow runs. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
+
+Verify public release downloads after the tag workflow publishes the GitHub Release:
+
+```bash
+npm run release:verify-download
+```
+
+This downloads `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS` from the `v0.1.0` GitHub Release, verifies the checksums, verifies the DMG with `hdiutil`, and checks the extension zip for required production files. To test the same verifier against local artifacts before a release exists, run:
+
+```bash
+npm run release:verify-download -- --dir dist
+```
 
 ## Versioning
 

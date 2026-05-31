@@ -71,6 +71,7 @@ const requiredFiles = [
   "scripts/verify-live-qa.mjs",
   "scripts/check-release-readiness.mjs",
   "scripts/check-pretag-release.mjs",
+  "scripts/verify-release-download.mjs",
   "scripts/generate-store-screenshots.mjs",
   "scripts/prepare-chrome-web-store.mjs"
 ];
@@ -194,6 +195,9 @@ if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-r
 if (rootPackage.scripts?.["release:pretag"] !== "node scripts/check-pretag-release.mjs") {
   throw new Error("package.json must expose npm run release:pretag.");
 }
+if (rootPackage.scripts?.["release:verify-download"] !== "node scripts/verify-release-download.mjs") {
+  throw new Error("package.json must expose npm run release:verify-download.");
+}
 if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-screenshots.mjs") {
   throw new Error("package.json must expose npm run store:screenshots.");
 }
@@ -243,12 +247,20 @@ for (const phrase of [
   if (!pretag.includes(phrase)) throw new Error(`Pre-tag release checker missing: ${phrase}`);
 }
 
+const verifyDownload = await readFile("scripts/verify-release-download.mjs", "utf8");
+for (const phrase of ["gh", "release", "download", "SHA256SUMS", "hdiutil", "manifest.dev.json"]) {
+  if (!verifyDownload.includes(phrase)) throw new Error(`Release download verifier missing: ${phrase}`);
+}
+
 const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
 if (!releaseDocs.includes("npm run release:readiness")) {
   throw new Error("Release docs must mention npm run release:readiness.");
 }
 if (!releaseDocs.includes("npm run release:pretag")) {
   throw new Error("Release docs must mention npm run release:pretag.");
+}
+if (!releaseDocs.includes("npm run release:verify-download")) {
+  throw new Error("Release docs must mention npm run release:verify-download.");
 }
 if (!releaseDocs.includes("docs/STORE_ASSETS.md")) {
   throw new Error("Release docs must mention docs/STORE_ASSETS.md.");
