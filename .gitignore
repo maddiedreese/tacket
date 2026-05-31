@@ -4,6 +4,7 @@ node_modules/
 dist/
 build/
 .tacket/
+qa/live-capture/*.md
 *.xcuserstate
 DerivedData/
 .build/

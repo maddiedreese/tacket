@@ -16,6 +16,7 @@ const requiredFiles = [
   ".github/workflows/ci.yml",
   ".github/workflows/pages.yml",
   ".github/workflows/release.yml",
+  "qa/live-capture/.gitkeep",
   "release.json",
   "README.md",
   "assets/icon.svg",
@@ -56,7 +57,8 @@ const requiredFiles = [
   "scripts/check-versions.mjs",
   "scripts/validate-bundle.mjs",
   "scripts/verify-release.mjs",
-  "scripts/smoke-swift-host.mjs"
+  "scripts/smoke-swift-host.mjs",
+  "scripts/new-live-qa.mjs"
 ];
 
 for (const file of requiredFiles) {
@@ -123,6 +125,21 @@ for (const phrase of [
 const changelog = await readFile("CHANGELOG.md", "utf8");
 for (const phrase of ["0.1.0", "Chrome extension capture", "Raw transcript transfer"]) {
   if (!changelog.includes(phrase)) throw new Error(`Changelog missing: ${phrase}`);
+}
+
+const rootPackage = JSON.parse(await readFile("package.json", "utf8"));
+if (rootPackage.scripts?.["qa:live"] !== "node scripts/new-live-qa.mjs") {
+  throw new Error("package.json must expose npm run qa:live for live provider QA reports.");
+}
+
+const liveQa = await readFile("scripts/new-live-qa.mjs", "utf8");
+for (const phrase of ["Do not paste private transcript text", "ChatGPT", "Claude", "Gemini", "Release Decision"]) {
+  if (!liveQa.includes(phrase)) throw new Error(`Live QA report template missing: ${phrase}`);
+}
+
+const testing = await readFile("docs/TESTING.md", "utf8");
+for (const phrase of ["npm run qa:live", "qa/live-capture/", "git-ignored"]) {
+  if (!testing.includes(phrase)) throw new Error(`Testing guide missing live QA guidance: ${phrase}`);
 }
 
 for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {

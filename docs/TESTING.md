@@ -23,6 +23,14 @@ Live AI apps change their DOMs. Before a release, test capture manually against:
 - a Gemini thread with text and code
 - a long thread that requires scrolling
 
+Create a local QA report before live testing:
+
+```bash
+npm run qa:live
+```
+
+This writes a timestamped checklist under `qa/live-capture/`. Those reports are git-ignored because they may contain local paths, extension IDs, provider notes, or other release evidence that should be reviewed before sharing. Do not paste private transcript text, screenshots with private content, API keys, tokens, or private file names into QA reports.
+
 For local extension plumbing, open:
 
 ```text
