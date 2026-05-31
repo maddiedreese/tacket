@@ -22,7 +22,8 @@
     "verify": "npm run lint && npm run check:versions && npm test && npm run validate:sample && npm run test:swift-host",
     "verify:release": "node scripts/verify-release.mjs",
     "qa:live": "node scripts/new-live-qa.mjs",
-    "release:readiness": "node scripts/check-release-readiness.mjs"
+    "release:readiness": "node scripts/check-release-readiness.mjs",
+    "store:screenshots": "node scripts/generate-store-screenshots.mjs"
   },
   "engines": {
     "node": ">=20"

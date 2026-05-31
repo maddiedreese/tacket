@@ -23,6 +23,13 @@ await assertFile(extensionZip);
 await assertFile(checksums);
 await assertFile(path.join(root, "apps/mac/TacketApp/Tacket.entitlements"));
 await assertPngDimensions(path.join(root, "store-assets/chrome-web-store/small-promo-440x280.png"), 440, 280);
+for (const screenshot of [
+  "01-capture-popup-1280x800.png",
+  "02-local-bundle-1280x800.png",
+  "03-transfer-targets-1280x800.png"
+]) {
+  await assertPngDimensions(path.join(root, "store-assets/chrome-web-store/screenshots", screenshot), 1280, 800);
+}
 
 await verifyInfoPlist(path.join(app, "Contents/Info.plist"));
 await verifyMacSigningInputs();

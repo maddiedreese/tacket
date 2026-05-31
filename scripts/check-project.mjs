@@ -43,6 +43,9 @@ const requiredFiles = [
   "schemas/manifest.schema.json",
   "schemas/message.schema.json",
   "store-assets/chrome-web-store/small-promo-440x280.png",
+  "store-assets/chrome-web-store/screenshots/01-capture-popup-1280x800.png",
+  "store-assets/chrome-web-store/screenshots/02-local-bundle-1280x800.png",
+  "store-assets/chrome-web-store/screenshots/03-transfer-targets-1280x800.png",
   "docs/PRIVACY.md",
   "docs/CHROME_WEB_STORE.md",
   "docs/RELEASE.md",
@@ -63,7 +66,8 @@ const requiredFiles = [
   "scripts/verify-release.mjs",
   "scripts/smoke-swift-host.mjs",
   "scripts/new-live-qa.mjs",
-  "scripts/check-release-readiness.mjs"
+  "scripts/check-release-readiness.mjs",
+  "scripts/generate-store-screenshots.mjs"
 ];
 
 for (const file of requiredFiles) {
@@ -162,6 +166,9 @@ if (rootPackage.scripts?.["qa:live"] !== "node scripts/new-live-qa.mjs") {
 if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-readiness.mjs") {
   throw new Error("package.json must expose npm run release:readiness.");
 }
+if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-screenshots.mjs") {
+  throw new Error("package.json must expose npm run store:screenshots.");
+}
 
 const liveQa = await readFile("scripts/new-live-qa.mjs", "utf8");
 for (const phrase of ["Do not paste private transcript text", "ChatGPT", "Claude", "Gemini", "Release Decision"]) {
@@ -203,6 +210,8 @@ for (const phrase of [
   "640 by 400",
   "440 by 280",
   "store-assets/chrome-web-store/small-promo-440x280.png",
+  "npm run store:screenshots",
+  "store-assets/chrome-web-store/screenshots/",
   "Do not use private AI chat transcripts",
   "https://developer.chrome.com/docs/webstore/images"
 ]) {

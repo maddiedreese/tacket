@@ -14,13 +14,21 @@ https://developer.chrome.com/docs/webstore/images
 
 - Extension icon: already generated at `apps/chrome-extension/icons/tacket-128.png`.
 - Small promotional image: generated at `store-assets/chrome-web-store/small-promo-440x280.png`.
-- Screenshots: one to five images, 1280 by 800 pixels or 640 by 400 pixels, PNG or JPEG.
+- Screenshots: generated under `store-assets/chrome-web-store/screenshots/`.
 
 Regenerate icons and the small promotional image with:
 
 ```bash
 npm run generate:icons
 ```
+
+Regenerate the synthetic Chrome Web Store screenshots with:
+
+```bash
+npm run store:screenshots
+```
+
+This script uses local Google Chrome in headless mode to render demo-only HTML scenes. Review the generated screenshots before submission.
 
 ## Screenshot Set
 
@@ -46,6 +54,7 @@ Prepare screenshots from synthetic data that show:
 
 - [ ] Every image uses synthetic or non-sensitive content.
 - [ ] Screenshots are exactly 1280 by 800 or 640 by 400 pixels.
+- [ ] Generated screenshots have been reviewed after running `npm run store:screenshots`.
 - [ ] Small promotional image is exactly 440 by 280 pixels.
 - [ ] Extension icon matches the packaged 128 pixel icon.
 - [ ] The first screenshot makes Tacket's local-first raw transfer purpose obvious.
