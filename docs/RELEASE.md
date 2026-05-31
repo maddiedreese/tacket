@@ -24,6 +24,7 @@ Tacket v1 is direct-download and local-only.
 - Prepare the Chrome Web Store upload folder with `npm run store:prepare`, confirm `npm run store:verify` passes, then review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image before uploading.
 - After Chrome Web Store approval, verify the published extension ID with `npm run store:verify-id -- --extension-id <chrome-extension-id>`.
 - Check the current blocker dashboard with `npm run release:status`.
+- Confirm GitHub release issue checklists match the repo tooling with `npm run release:issues`.
 - Run `npm run release:readiness` before pushing the release tag.
 - Date the changelog with `npm run release:date-changelog -- --date YYYY-MM-DD` only after external release gates are complete.
 - Run `npm run release:pretag` immediately before creating the release tag.
@@ -137,6 +138,18 @@ npm run release:status
 ```
 
 This non-failing status command summarizes the current v0.1.0 milestone issues, signing/notarization secrets, latest CI/Release workflow state, whether the GitHub Release already exists, and the next commands for each remaining blocker.
+
+Check that v0.1.0 GitHub issue bodies match the canonical release checklist text:
+
+```bash
+npm run release:issues
+```
+
+To update issue bodies from the repository-maintained checklist text:
+
+```bash
+npm run release:issues -- --sync
+```
 
 Run the strict remote release gate:
 

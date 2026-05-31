@@ -74,6 +74,7 @@ console.log("Next commands:");
 console.log("- Live QA: `npm run qa:live`, `npm run qa:live:verify -- qa/live-capture/<report>.md`, then `npm run qa:live:summary -- qa/live-capture/<report>.md`");
 console.log("- Signing secrets: `scripts/prepare-signing-secrets.sh --dry-run ...` then `npm run release:readiness`");
 console.log("- Chrome store: `npm run store:prepare` then `npm run store:verify-id -- --extension-id <chrome-extension-id>`");
+console.log("- Sync release issues: `npm run release:issues -- --sync`");
 console.log("- Date changelog: `npm run release:date-changelog -- --date YYYY-MM-DD` when the external gates are complete");
 console.log("- Release gate: `npm run package:release && npm run store:prepare && npm run release:pretag`");
 console.log("- Create tag: `npm run release:tag -- --push`");

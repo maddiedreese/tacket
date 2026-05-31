@@ -29,6 +29,7 @@
     "qa:live:summary": "node scripts/summarize-live-qa.mjs",
     "release:status": "node scripts/release-status.mjs",
     "release:readiness": "node scripts/check-release-readiness.mjs",
+    "release:issues": "node scripts/check-release-issues.mjs",
     "release:date-changelog": "node scripts/date-changelog-release.mjs",
     "release:pretag": "node scripts/check-pretag-release.mjs",
     "release:tag": "node scripts/create-release-tag.mjs",
