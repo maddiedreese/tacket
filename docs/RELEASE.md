@@ -16,6 +16,7 @@ Tacket v1 is direct-download and local-only.
 - Update `CHANGELOG.md`.
 - Review `docs/PRIVACY.md` and Chrome listing copy for consistency.
 - Review `docs/CHROME_WEB_STORE.md` before submitting the extension.
+- Prepare Chrome Web Store images using `docs/STORE_ASSETS.md`.
 - Run `npm run release:readiness` before pushing the release tag.
 
 The repository can build unsigned local artifacts without paid accounts. Public distribution additionally requires:

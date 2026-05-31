@@ -58,6 +58,8 @@ Tacket does not collect, sell, transmit, or remotely process user data. Captured
 
 ## Screenshot Checklist
 
+Detailed asset requirements and privacy rules live in `docs/STORE_ASSETS.md`.
+
 Prepare Chrome Web Store screenshots showing:
 
 - extension popup before capture

@@ -46,6 +46,7 @@ const requiredFiles = [
   "docs/CHROME_WEB_STORE.md",
   "docs/RELEASE.md",
   "docs/ROADMAP.md",
+  "docs/STORE_ASSETS.md",
   "docs/TESTING.md",
   "docs/TROUBLESHOOTING.md",
   "scripts/package-mac-dev.sh",
@@ -185,6 +186,25 @@ for (const phrase of [
 const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
 if (!releaseDocs.includes("npm run release:readiness")) {
   throw new Error("Release docs must mention npm run release:readiness.");
+}
+if (!releaseDocs.includes("docs/STORE_ASSETS.md")) {
+  throw new Error("Release docs must mention docs/STORE_ASSETS.md.");
+}
+
+const chromeStore = await readFile("docs/CHROME_WEB_STORE.md", "utf8");
+if (!chromeStore.includes("docs/STORE_ASSETS.md")) {
+  throw new Error("Chrome Web Store docs must link to docs/STORE_ASSETS.md.");
+}
+
+const storeAssets = await readFile("docs/STORE_ASSETS.md", "utf8");
+for (const phrase of [
+  "1280 by 800",
+  "640 by 400",
+  "440 by 280",
+  "Do not use private AI chat transcripts",
+  "https://developer.chrome.com/docs/webstore/images"
+]) {
+  if (!storeAssets.includes(phrase)) throw new Error(`Store asset guide missing: ${phrase}`);
 }
 
 for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {
