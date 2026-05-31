@@ -64,6 +64,10 @@ node apps/cli/bin/tacket.js transfer path/to/thread.tacket --to codex --no-paste
 
 For automated checks, use `--dry-run`.
 
+## Bundle Transfer Is Rejected
+
+Before copying to the clipboard or opening Terminal, Tacket checks that a selected `.tacket` bundle still has `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets that exactly match `transcript.md`. If this fails, re-capture the thread or restore the bundle files from the original capture.
+
 ## Unsigned App Warning
 
 Local development builds are unsigned. Public direct-download builds should be signed with Developer ID and notarized before release. See `docs/RELEASE.md`.

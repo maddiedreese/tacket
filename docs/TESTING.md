@@ -95,6 +95,7 @@ For each source, confirm:
 - the Mac app shows selected bundle metadata and can open/copy `transcript.md`
 - the Mac app can choose/reset the capture folder and the Swift native host writes to the configured folder
 - long transcripts transfer as ordered raw chunks when the chunk size is smaller than the transcript
+- transfer refuses `.tacket` bundles whose target files drift from `transcript.md`
 - obvious API-key-like text is reported as a local warning in `manifest.json` without redacting the transcript
 
 ## Transfer Checks

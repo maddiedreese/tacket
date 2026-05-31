@@ -112,6 +112,7 @@ async function transfer(options) {
   const bundlePath = options._[0];
   if (!bundlePath) throw new Error("Usage: tacket transfer <bundle.tacket> [--to clipboard|codex|claude-code] [--chunk-size 24000]");
   await ensureExists(bundlePath);
+  await assertBundleReadyForTransfer(bundlePath);
 
   const target = options.to ?? "clipboard";
   const chunkSize = Number(options["chunk-size"] ?? 24000);
@@ -224,6 +225,20 @@ end tell${pasteScript}`;
 
 async function ensureExists(target) {
   await access(target, constants.R_OK);
+}
+
+async function assertBundleReadyForTransfer(bundlePath) {
+  await Promise.all([
+    readFile(path.join(bundlePath, "manifest.json"), "utf8"),
+    readFile(path.join(bundlePath, "messages.jsonl"), "utf8")
+  ]);
+  const transcript = await readTranscript(bundlePath);
+  for (const target of ["codex.md", "claude-code.md"]) {
+    const targetText = await readFile(path.join(bundlePath, "targets", target), "utf8");
+    if (targetText !== transcript) {
+      throw new Error(`Invalid .tacket bundle: targets/${target} must match transcript.md exactly.`);
+    }
+  }
 }
 
 function expandHome(value) {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -46,6 +46,21 @@ test("transfer rejects invalid chunk sizes before copying", async () => {
     const result = await runCli(["transfer", bundlePath, "--to", "codex", "--dry-run", "--chunk-size", "nope"]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Invalid chunk size/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("transfer rejects bundles with drifted target transcripts before copying", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-cli-transfer-drift-"));
+  try {
+    const sample = await runCli(["sample", "--out", root]);
+    assert.equal(sample.status, 0, sample.stderr);
+    const bundlePath = sample.stdout.trim();
+    await writeFile(path.join(bundlePath, "targets", "codex.md"), "drifted target\n");
+    const result = await runCli(["transfer", bundlePath, "--to", "codex", "--dry-run"]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /targets\/codex\.md must match transcript\.md exactly/u);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

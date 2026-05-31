@@ -307,6 +307,11 @@ for (const phrase of ["install-native-host", "saveCapture", "validate-bundle.mjs
   if (!firstRunSmoke.includes(phrase)) throw new Error(`First-run smoke script missing: ${phrase}`);
 }
 
+const cliSource = await readFile("apps/cli/bin/tacket.js", "utf8");
+for (const phrase of ["assertBundleReadyForTransfer", "must match transcript.md exactly"]) {
+  if (!cliSource.includes(phrase)) throw new Error(`CLI transfer guard missing: ${phrase}`);
+}
+
 const threadFormatSource = await readFile("packages/thread-format/src/index.js", "utf8");
 if (!threadFormatSource.includes("Chunk size must be an integer of at least 1000 characters.")) {
   throw new Error("Thread formatter must reject invalid transfer chunk sizes.");
@@ -315,6 +320,9 @@ if (!threadFormatSource.includes("Chunk size must be an integer of at least 1000
 const macAppSource = await readFile("apps/mac/TacketApp/Sources/TacketApp/TacketApp.swift", "utf8");
 if (!macAppSource.includes("Max chunk characters must be an integer of at least 1000.")) {
   throw new Error("Mac app must reject invalid transfer chunk sizes.");
+}
+if (!macAppSource.includes("validateBundleForTransfer")) {
+  throw new Error("Mac app must validate bundle integrity before transfer.");
 }
 
 const dmgInstallSmoke = await readFile("scripts/smoke-dmg-install.mjs", "utf8");

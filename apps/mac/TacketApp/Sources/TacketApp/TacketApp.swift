@@ -284,6 +284,14 @@ final class TacketModel: ObservableObject {
             return
         }
 
+        do {
+            try validateBundleForTransfer(selectedBundle)
+        } catch {
+            status = "Invalid bundle."
+            commandOutput = error.localizedDescription
+            return
+        }
+
         isRunning = true
         status = "Transferring raw transcript..."
         commandOutput = ""
@@ -352,6 +360,21 @@ final class TacketModel: ObservableObject {
         } catch {
             selectedBundleInfo = nil
             commandOutput = "Could not read manifest.json: \(error.localizedDescription)"
+        }
+    }
+
+    private func validateBundleForTransfer(_ bundleURL: URL) throws {
+        _ = try Data(contentsOf: bundleURL.appendingPathComponent("manifest.json"))
+        _ = try Data(contentsOf: bundleURL.appendingPathComponent("messages.jsonl"))
+        let transcript = try String(contentsOf: bundleURL.appendingPathComponent("transcript.md"), encoding: .utf8)
+        for target in ["codex.md", "claude-code.md"] {
+            let targetText = try String(
+                contentsOf: bundleURL.appendingPathComponent("targets").appendingPathComponent(target),
+                encoding: .utf8
+            )
+            if targetText != transcript {
+                throw TacketAppError.invalidBundle("targets/\(target) must match transcript.md exactly.")
+            }
         }
     }
 
@@ -503,11 +526,14 @@ final class TacketModel: ObservableObject {
 
 enum TacketAppError: LocalizedError {
     case nativeHostMissing
+    case invalidBundle(String)
 
     var errorDescription: String? {
         switch self {
         case .nativeHostMissing:
             return "TacketNativeHost was not found. Build the Mac package or run `swift build` in apps/mac/TacketApp."
+        case .invalidBundle(let message):
+            return "Invalid .tacket bundle: \(message)"
         }
     }
 }
