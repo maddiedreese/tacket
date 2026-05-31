@@ -51,7 +51,7 @@ After filling the checklist, setting `Release decision: Pass`, and adding the Ch
 npm run qa:live:verify -- qa/live-capture/<report>.md
 ```
 
-If no report path is supplied, the verifier uses the newest markdown report in `qa/live-capture/`. The verifier fails if required checkboxes are incomplete, if a provider bundle path is missing, if a bundle fails schema validation, or if a provider bundle manifest does not match the expected source platform.
+If no report path is supplied, the verifier uses the newest markdown report in `qa/live-capture/`. The verifier fails if required checkboxes are incomplete, if a provider bundle path is missing, if a bundle fails schema validation, if a provider bundle manifest does not match the expected source platform, if reported message/attachment/warning evidence does not match `manifest.json`, or if the report appears to contain private secret-like text.
 
 For local extension plumbing, open:
 

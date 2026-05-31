@@ -28,7 +28,9 @@ Release decision: Unset
 
 Do not paste private transcript text, screenshots with private content, API keys, tokens, or private file names into this report. Record counts, paths, statuses, and synthetic/minimal notes only.
 
-After completing the checklist and filling the three provider bundle paths, verify this report with:
+After completing the checklist, fill the three provider bundle paths plus evidence fields. Use numbers from each bundle's \`manifest.json\`: \`Message count\`, \`Attachment counts\` as \`captured / referenced / unavailable\`, and \`Warning kinds\` as \`none\` or comma-separated warning kinds. Use \`yes\`, \`pass\`, or \`ok\` for evidence checks that passed.
+
+Then verify this report with:
 
 \`\`\`bash
 npm run qa:live:verify -- ${reportPath}

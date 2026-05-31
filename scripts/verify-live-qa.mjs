@@ -12,6 +12,10 @@ if (decision !== "Pass") {
   failures.push(`Release decision must be Pass, found: ${decision || "missing"}`);
 }
 
+for (const finding of secretFindings(report)) {
+  failures.push(`Report appears to include private secret-like text: ${finding}`);
+}
+
 for (const unchecked of report.matchAll(/^- \[ \] (.+)$/gmu)) {
   failures.push(`Incomplete checkbox: ${unchecked[1]}`);
 }
@@ -77,8 +81,43 @@ async function verifyProviderBundle(provider) {
     if (!Number.isInteger(manifest.messageCount) || manifest.messageCount < 1) {
       failures.push(`${provider.heading} manifest messageCount must be at least 1.`);
     }
+    verifyReportedManifestEvidence(provider.heading, section, manifest);
   } catch (error) {
     failures.push(`${provider.heading} manifest could not be inspected: ${error.message}`);
+  }
+}
+
+function verifyReportedManifestEvidence(heading, section, manifest) {
+  const messageCount = numberField(section, "Message count");
+  if (messageCount === null) {
+    failures.push(`${heading} Message count must be a number matching manifest.json.`);
+  } else if (messageCount !== manifest.messageCount) {
+    failures.push(`${heading} Message count ${messageCount} does not match manifest.json ${manifest.messageCount}.`);
+  }
+
+  const attachmentCounts = attachmentCountsField(section, "Attachment counts");
+  if (!attachmentCounts) {
+    failures.push(`${heading} Attachment counts must use "captured / referenced / unavailable" numbers.`);
+  } else {
+    for (const key of ["captured", "referenced", "unavailable"]) {
+      if (attachmentCounts[key] !== manifest.attachments?.[key]) {
+        failures.push(`${heading} Attachment counts ${key}=${attachmentCounts[key]} does not match manifest.json ${manifest.attachments?.[key] ?? "missing"}.`);
+      }
+    }
+  }
+
+  const reportedWarnings = warningKindsField(section, "Warning kinds");
+  if (!reportedWarnings) {
+    failures.push(`${heading} Warning kinds must be "none" or a comma-separated list matching manifest.json.`);
+  } else {
+    const actualWarnings = new Set((manifest.warnings ?? []).map((warning) => warning.kind).filter(Boolean));
+    if (!sameSet(reportedWarnings, actualWarnings)) {
+      failures.push(`${heading} Warning kinds ${formatSet(reportedWarnings)} does not match manifest.json ${formatSet(actualWarnings)}.`);
+    }
+  }
+
+  for (const field of ["Transcript opens", "Message order preserved", "Roles correct", "Code indentation preserved"]) {
+    requireAffirmativeField(heading, section, field);
   }
 }
 
@@ -106,8 +145,65 @@ function extractSection(markdown, heading) {
 }
 
 function extractField(markdown, label) {
-  const pattern = new RegExp(`^${escapeRegex(label)}:\\s*(.+?)\\s*$`, "imu");
+  const pattern = new RegExp(`^\\s*(?:-\\s*)?${escapeRegex(label)}:\\s*(.+?)\\s*$`, "imu");
   return markdown.match(pattern)?.[1]?.trim() ?? "";
+}
+
+function numberField(markdown, label) {
+  const value = extractField(markdown, label);
+  if (!/^\d+$/u.test(value)) return null;
+  return Number(value);
+}
+
+function attachmentCountsField(markdown, label) {
+  const value = extractField(markdown, label);
+  const match = value.match(/^(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)$/u);
+  if (!match) return null;
+  return {
+    captured: Number(match[1]),
+    referenced: Number(match[2]),
+    unavailable: Number(match[3])
+  };
+}
+
+function warningKindsField(markdown, label) {
+  const value = extractField(markdown, label).toLowerCase();
+  if (!value) return null;
+  if (["none", "no warnings", "n/a"].includes(value)) return new Set();
+  return new Set(value.split(",").map((item) => item.trim()).filter(Boolean));
+}
+
+function requireAffirmativeField(heading, section, label) {
+  const value = extractField(section, label).toLowerCase();
+  if (!["yes", "pass", "passed", "true", "ok"].includes(value)) {
+    failures.push(`${heading} ${label} must be affirmative, found: ${value || "missing"}.`);
+  }
+}
+
+function sameSet(a, b) {
+  if (a.size !== b.size) return false;
+  for (const item of a) {
+    if (!b.has(item)) return false;
+  }
+  return true;
+}
+
+function formatSet(value) {
+  return value.size === 0 ? "none" : [...value].sort().join(", ");
+}
+
+function secretFindings(text) {
+  const patterns = [
+    ["OpenAI API key", /sk-(?!ant-)[A-Za-z0-9_-]{20,}/u],
+    ["Anthropic API key", /sk-ant-[A-Za-z0-9_-]{20,}/u],
+    ["AWS access key id", /AKIA[0-9A-Z]{16}/u],
+    ["GitHub token", /gh[pousr]_[A-Za-z0-9_]{20,}/u],
+    ["Slack token", /xox[baprs]-[A-Za-z0-9-]{20,}/u],
+    ["private key block", /-----BEGIN [A-Z ]*PRIVATE KEY-----/u]
+  ];
+  return patterns
+    .filter(([, pattern]) => pattern.test(text))
+    .map(([label]) => label);
 }
 
 function escapeRegex(value) {
