@@ -48,7 +48,9 @@ const summary = [
 
 if (summary.at(-1) === "Follow-up issue links:") summary.push("- None recorded");
 
-console.log(summary.join("\n"));
+const summaryText = summary.join("\n");
+assertPublicSummarySafe(summaryText);
+console.log(summaryText);
 
 function parseArgs(values) {
   const parsed = {};
@@ -103,6 +105,33 @@ function normalizeWarnings(value) {
 
 function status(value) {
   return value || "unknown";
+}
+
+function assertPublicSummarySafe(summaryText) {
+  for (const [label, value] of privateReportValues()) {
+    if (value && summaryText.includes(value)) {
+      throw new Error(`Live QA summary would leak private ${label}.`);
+    }
+  }
+  if (/\b[a-p]{32}\b/u.test(summaryText)) {
+    throw new Error("Live QA summary would leak a Chrome extension ID.");
+  }
+  if (/Bundle path:/iu.test(summaryText)) {
+    throw new Error("Live QA summary would leak bundle path labels.");
+  }
+}
+
+function privateReportValues() {
+  const values = [
+    ["tester", extractField(report, "Tester")],
+    ["extension ID", extractField(report, "Extension ID")],
+    ["capture folder", extractField(report, "Capture folder")]
+  ];
+  for (const name of ["ChatGPT", "Claude", "Gemini"]) {
+    const section = extractSection(report, name);
+    values.push([`${name} bundle path`, extractField(section, "Bundle path")]);
+  }
+  return values.filter(([, value]) => value && !["none", "n/a"].includes(value.toLowerCase()));
 }
 
 function escapeRegex(value) {

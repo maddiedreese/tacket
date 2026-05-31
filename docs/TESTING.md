@@ -68,6 +68,7 @@ npm run qa:live:summary -- qa/live-capture/<report>.md
 ```
 
 The summary omits bundle paths, local capture folders, tester names, extension IDs, and provider notes. It includes provider names, counts, pass/fail evidence fields, release decision, and follow-up issue links.
+The summary command refuses to print if its output would include a captured bundle path, capture folder, tester name, or Chrome extension ID.
 
 For local extension plumbing, open:
 

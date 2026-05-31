@@ -269,7 +269,7 @@ for (const phrase of ["ChatGPT", "Claude", "Gemini", "validate-bundle.mjs", "Rel
 }
 
 const summarizeLiveQa = await readFile("scripts/summarize-live-qa.mjs", "utf8");
-for (const phrase of ["Live QA Summary", "verify-live-qa.mjs", "Follow-up issue links", "Attachments captured"]) {
+for (const phrase of ["Live QA Summary", "verify-live-qa.mjs", "Follow-up issue links", "Attachments captured", "assertPublicSummarySafe", "would leak a Chrome extension ID"]) {
   if (!summarizeLiveQa.includes(phrase)) throw new Error(`Live QA summary script missing: ${phrase}`);
 }
 

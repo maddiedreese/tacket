@@ -60,6 +60,7 @@ function releaseIssues() {
 Checklist:
 
 - [ ] Run \`npm run qa:live\` and fill the generated local report without private transcript text.
+- [ ] Fill required tester/build/environment fields, including commit, macOS, Chrome, extension ID, native host, and capture folder.
 - [ ] Test ChatGPT text, code, image/image-like attachment, and long-scroll capture.
 - [ ] Test Claude text, code, attached/linked file, and long-scroll capture.
 - [ ] Test Gemini text, code, and long-scroll capture.

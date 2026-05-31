@@ -37,7 +37,29 @@ test("summarizes live QA reports without leaking local bundle paths", async () =
   assert.match(result.stdout, /\| ChatGPT \| 2 \| 0 \/ 0 \/ 0 \| none/u);
   assert.match(result.stdout, /Release decision: Pass/u);
   assert.doesNotMatch(result.stdout, /Bundle path/u);
+  assert.doesNotMatch(result.stdout, /automated/u);
+  assert.doesNotMatch(result.stdout, /abcdefghijklmnopabcdefghijklmnop/u);
+  assert.doesNotMatch(result.stdout, /\/tmp\/tacket-live-capture/u);
   assert.doesNotMatch(result.stdout, new RegExp(escapeRegex(root), "u"));
+});
+
+test("refuses to print live QA summaries that would leak private report values", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-summary-leak-"));
+  const bundles = {
+    ChatGPT: await providerBundle(root, "chatgpt", "https://chatgpt.com/c/live"),
+    Claude: await providerBundle(root, "claude", "https://claude.ai/chat/live"),
+    Gemini: await providerBundle(root, "gemini", "https://gemini.google.com/app/live")
+  };
+  const reportPath = path.join(root, "report.md");
+  await writeFile(
+    reportPath,
+    liveQaReport(bundles).replace("Native host: installed", "Native host: abcdefghijklmnopabcdefghijklmnop"),
+    "utf8"
+  );
+
+  const result = await runScript("scripts/summarize-live-qa.mjs", [reportPath, "--no-verify"]);
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /would leak private extension ID/u);
 });
 
 test("rejects live QA reports with mismatched evidence or secret-like text", async () => {
