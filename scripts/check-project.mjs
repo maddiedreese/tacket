@@ -283,8 +283,13 @@ for (const phrase of ["Live QA Summary", "verify-live-qa.mjs", "Follow-up issue 
 }
 
 const testing = await readFile("docs/TESTING.md", "utf8");
-for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run qa:live:summary", "npm run smoke:first-run", "npm run smoke:dmg-install", "npm run website:verify", "qa/live-capture/", "git-ignored", "message/attachment/warning evidence"]) {
+for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run qa:live:summary", "npm run smoke:first-run", "npm run smoke:dmg-install", "npm run website:verify", "qa/live-capture/", "git-ignored", "message/attachment/warning evidence", "integrity validation"]) {
   if (!testing.includes(phrase)) throw new Error(`Testing guide missing live QA guidance: ${phrase}`);
+}
+
+const validateBundle = await readFile("scripts/validate-bundle.mjs", "utf8");
+for (const phrase of ["assertAttachmentCounts", "assertCapturedAttachments", "assertTransferTargets", "must match transcript.md exactly"]) {
+  if (!validateBundle.includes(phrase)) throw new Error(`Bundle validator missing: ${phrase}`);
 }
 
 const websiteVerifier = await readFile("scripts/verify-website.mjs", "utf8");

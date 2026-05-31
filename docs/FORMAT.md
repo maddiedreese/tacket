@@ -69,3 +69,5 @@ Attachments can have one of three statuses:
 - `captured`: Tacket saved a local copy.
 - `referenced`: Tacket preserved a URL or page reference but could not save the bytes.
 - `unavailable`: Tacket saw an attachment placeholder but could not access it.
+
+`node scripts/validate-bundle.mjs path/to/thread.tacket` verifies schema shape, message counts, attachment counts, captured attachment files, safe relative attachment paths, and that `targets/codex.md` and `targets/claude-code.md` match `transcript.md` exactly.
