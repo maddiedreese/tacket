@@ -75,6 +75,7 @@ const requiredFiles = [
   "scripts/test/verify-live-qa.test.js",
   "scripts/test/verify-web-store-extension-id.test.js",
   "scripts/test/check-post-release.test.js",
+  "scripts/test/assess-release-gatekeeper.test.js",
   "scripts/test/date-changelog-release.test.js",
   "scripts/test/create-release-tag.test.js",
   "scripts/release-status.mjs",
