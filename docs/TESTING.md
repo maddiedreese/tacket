@@ -14,12 +14,19 @@ npm run package:release
 - attachment persistence tests
 - Chrome capture fixture tests for ChatGPT, Claude, and Gemini-like DOMs
 - website release-link and privacy-copy checks
+- local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
 - first-run smoke coverage for connector install/status/remove, native-host capture, bundle validation, and Codex/Claude Code dry-run transfer in isolated temporary folders
 
 Run only the website checks with:
 
 ```bash
 npm run website:verify
+```
+
+Run only the local-first privacy checks with:
+
+```bash
+npm run privacy:verify
 ```
 
 Run only the first-run smoke path with:

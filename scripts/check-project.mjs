@@ -197,8 +197,14 @@ if (rootPackage.scripts?.["qa:live"] !== "node scripts/new-live-qa.mjs") {
 if (rootPackage.scripts?.["website:verify"] !== "node scripts/verify-website.mjs") {
   throw new Error("package.json must expose npm run website:verify.");
 }
+if (rootPackage.scripts?.["privacy:verify"] !== "node scripts/verify-local-first.mjs") {
+  throw new Error("package.json must expose npm run privacy:verify.");
+}
 if (!rootPackage.scripts?.verify?.includes("npm run website:verify")) {
   throw new Error("npm run verify must include website verification.");
+}
+if (!rootPackage.scripts?.verify?.includes("npm run privacy:verify")) {
+  throw new Error("npm run verify must include local-first privacy verification.");
 }
 if (rootPackage.scripts?.["smoke:first-run"] !== "node scripts/smoke-first-run.mjs") {
   throw new Error("package.json must expose npm run smoke:first-run.");
@@ -284,6 +290,11 @@ for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "npm run qa:l
 const websiteVerifier = await readFile("scripts/verify-website.mjs", "utf8");
 for (const phrase of ["releasesUrl", "SHA256SUMS", "Website checks passed"]) {
   if (!websiteVerifier.includes(phrase)) throw new Error(`Website verifier missing: ${phrase}`);
+}
+
+const localFirstVerifier = await readFile("scripts/verify-local-first.mjs", "utf8");
+for (const phrase of ["Local-first privacy checks passed", "sendBeacon", "WebSocket", "URLSession", "argument === \"src\"", "externally_connectable"]) {
+  if (!localFirstVerifier.includes(phrase)) throw new Error(`Local-first verifier missing: ${phrase}`);
 }
 
 const firstRunSmoke = await readFile("scripts/smoke-first-run.mjs", "utf8");

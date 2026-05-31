@@ -91,7 +91,7 @@ Build local unsigned release artifacts:
 npm run package:release
 ```
 
-This runs icons, verification, extension packaging, Mac app packaging, DMG packaging, checksum generation, release verification, DMG install smoke testing, Chrome Web Store upload folder preparation, store package verification, and a final release verification after the store zip/checksum refresh. Release verification checks the packaged native host binary, bundled extension resources, DMG layout, checksums, and the Chrome native messaging manifest contract used by the Mac app.
+This runs icons, verification, extension packaging, Mac app packaging, DMG packaging, checksum generation, release verification, DMG install smoke testing, Chrome Web Store upload folder preparation, store package verification, and a final release verification after the store zip/checksum refresh. Verification includes local-first privacy checks that reject unapproved telemetry/backends and runtime network APIs. Release verification checks the packaged native host binary, bundled extension resources, DMG layout, checksums, and the Chrome native messaging manifest contract used by the Mac app.
 
 Development app bundle:
 

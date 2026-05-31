@@ -20,6 +20,8 @@ Tacket stores app preferences locally in `~/Library/Application Support/Tacket/c
 
 Tacket's Chrome extension should request the narrowest practical host permissions for supported AI chat domains.
 
+`npm run privacy:verify` is part of `npm run verify`. It checks production runtime files for unapproved telemetry, backend/network APIs, broad extension manifest expansion, and new hardcoded remote endpoints. The only approved runtime network-like operation is the user-clicked capture adapter reading the image `src` from the currently open supported chat page so an image can be preserved locally when the browser permits it.
+
 ## macOS Automation
 
 When transferring to Codex or Claude Code, Tacket copies the raw transcript to the local clipboard, opens Terminal, and asks macOS to paste. macOS may show Automation or Accessibility prompts for this action. These permissions are not used for capture, background monitoring, networking, or reading other apps.
