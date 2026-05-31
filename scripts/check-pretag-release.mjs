@@ -112,12 +112,21 @@ await check("Latest Release workflow run passed", async () => {
     "--limit",
     "1",
     "--json",
-    "status,conclusion,headSha,url"
+    "databaseId,status,conclusion,headSha,url"
   ]);
   assert(runs[0], "no Release runs found");
   assert(runs[0].status === "completed", `latest Release run is ${runs[0].status}`);
   assert(runs[0].conclusion === "success", `latest Release conclusion is ${runs[0].conclusion}`);
   assert(runs[0].headSha === currentHead, `latest Release head ${runs[0].headSha} does not match local HEAD ${currentHead}`);
+});
+
+await check("Latest Release workflow artifact is available", async () => {
+  const run = await latestReleaseRun();
+  const artifacts = await ghJson(["api", `repos/${repo}/actions/runs/${run.databaseId}/artifacts`]);
+  const artifact = (artifacts.artifacts ?? []).find((item) => item.name === "tacket-release");
+  assert(artifact, "missing tacket-release artifact");
+  assert(artifact.expired === false, "tacket-release artifact is expired");
+  assert(artifact.size_in_bytes > 0, "tacket-release artifact is empty");
 });
 
 printSummary();
@@ -142,6 +151,23 @@ function printSummary() {
 async function ghJson(args) {
   const text = await run("gh", args);
   return JSON.parse(text);
+}
+
+async function latestReleaseRun() {
+  const runs = await ghJson([
+    "run",
+    "list",
+    "--repo",
+    repo,
+    "--workflow",
+    "Release",
+    "--limit",
+    "1",
+    "--json",
+    "databaseId,status,conclusion,headSha,url"
+  ]);
+  assert(runs[0], "no Release runs found");
+  return runs[0];
 }
 
 async function run(command, args) {

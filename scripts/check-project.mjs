@@ -300,6 +300,7 @@ for (const phrase of [
   "Security reporting and dependency alerts are enabled",
   "does not match local HEAD",
   "latest Release head",
+  "Latest Release workflow artifact is available",
   "Release issue checklists are synced",
   "v0.1.0 milestone has no open issues",
   "Signing and notarization secrets are configured",
@@ -309,7 +310,7 @@ for (const phrase of [
 }
 
 const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
-for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
+for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches HEAD", "Latest Release artifact", "Release issue checklists", "npm run qa:live:verify", "npm run release:issues", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
   if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
 }
 
@@ -329,6 +330,7 @@ for (const phrase of [
   "Working tree is clean",
   "does not match local HEAD",
   "latest Release head",
+  "Latest Release workflow artifact is available",
   "CHANGELOG.md has a final dated",
   "Release issue checklists are synced",
   "v0.1.0 milestone has no open issues",

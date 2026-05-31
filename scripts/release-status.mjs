@@ -36,6 +36,7 @@ const secrets = await configuredSecrets();
 const missingSecrets = secrets ? requiredSecrets.filter((secret) => !secrets.has(secret)) : null;
 const latestCi = await latestRun("CI", ["--branch", "main"]);
 const latestRelease = await latestRun("Release", []);
+const latestReleaseArtifact = await releaseArtifactState(latestRelease);
 const releaseIssuesState = await releaseIssueChecklistState();
 const releaseExists = await githubReleaseExists(tag);
 
@@ -47,6 +48,7 @@ printState("Security reporting/dependency alerts", securityState);
 printState("Local HEAD", currentHead ? currentHead.slice(0, 12) : "unknown");
 printState("Latest CI on main", ciRunState(latestCi, currentHead));
 printState("Latest manual Release workflow", headRunState(latestRelease, currentHead));
+printState("Latest Release artifact", latestReleaseArtifact);
 printState("Release issue checklists", releaseIssuesState);
 printState("Open v0.1.0 milestone issues", openIssues ? (openIssues.length === 0 ? "clear" : `${openIssues.length} open`) : "unknown");
 printState("Signing/notarization secrets", missingSecrets ? (missingSecrets.length === 0 ? "configured" : `${missingSecrets.length} missing`) : "unknown");
@@ -65,6 +67,9 @@ if (openIssues?.length === 0 && missingSecrets?.length === 0 && releaseIssuesSta
   }
   if (releaseIssuesState !== "synced") {
     console.log("- Release issue checklists are not confirmed synced. Run `npm run release:issues`.");
+  }
+  if (latestReleaseArtifact !== "available") {
+    console.log("- Latest Release workflow artifact is not confirmed available. Run the manual Release workflow.");
   }
   if (releaseExists === true) {
     console.log(`- ${tag} already exists on GitHub Releases.`);
@@ -126,10 +131,21 @@ async function latestRun(workflow, extraArgs) {
     "--limit",
     "1",
     "--json",
-    "status,conclusion,headSha,url",
+    "databaseId,status,conclusion,headSha,url",
     ...extraArgs
   ]);
   return runs ? (runs[0] ?? undefined) : null;
+}
+
+async function releaseArtifactState(run) {
+  if (!run?.databaseId) return "unknown";
+  const artifacts = await safeGhJson(["api", `repos/${repo}/actions/runs/${run.databaseId}/artifacts`]);
+  if (!artifacts) return "unknown";
+  const artifact = (artifacts.artifacts ?? []).find((item) => item.name === "tacket-release");
+  if (!artifact) return "missing";
+  if (artifact.expired) return "expired";
+  if (!(artifact.size_in_bytes > 0)) return "empty";
+  return "available";
 }
 
 async function githubReleaseExists(releaseTag) {
