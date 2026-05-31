@@ -106,6 +106,25 @@ test("rejects live QA reports with placeholder environment evidence", async () =
   assert.match(result.stderr, /Extension ID must be the 32-letter Chrome extension ID tested/u);
 });
 
+test("rejects live QA reports missing required checklist items", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-checklist-fail-"));
+  const bundles = {
+    ChatGPT: await providerBundle(root, "chatgpt", "https://chatgpt.com/c/live"),
+    Claude: await providerBundle(root, "claude", "https://claude.ai/chat/live"),
+    Gemini: await providerBundle(root, "gemini", "https://gemini.google.com/app/live")
+  };
+  const reportPath = path.join(root, "report.md");
+  await writeFile(
+    reportPath,
+    liveQaReport(bundles).replace("- [x] Clipboard transfer copies raw transcript.\n", ""),
+    "utf8"
+  );
+
+  const result = await runVerify(reportPath);
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /Required checked item missing: Clipboard transfer copies raw transcript/u);
+});
+
 async function providerBundle(root, platform, url) {
   const { bundlePath, manifest } = await writeBundle({
     title: `${platform} live QA`,
@@ -144,24 +163,54 @@ Release decision: Pass
 ## Preflight
 
 - [x] Repo is clean or all local changes are intentional.
+- [x] \`npm run package:release\` passed locally or in GitHub CI.
+- [x] Production extension manifest does not include \`file:///*\`.
+- [x] Native messaging connector is installed for the tested Chrome extension ID.
+- [x] Capture folder is known and writable.
+- [x] Existing test bundles are moved aside or clearly separated.
 
 ${providerSection("ChatGPT", bundles.ChatGPT)}
 
 ${providerSection("Claude", bundles.Claude)}
 
 ${providerSection("Gemini", bundles.Gemini)}
+
+## Mac App Review
+
+- [x] Choose Bundle shows title, platform, URL, captured date, and message count.
+- [x] Possible-secret warnings render without exposing secret values in app chrome.
+- [x] Reveal Bundle opens Finder at the selected bundle.
+- [x] Open Transcript opens \`transcript.md\`.
+- [x] Copy Transcript copies the raw transcript.
+- [x] Choose Capture Folder persists to \`~/Library/Application Support/Tacket/config.json\`.
+- [x] Reset Folder returns to \`~/Documents/Tacket Captures\`.
+
+## Transfer
+
+- [x] Clipboard transfer copies raw transcript.
+- [x] Codex transfer launches Terminal and requests paste.
+- [x] Claude Code transfer launches Terminal and requests paste.
+- [x] \`--dry-run\` CLI transfer works for Codex.
+- [x] \`--dry-run\` CLI transfer works for Claude Code.
+- [x] Small chunk size produces ordered raw chunks.
 `;
 }
 
 function providerSection(name, bundle) {
   const { manifest } = bundle;
+  const assistantTurn = name === "Gemini" ? "Text model turn" : "Text assistant turn";
+  const providerOnlyRows = {
+    ChatGPT: "- [x] Image or image-like attachment\n",
+    Claude: "- [x] Attached or linked file\n",
+    Gemini: ""
+  };
   return `## ${name}
 
 Thread shape:
 - [x] Text user turn
-- [x] Text assistant turn
+- [x] ${assistantTurn}
 - [x] Code block
-- [x] Long enough to require scrolling
+${providerOnlyRows[name]}- [x] Long enough to require scrolling
 
 Capture evidence:
 - Bundle path: ${bundle.bundlePath}

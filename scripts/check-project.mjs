@@ -273,7 +273,7 @@ for (const phrase of ["Do not paste private transcript text", "npm run qa:live:v
 }
 
 const verifyLiveQa = await readFile("scripts/verify-live-qa.mjs", "utf8");
-for (const phrase of ["ChatGPT", "Claude", "Gemini", "validate-bundle.mjs", "Release decision", "Attachment counts", "Extension ID must be the 32-letter", "secret-like text"]) {
+for (const phrase of ["ChatGPT", "Claude", "Gemini", "validate-bundle.mjs", "Release decision", "Attachment counts", "Extension ID must be the 32-letter", "secret-like text", "Required checked item missing", "checkedItemsBySection"]) {
   if (!verifyLiveQa.includes(phrase)) throw new Error(`Live QA verifier missing: ${phrase}`);
 }
 

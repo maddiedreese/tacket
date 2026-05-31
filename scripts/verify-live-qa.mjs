@@ -37,6 +37,42 @@ for (const unchecked of report.matchAll(/^- \[ \] (.+)$/gmu)) {
   failures.push(`Incomplete checkbox: ${unchecked[1]}`);
 }
 
+requireCheckedItems([
+  "Repo is clean or all local changes are intentional.",
+  "`npm run package:release` passed locally or in GitHub CI.",
+  "Production extension manifest does not include `file:///*`.",
+  "Native messaging connector is installed for the tested Chrome extension ID.",
+  "Capture folder is known and writable.",
+  "Existing test bundles are moved aside or clearly separated.",
+  "ChatGPT Text user turn",
+  "ChatGPT Text assistant turn",
+  "ChatGPT Code block",
+  "ChatGPT Image or image-like attachment",
+  "ChatGPT Long enough to require scrolling",
+  "Claude Text user turn",
+  "Claude Text assistant turn",
+  "Claude Code block",
+  "Claude Attached or linked file",
+  "Claude Long enough to require scrolling",
+  "Gemini Text user turn",
+  "Gemini Text model turn",
+  "Gemini Code block",
+  "Gemini Long enough to require scrolling",
+  "Choose Bundle shows title, platform, URL, captured date, and message count.",
+  "Possible-secret warnings render without exposing secret values in app chrome.",
+  "Reveal Bundle opens Finder at the selected bundle.",
+  "Open Transcript opens `transcript.md`.",
+  "Copy Transcript copies the raw transcript.",
+  "Choose Capture Folder persists to `~/Library/Application Support/Tacket/config.json`.",
+  "Reset Folder returns to `~/Documents/Tacket Captures`.",
+  "Clipboard transfer copies raw transcript.",
+  "Codex transfer launches Terminal and requests paste.",
+  "Claude Code transfer launches Terminal and requests paste.",
+  "`--dry-run` CLI transfer works for Codex.",
+  "`--dry-run` CLI transfer works for Claude Code.",
+  "Small chunk size produces ordered raw chunks."
+]);
+
 for (const forbidden of [
   "Release decision: Unset",
   "Bundle path:\n",
@@ -202,6 +238,33 @@ function requireFilledTopLevelField(label) {
   if (!value || ["unset", "todo", "tbd", "unknown", "n/a", "test"].includes(value.toLowerCase())) {
     failures.push(`${label} must identify the live QA environment.`);
   }
+}
+
+function requireCheckedItems(labels) {
+  const checked = checkedItemsBySection();
+  for (const label of labels) {
+    if (checked.has(label)) continue;
+    failures.push(`Required checked item missing: ${label}`);
+  }
+}
+
+function checkedItemsBySection() {
+  const checked = new Set();
+  let section = "";
+  for (const line of report.split(/\r?\n/u)) {
+    const heading = line.match(/^##\s+(.+)$/u);
+    if (heading) {
+      section = heading[1];
+      continue;
+    }
+    const item = line.match(/^- \[[xX]\] (.+)$/u);
+    if (!item) continue;
+    checked.add(item[1]);
+    if (["ChatGPT", "Claude", "Gemini"].includes(section)) {
+      checked.add(`${section} ${item[1]}`);
+    }
+  }
+  return checked;
 }
 
 function sameSet(a, b) {
