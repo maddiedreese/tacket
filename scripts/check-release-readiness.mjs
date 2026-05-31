@@ -96,6 +96,12 @@ await check("Latest manual Release run passed", async () => {
   assert(runs[0].conclusion === "success", `latest Release conclusion is ${runs[0].conclusion}`);
 });
 
+await check("Release issue checklists are synced", async () => {
+  await execFileAsync("node", ["scripts/check-release-issues.mjs"], {
+    maxBuffer: 1024 * 1024 * 10
+  });
+});
+
 await check("v0.1.0 milestone has no open issues", async () => {
   const issues = await ghJson([
     "issue",

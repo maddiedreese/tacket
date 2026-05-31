@@ -299,6 +299,7 @@ for (const phrase of [
   "Working tree is clean",
   "Security reporting and dependency alerts are enabled",
   "does not match local HEAD",
+  "Release issue checklists are synced",
   "v0.1.0 milestone has no open issues",
   "Signing and notarization secrets are configured",
   "Latest manual Release run passed"
@@ -327,6 +328,7 @@ for (const phrase of [
   "Working tree is clean",
   "does not match local HEAD",
   "CHANGELOG.md has a final dated",
+  "Release issue checklists are synced",
   "v0.1.0 milestone has no open issues",
   "Signing and notarization secrets are configured",
   "Latest Release workflow run passed"
