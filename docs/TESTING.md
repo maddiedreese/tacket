@@ -31,6 +31,14 @@ npm run qa:live
 
 This writes a timestamped checklist under `qa/live-capture/`. Those reports are git-ignored because they may contain local paths, extension IDs, provider notes, or other release evidence that should be reviewed before sharing. Do not paste private transcript text, screenshots with private content, API keys, tokens, or private file names into QA reports.
 
+After filling the checklist, setting `Release decision: Pass`, and adding the ChatGPT, Claude, and Gemini bundle paths, verify the report and captured bundles:
+
+```bash
+npm run qa:live:verify -- qa/live-capture/<report>.md
+```
+
+If no report path is supplied, the verifier uses the newest markdown report in `qa/live-capture/`. The verifier fails if required checkboxes are incomplete, if a provider bundle path is missing, if a bundle fails schema validation, or if a provider bundle manifest does not match the expected source platform.
+
 For local extension plumbing, open:
 
 ```text

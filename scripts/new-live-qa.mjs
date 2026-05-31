@@ -24,8 +24,15 @@ Chrome:
 Extension ID:
 Native host:
 Capture folder:
+Release decision: Unset
 
 Do not paste private transcript text, screenshots with private content, API keys, tokens, or private file names into this report. Record counts, paths, statuses, and synthetic/minimal notes only.
+
+After completing the checklist and filling the three provider bundle paths, verify this report with:
+
+\`\`\`bash
+npm run qa:live:verify -- ${reportPath}
+\`\`\`
 
 ## Preflight
 
@@ -118,9 +125,11 @@ Capture evidence:
 
 ## Release Decision
 
-- [ ] Pass
-- [ ] Fail
-- [ ] Needs follow-up issue(s)
+Set \`Release decision:\` at the top of this report to one of:
+
+- Pass
+- Fail
+- Needs follow-up issue(s)
 
 Follow-up issue links:
 

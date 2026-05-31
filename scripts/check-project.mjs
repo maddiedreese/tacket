@@ -67,6 +67,7 @@ const requiredFiles = [
   "scripts/verify-release.mjs",
   "scripts/smoke-swift-host.mjs",
   "scripts/new-live-qa.mjs",
+  "scripts/verify-live-qa.mjs",
   "scripts/check-release-readiness.mjs",
   "scripts/generate-store-screenshots.mjs",
   "scripts/prepare-chrome-web-store.mjs"
@@ -176,6 +177,9 @@ const rootPackage = JSON.parse(await readFile("package.json", "utf8"));
 if (rootPackage.scripts?.["qa:live"] !== "node scripts/new-live-qa.mjs") {
   throw new Error("package.json must expose npm run qa:live for live provider QA reports.");
 }
+if (rootPackage.scripts?.["qa:live:verify"] !== "node scripts/verify-live-qa.mjs") {
+  throw new Error("package.json must expose npm run qa:live:verify.");
+}
 if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-readiness.mjs") {
   throw new Error("package.json must expose npm run release:readiness.");
 }
@@ -187,12 +191,17 @@ if (rootPackage.scripts?.["store:prepare"] !== "node scripts/prepare-chrome-web-
 }
 
 const liveQa = await readFile("scripts/new-live-qa.mjs", "utf8");
-for (const phrase of ["Do not paste private transcript text", "ChatGPT", "Claude", "Gemini", "Release Decision"]) {
+for (const phrase of ["Do not paste private transcript text", "npm run qa:live:verify", "ChatGPT", "Claude", "Gemini", "Release Decision"]) {
   if (!liveQa.includes(phrase)) throw new Error(`Live QA report template missing: ${phrase}`);
 }
 
+const verifyLiveQa = await readFile("scripts/verify-live-qa.mjs", "utf8");
+for (const phrase of ["ChatGPT", "Claude", "Gemini", "validate-bundle.mjs", "Release decision"]) {
+  if (!verifyLiveQa.includes(phrase)) throw new Error(`Live QA verifier missing: ${phrase}`);
+}
+
 const testing = await readFile("docs/TESTING.md", "utf8");
-for (const phrase of ["npm run qa:live", "qa/live-capture/", "git-ignored"]) {
+for (const phrase of ["npm run qa:live", "npm run qa:live:verify", "qa/live-capture/", "git-ignored"]) {
   if (!testing.includes(phrase)) throw new Error(`Testing guide missing live QA guidance: ${phrase}`);
 }
 
