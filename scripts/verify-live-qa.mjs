@@ -12,6 +12,23 @@ if (decision !== "Pass") {
   failures.push(`Release decision must be Pass, found: ${decision || "missing"}`);
 }
 
+for (const field of [
+  "Tester",
+  "Tacket commit",
+  "Tacket version",
+  "macOS",
+  "Chrome",
+  "Native host",
+  "Capture folder"
+]) {
+  requireFilledTopLevelField(field);
+}
+
+const extensionId = extractField(report, "Extension ID");
+if (!/^[a-p]{32}$/u.test(extensionId)) {
+  failures.push("Extension ID must be the 32-letter Chrome extension ID tested.");
+}
+
 for (const finding of secretFindings(report)) {
   failures.push(`Report appears to include private secret-like text: ${finding}`);
 }
@@ -177,6 +194,13 @@ function requireAffirmativeField(heading, section, label) {
   const value = extractField(section, label).toLowerCase();
   if (!["yes", "pass", "passed", "true", "ok"].includes(value)) {
     failures.push(`${heading} ${label} must be affirmative, found: ${value || "missing"}.`);
+  }
+}
+
+function requireFilledTopLevelField(label) {
+  const value = extractField(report, label);
+  if (!value || ["unset", "todo", "tbd", "unknown", "n/a", "test"].includes(value.toLowerCase())) {
+    failures.push(`${label} must identify the live QA environment.`);
   }
 }
 

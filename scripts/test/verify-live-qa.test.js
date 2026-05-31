@@ -62,6 +62,28 @@ test("rejects live QA reports with mismatched evidence or secret-like text", asy
   assert.match(result.stderr, /secret-like text/u);
 });
 
+test("rejects live QA reports with placeholder environment evidence", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-env-fail-"));
+  const bundles = {
+    ChatGPT: await providerBundle(root, "chatgpt", "https://chatgpt.com/c/live"),
+    Claude: await providerBundle(root, "claude", "https://claude.ai/chat/live"),
+    Gemini: await providerBundle(root, "gemini", "https://gemini.google.com/app/live")
+  };
+  const reportPath = path.join(root, "report.md");
+  await writeFile(
+    reportPath,
+    liveQaReport(bundles)
+      .replace("Tacket commit: abc123def456", "Tacket commit: test")
+      .replace("Extension ID: abcdefghijklmnopabcdefghijklmnop", "Extension ID: not-a-real-id"),
+    "utf8"
+  );
+
+  const result = await runVerify(reportPath);
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /Tacket commit must identify the live QA environment/u);
+  assert.match(result.stderr, /Extension ID must be the 32-letter Chrome extension ID tested/u);
+});
+
 async function providerBundle(root, platform, url) {
   const { bundlePath, manifest } = await writeBundle({
     title: `${platform} live QA`,
@@ -88,13 +110,13 @@ function liveQaReport(bundles) {
 
 Date: 2026-05-31T00:00:00.000Z
 Tester: automated
-Tacket commit: test
+Tacket commit: abc123def456
 Tacket version: 0.1.0
-macOS: test
-Chrome: test
-Extension ID: abcdefghijklmnopqrstuvwxyzabcdef
+macOS: 15.5
+Chrome: 125.0.0.0
+Extension ID: abcdefghijklmnopabcdefghijklmnop
 Native host: installed
-Capture folder: test
+Capture folder: /tmp/tacket-live-capture
 Release decision: Pass
 
 ## Preflight

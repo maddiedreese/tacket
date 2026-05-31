@@ -28,7 +28,7 @@ Release decision: Unset
 
 Do not paste private transcript text, screenshots with private content, API keys, tokens, or private file names into this report. Record counts, paths, statuses, and synthetic/minimal notes only.
 
-After completing the checklist, fill the three provider bundle paths plus evidence fields. Use numbers from each bundle's \`manifest.json\`: \`Message count\`, \`Attachment counts\` as \`captured / referenced / unavailable\`, and \`Warning kinds\` as \`none\` or comma-separated warning kinds. Use \`yes\`, \`pass\`, or \`ok\` for evidence checks that passed.
+After completing the checklist, fill the top-level environment fields, the three provider bundle paths, and the evidence fields. Use numbers from each bundle's \`manifest.json\`: \`Message count\`, \`Attachment counts\` as \`captured / referenced / unavailable\`, and \`Warning kinds\` as \`none\` or comma-separated warning kinds. Use \`yes\`, \`pass\`, or \`ok\` for evidence checks that passed. The verifier requires a real 32-letter Chrome extension ID and non-placeholder tester/build/environment fields.
 
 Then verify this report with:
 
