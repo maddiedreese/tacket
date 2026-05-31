@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { access, lstat, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { access, lstat, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
@@ -33,9 +33,11 @@ for (const screenshot of [
 
 await verifyInfoPlist(path.join(app, "Contents/Info.plist"));
 await verifyMacSigningInputs();
+await verifyMacConnectorSource();
 await verifyExtensionManifest(path.join(root, "apps/chrome-extension/manifest.json"));
 await verifyExtensionBackground(path.join(root, "apps/chrome-extension/src/background.js"));
 await verifyBundledExtension();
+await verifyPackagedNativeMessagingManifest();
 await verifyWebsite();
 await verifyExtensionZip();
 await run("hdiutil", ["verify", dmg]);
@@ -73,6 +75,19 @@ async function verifyMacSigningInputs() {
   const signScript = await readFile(path.join(root, "scripts/sign-mac-app.sh"), "utf8");
   for (const phrase of ["--options runtime", "--entitlements", "Tacket.entitlements"]) {
     if (!signScript.includes(phrase)) throw new Error(`Signing script missing ${phrase}`);
+  }
+}
+
+async function verifyMacConnectorSource() {
+  const text = await readFile(path.join(root, "apps/mac/TacketApp/Sources/TacketApp/TacketApp.swift"), "utf8");
+  for (const phrase of [
+    `"name": "${release.nativeHostName}"`,
+    `"path": nativeHostURL.path`,
+    `"type": "stdio"`,
+    `"allowed_origins": ["chrome-extension://\\(extensionId)/"]`,
+    `appendingPathComponent("${release.nativeHostName}.json")`
+  ]) {
+    if (!text.includes(phrase)) throw new Error(`Mac connector source missing native messaging manifest contract: ${phrase}`);
   }
 }
 
@@ -139,6 +154,38 @@ async function verifyBundledExtension() {
   await verifyExtensionManifest(path.join(bundled, "manifest.json"));
   await verifyExtensionBackground(path.join(bundled, "src/background.js"));
   await verifyExtensionPopup(path.join(bundled, "src/popup.js"));
+}
+
+async function verifyPackagedNativeMessagingManifest() {
+  const extensionId = "abcdefghijklmnopabcdefghijklmnop";
+  const hostPath = path.join(app, "Contents/MacOS/TacketNativeHost");
+  await assertExecutable(hostPath);
+
+  const tmpHome = await mkdtemp(path.join(os.tmpdir(), "tacket-native-manifest-"));
+  try {
+    const manifestDir = path.join(tmpHome, "Library/Application Support/Google/Chrome/NativeMessagingHosts");
+    const manifestPath = path.join(manifestDir, `${release.nativeHostName}.json`);
+    await mkdir(manifestDir, { recursive: true });
+    const manifest = {
+      name: release.nativeHostName,
+      description: "Tacket local capture host",
+      path: hostPath,
+      type: "stdio",
+      allowed_origins: [`chrome-extension://${extensionId}/`]
+    };
+    await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+
+    const actual = JSON.parse(await readFile(manifestPath, "utf8"));
+    if (actual.name !== release.nativeHostName) throw new Error("Packaged native messaging manifest name mismatch.");
+    if (actual.path !== hostPath) throw new Error("Packaged native messaging manifest host path mismatch.");
+    if (actual.type !== "stdio") throw new Error("Packaged native messaging manifest type must be stdio.");
+    if (!actual.allowed_origins?.includes(`chrome-extension://${extensionId}/`)) {
+      throw new Error("Packaged native messaging manifest missing Chrome extension origin.");
+    }
+    await assertExecutable(actual.path);
+  } finally {
+    await rm(tmpHome, { recursive: true, force: true });
+  }
 }
 
 async function verifyWebsite() {

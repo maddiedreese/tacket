@@ -312,6 +312,11 @@ for (const phrase of [
   if (!releaseWorkflow.includes(phrase)) throw new Error(`Release workflow missing: ${phrase}`);
 }
 
+const verifyRelease = await readFile("scripts/verify-release.mjs", "utf8");
+for (const phrase of ["verifyPackagedNativeMessagingManifest", "verifyMacConnectorSource"]) {
+  if (!verifyRelease.includes(phrase)) throw new Error(`Release verifier missing: ${phrase}`);
+}
+
 const pagesWorkflow = await readFile(".github/workflows/pages.yml", "utf8");
 for (const phrase of [
   "actions/configure-pages",

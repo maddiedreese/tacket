@@ -82,7 +82,7 @@ Build local unsigned release artifacts:
 npm run package:release
 ```
 
-This runs icons, verification, extension packaging, Mac app packaging, DMG packaging, checksum generation, and release verification.
+This runs icons, verification, extension packaging, Mac app packaging, DMG packaging, checksum generation, and release verification. Release verification checks the packaged native host binary, bundled extension resources, DMG layout, checksums, and the Chrome native messaging manifest contract used by the Mac app.
 
 Development app bundle:
 
