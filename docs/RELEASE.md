@@ -57,6 +57,22 @@ Required GitHub secrets for signed release builds:
 - `APPLE_TEAM_ID`
 - `APPLE_APP_SPECIFIC_PASSWORD`
 
+Set signing secrets from a local exported Developer ID `.p12` certificate:
+
+```bash
+export DEVELOPER_ID_CERTIFICATE_PASSWORD="p12-password"
+export KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+
+scripts/prepare-signing-secrets.sh \
+  --certificate ~/Downloads/developer-id-application.p12 \
+  --developer-id-application "Developer ID Application: Your Name (TEAMID)" \
+  --apple-id "you@example.com" \
+  --apple-team-id "TEAMID"
+```
+
+Use `--dry-run` first to validate inputs without changing GitHub secrets. The script uses `gh secret set`, does not write the base64 certificate to disk, and does not print secret values.
+
 Build local unsigned release artifacts:
 
 ```bash

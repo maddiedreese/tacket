@@ -57,6 +57,7 @@ const requiredFiles = [
   "scripts/package-dmg.sh",
   "scripts/sign-mac-app.sh",
   "scripts/notarize-dmg.sh",
+  "scripts/prepare-signing-secrets.sh",
   "scripts/package-extension.sh",
   "scripts/package-release.sh",
   "scripts/generate-icons.mjs",
@@ -114,6 +115,17 @@ for (const phrase of ["--options runtime", "--entitlements", "Tacket.entitlement
   if (!signScript.includes(phrase)) throw new Error(`Signing script missing: ${phrase}`);
 }
 
+const signingSecrets = await readFile("scripts/prepare-signing-secrets.sh", "utf8");
+for (const phrase of [
+  "DEVELOPER_ID_CERTIFICATE_BASE64",
+  "gh secret set",
+  "--dry-run",
+  "does not write the",
+  "openssl pkcs12"
+]) {
+  if (!signingSecrets.includes(phrase)) throw new Error(`Signing secret helper missing: ${phrase}`);
+}
+
 const issueConfig = await readFile(".github/ISSUE_TEMPLATE/config.yml", "utf8");
 if (!issueConfig.includes("/security/advisories/new")) {
   throw new Error("Issue template config must direct vulnerabilities to private security advisories.");
@@ -155,7 +167,7 @@ if (!readme.includes("docs/ROADMAP.md")) {
 }
 
 const roadmap = await readFile("docs/ROADMAP.md", "utf8");
-for (const phrase of ["milestone/1", "live capture validation", "Developer ID signing", "Chrome Web Store"]) {
+for (const phrase of ["milestone/1", "live capture validation", "Developer ID signing", "scripts/prepare-signing-secrets.sh", "Chrome Web Store"]) {
   if (!roadmap.includes(phrase)) throw new Error(`Roadmap missing: ${phrase}`);
 }
 
@@ -197,6 +209,9 @@ if (!releaseDocs.includes("npm run release:readiness")) {
 }
 if (!releaseDocs.includes("docs/STORE_ASSETS.md")) {
   throw new Error("Release docs must mention docs/STORE_ASSETS.md.");
+}
+if (!releaseDocs.includes("scripts/prepare-signing-secrets.sh")) {
+  throw new Error("Release docs must mention scripts/prepare-signing-secrets.sh.");
 }
 
 const chromeStore = await readFile("docs/CHROME_WEB_STORE.md", "utf8");

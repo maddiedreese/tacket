@@ -13,7 +13,7 @@ https://github.com/maddiedreese/tacket/milestone/1
 Release blockers:
 
 - live capture validation for current ChatGPT, Claude, and Gemini pages
-- Developer ID signing and Apple notarization for direct-download Mac builds
+- Developer ID signing and Apple notarization for direct-download Mac builds, with secrets prepared by `scripts/prepare-signing-secrets.sh`
 - Chrome Web Store listing, review, and final extension ID testing
 - signed GitHub release with `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS`
 
