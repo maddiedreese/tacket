@@ -73,8 +73,10 @@ const requiredFiles = [
   "scripts/verify-live-qa.mjs",
   "scripts/test/verify-live-qa.test.js",
   "scripts/test/date-changelog-release.test.js",
+  "scripts/test/create-release-tag.test.js",
   "scripts/release-status.mjs",
   "scripts/date-changelog-release.mjs",
+  "scripts/create-release-tag.mjs",
   "scripts/check-release-readiness.mjs",
   "scripts/check-pretag-release.mjs",
   "scripts/verify-release-download.mjs",
@@ -222,6 +224,9 @@ if (rootPackage.scripts?.["release:date-changelog"] !== "node scripts/date-chang
 if (rootPackage.scripts?.["release:pretag"] !== "node scripts/check-pretag-release.mjs") {
   throw new Error("package.json must expose npm run release:pretag.");
 }
+if (rootPackage.scripts?.["release:tag"] !== "node scripts/create-release-tag.mjs") {
+  throw new Error("package.json must expose npm run release:tag.");
+}
 if (rootPackage.scripts?.["release:verify-download"] !== "node scripts/verify-release-download.mjs") {
   throw new Error("package.json must expose npm run release:verify-download.");
 }
@@ -283,7 +288,7 @@ for (const phrase of [
 }
 
 const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
-for (const phrase of ["Open blockers", "Next commands", "npm run qa:live:verify", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag"]) {
+for (const phrase of ["Open blockers", "Next commands", "npm run qa:live:verify", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag", "npm run release:tag"]) {
   if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
 }
 
@@ -301,6 +306,11 @@ for (const phrase of [
   "Latest Release workflow run passed"
 ]) {
   if (!pretag.includes(phrase)) throw new Error(`Pre-tag release checker missing: ${phrase}`);
+}
+
+const releaseTag = await readFile("scripts/create-release-tag.mjs", "utf8");
+for (const phrase of ["release:pretag", "git\", [\"tag\", \"-a\"", "--push", "--dry-run", "Working tree must be clean"]) {
+  if (!releaseTag.includes(phrase)) throw new Error(`Release tag script missing: ${phrase}`);
 }
 
 const verifyDownload = await readFile("scripts/verify-release-download.mjs", "utf8");
@@ -328,6 +338,9 @@ if (!releaseDocs.includes("npm run release:date-changelog")) {
 }
 if (!releaseDocs.includes("npm run release:pretag")) {
   throw new Error("Release docs must mention npm run release:pretag.");
+}
+if (!releaseDocs.includes("npm run release:tag")) {
+  throw new Error("Release docs must mention npm run release:tag.");
 }
 if (!releaseDocs.includes("npm run release:verify-download")) {
   throw new Error("Release docs must mention npm run release:verify-download.");

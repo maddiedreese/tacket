@@ -26,6 +26,7 @@ Tacket v1 is direct-download and local-only.
 - Run `npm run release:readiness` before pushing the release tag.
 - Date the changelog with `npm run release:date-changelog -- --date YYYY-MM-DD` only after external release gates are complete.
 - Run `npm run release:pretag` immediately before creating the release tag.
+- Create and push the tag with `npm run release:tag -- --push`.
 - After the GitHub Release is published, run `npm run release:verify-download`.
 - Confirm Gatekeeper accepts the signed/notarized artifacts with `npm run release:assess`.
 
@@ -164,6 +165,18 @@ npm run release:pretag
 ```
 
 This command verifies local release artifacts, the Chrome Web Store submission folder, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, no open v0.1.0 milestone issues, configured signing/notarization secrets, and current green CI/Release workflow runs. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
+
+Create the release tag after `release:pretag` passes:
+
+```bash
+npm run release:tag -- --push
+```
+
+This runs `npm run release:pretag`, requires a clean working tree, creates annotated tag `v0.1.0`, and pushes it only when `--push` is provided. To preview without running the gate or creating a tag:
+
+```bash
+npm run release:tag -- --dry-run --push
+```
 
 Verify public release downloads after the tag workflow publishes the GitHub Release:
 

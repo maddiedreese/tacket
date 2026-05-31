@@ -30,6 +30,7 @@
     "release:readiness": "node scripts/check-release-readiness.mjs",
     "release:date-changelog": "node scripts/date-changelog-release.mjs",
     "release:pretag": "node scripts/check-pretag-release.mjs",
+    "release:tag": "node scripts/create-release-tag.mjs",
     "release:verify-download": "node scripts/verify-release-download.mjs",
     "release:assess": "node scripts/assess-release-gatekeeper.mjs",
     "store:screenshots": "node scripts/generate-store-screenshots.mjs",
