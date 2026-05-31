@@ -16,6 +16,7 @@ Tacket v1 is direct-download and local-only.
 - Update `CHANGELOG.md`.
 - Review `docs/PRIVACY.md` and Chrome listing copy for consistency.
 - Review `docs/CHROME_WEB_STORE.md` before submitting the extension.
+- Run `npm run release:readiness` before pushing the release tag.
 
 The repository can build unsigned local artifacts without paid accounts. Public distribution additionally requires:
 
@@ -100,6 +101,14 @@ export APPLE_TEAM_ID="TEAMID"
 export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 bash scripts/notarize-dmg.sh
 ```
+
+Check remote release readiness:
+
+```bash
+npm run release:readiness
+```
+
+This command uses GitHub CLI to confirm the public repository is reachable, Pages is enabled, latest CI and manual Release workflow runs passed, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
 
 ## Versioning
 

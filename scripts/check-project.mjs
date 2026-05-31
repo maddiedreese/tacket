@@ -59,7 +59,8 @@ const requiredFiles = [
   "scripts/validate-bundle.mjs",
   "scripts/verify-release.mjs",
   "scripts/smoke-swift-host.mjs",
-  "scripts/new-live-qa.mjs"
+  "scripts/new-live-qa.mjs",
+  "scripts/check-release-readiness.mjs"
 ];
 
 for (const file of requiredFiles) {
@@ -142,6 +143,9 @@ const rootPackage = JSON.parse(await readFile("package.json", "utf8"));
 if (rootPackage.scripts?.["qa:live"] !== "node scripts/new-live-qa.mjs") {
   throw new Error("package.json must expose npm run qa:live for live provider QA reports.");
 }
+if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-readiness.mjs") {
+  throw new Error("package.json must expose npm run release:readiness.");
+}
 
 const liveQa = await readFile("scripts/new-live-qa.mjs", "utf8");
 for (const phrase of ["Do not paste private transcript text", "ChatGPT", "Claude", "Gemini", "Release Decision"]) {
@@ -151,6 +155,21 @@ for (const phrase of ["Do not paste private transcript text", "ChatGPT", "Claude
 const testing = await readFile("docs/TESTING.md", "utf8");
 for (const phrase of ["npm run qa:live", "qa/live-capture/", "git-ignored"]) {
   if (!testing.includes(phrase)) throw new Error(`Testing guide missing live QA guidance: ${phrase}`);
+}
+
+const readiness = await readFile("scripts/check-release-readiness.mjs", "utf8");
+for (const phrase of [
+  "GitHub CLI authenticated",
+  "v0.1.0 milestone has no open issues",
+  "Signing and notarization secrets are configured",
+  "Latest manual Release run passed"
+]) {
+  if (!readiness.includes(phrase)) throw new Error(`Release readiness checker missing: ${phrase}`);
+}
+
+const releaseDocs = await readFile("docs/RELEASE.md", "utf8");
+if (!releaseDocs.includes("npm run release:readiness")) {
+  throw new Error("Release docs must mention npm run release:readiness.");
 }
 
 for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {
