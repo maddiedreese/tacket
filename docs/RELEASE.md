@@ -24,6 +24,7 @@ Tacket v1 is direct-download and local-only.
 - After Chrome Web Store approval, verify the published extension ID with `npm run store:verify-id -- --extension-id <chrome-extension-id>`.
 - Check the current blocker dashboard with `npm run release:status`.
 - Run `npm run release:readiness` before pushing the release tag.
+- Date the changelog with `npm run release:date-changelog -- --date YYYY-MM-DD` only after external release gates are complete.
 - Run `npm run release:pretag` immediately before creating the release tag.
 - After the GitHub Release is published, run `npm run release:verify-download`.
 - Confirm Gatekeeper accepts the signed/notarized artifacts with `npm run release:assess`.
@@ -143,6 +144,18 @@ npm run release:readiness
 ```
 
 This command uses GitHub CLI to confirm the public repository is reachable, Pages is enabled, latest CI and manual Release workflow runs passed, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
+
+When the external release gates are complete, date the changelog entry:
+
+```bash
+npm run release:date-changelog -- --date YYYY-MM-DD
+```
+
+This replaces `## 0.1.0 - Unreleased` with a final dated heading. To confirm the changelog is ready without editing it:
+
+```bash
+npm run release:date-changelog -- --date YYYY-MM-DD --check
+```
 
 Check final pre-tag release state:
 

@@ -28,6 +28,7 @@
     "qa:live:verify": "node scripts/verify-live-qa.mjs",
     "release:status": "node scripts/release-status.mjs",
     "release:readiness": "node scripts/check-release-readiness.mjs",
+    "release:date-changelog": "node scripts/date-changelog-release.mjs",
     "release:pretag": "node scripts/check-pretag-release.mjs",
     "release:verify-download": "node scripts/verify-release-download.mjs",
     "release:assess": "node scripts/assess-release-gatekeeper.mjs",

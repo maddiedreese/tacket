@@ -72,7 +72,9 @@ const requiredFiles = [
   "scripts/new-live-qa.mjs",
   "scripts/verify-live-qa.mjs",
   "scripts/test/verify-live-qa.test.js",
+  "scripts/test/date-changelog-release.test.js",
   "scripts/release-status.mjs",
+  "scripts/date-changelog-release.mjs",
   "scripts/check-release-readiness.mjs",
   "scripts/check-pretag-release.mjs",
   "scripts/verify-release-download.mjs",
@@ -214,6 +216,9 @@ if (rootPackage.scripts?.["release:status"] !== "node scripts/release-status.mjs
 if (rootPackage.scripts?.["release:readiness"] !== "node scripts/check-release-readiness.mjs") {
   throw new Error("package.json must expose npm run release:readiness.");
 }
+if (rootPackage.scripts?.["release:date-changelog"] !== "node scripts/date-changelog-release.mjs") {
+  throw new Error("package.json must expose npm run release:date-changelog.");
+}
 if (rootPackage.scripts?.["release:pretag"] !== "node scripts/check-pretag-release.mjs") {
   throw new Error("package.json must expose npm run release:pretag.");
 }
@@ -278,8 +283,13 @@ for (const phrase of [
 }
 
 const releaseStatus = await readFile("scripts/release-status.mjs", "utf8");
-for (const phrase of ["Open blockers", "Next commands", "npm run qa:live:verify", "npm run store:verify-id", "npm run release:pretag"]) {
+for (const phrase of ["Open blockers", "Next commands", "npm run qa:live:verify", "npm run store:verify-id", "npm run release:date-changelog", "npm run release:pretag"]) {
   if (!releaseStatus.includes(phrase)) throw new Error(`Release status script missing: ${phrase}`);
+}
+
+const dateChangelog = await readFile("scripts/date-changelog-release.mjs", "utf8");
+for (const phrase of ["--date YYYY-MM-DD", "Unreleased", "--check", "Dated CHANGELOG.md"]) {
+  if (!dateChangelog.includes(phrase)) throw new Error(`Changelog dating script missing: ${phrase}`);
 }
 
 const pretag = await readFile("scripts/check-pretag-release.mjs", "utf8");
@@ -312,6 +322,9 @@ if (!releaseDocs.includes("npm run store:verify")) {
 }
 if (!releaseDocs.includes("npm run release:readiness")) {
   throw new Error("Release docs must mention npm run release:readiness.");
+}
+if (!releaseDocs.includes("npm run release:date-changelog")) {
+  throw new Error("Release docs must mention npm run release:date-changelog.");
 }
 if (!releaseDocs.includes("npm run release:pretag")) {
   throw new Error("Release docs must mention npm run release:pretag.");
