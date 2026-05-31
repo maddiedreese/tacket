@@ -11,5 +11,7 @@ bash "$ROOT_DIR/scripts/package-dmg.sh"
 npm --prefix "$ROOT_DIR" run generate:checksums
 npm --prefix "$ROOT_DIR" run verify:release
 npm --prefix "$ROOT_DIR" run smoke:dmg-install
+npm --prefix "$ROOT_DIR" run store:prepare
+npm --prefix "$ROOT_DIR" run verify:release
 
-printf "Release artifacts ready in %s/dist\n" "$ROOT_DIR"
+printf "Release and Chrome Web Store artifacts ready in %s/dist\n" "$ROOT_DIR"

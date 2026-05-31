@@ -313,7 +313,7 @@ for (const phrase of ["Open blockers", "Next commands", "Local HEAD", "matches H
 }
 
 const releaseIssues = await readFile("scripts/check-release-issues.mjs", "utf8");
-for (const phrase of ["qa:live:summary", "store:verify-id", "release:postflight", "--sync", "--dry-run"]) {
+for (const phrase of ["qa:live:summary", "store:verify-id", "dist/chrome-web-store/", "release:postflight", "--sync", "--dry-run"]) {
   if (!releaseIssues.includes(phrase)) throw new Error(`Release issue checker missing: ${phrase}`);
 }
 
@@ -440,6 +440,12 @@ for (const phrase of ["--extension-id", "allowed_origins", "uninstall-native-hos
 const packageRelease = await readFile("scripts/package-release.sh", "utf8");
 if (!packageRelease.includes("smoke:dmg-install")) {
   throw new Error("Release package script must run npm run smoke:dmg-install.");
+}
+if (!packageRelease.includes("store:prepare")) {
+  throw new Error("Release package script must prepare the Chrome Web Store upload folder.");
+}
+if (!packageRelease.includes("Release and Chrome Web Store artifacts ready")) {
+  throw new Error("Release package script must report both release and Chrome Web Store artifacts.");
 }
 
 for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {

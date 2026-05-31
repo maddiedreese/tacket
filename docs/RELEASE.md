@@ -4,7 +4,7 @@ Tacket v1 is direct-download and local-only.
 
 ## Before Release
 
-- Confirm `npm run package:release` passes.
+- Confirm `npm run package:release` passes and refreshes `dist/chrome-web-store/`.
 - Confirm `npm run smoke:first-run` passes for the local connector/capture/transfer rehearsal.
 - Confirm `npm run smoke:dmg-install` passes for the packaged direct-download install rehearsal.
 - Create a local live-capture QA report with `npm run qa:live`.
@@ -21,7 +21,7 @@ Tacket v1 is direct-download and local-only.
 - Confirm `npm run website:verify` passes before publishing Pages changes.
 - Review `docs/CHROME_WEB_STORE.md` before submitting the extension.
 - Prepare Chrome Web Store images using `docs/STORE_ASSETS.md`.
-- Prepare the Chrome Web Store upload folder with `npm run store:prepare`, confirm `npm run store:verify` passes, then review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image before uploading.
+- Prepare or refresh the Chrome Web Store upload folder with `npm run package:release` or `npm run store:prepare`, confirm `npm run store:verify` passes, then review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image before uploading.
 - After Chrome Web Store approval, verify the published extension ID with `npm run store:verify-id -- --extension-id <chrome-extension-id>`.
 - Check the current blocker dashboard with `npm run release:status`.
 - Confirm GitHub release issue checklists match the repo tooling with `npm run release:issues`.
@@ -91,7 +91,7 @@ Build local unsigned release artifacts:
 npm run package:release
 ```
 
-This runs icons, verification, extension packaging, Mac app packaging, DMG packaging, checksum generation, and release verification. Release verification checks the packaged native host binary, bundled extension resources, DMG layout, checksums, and the Chrome native messaging manifest contract used by the Mac app.
+This runs icons, verification, extension packaging, Mac app packaging, DMG packaging, checksum generation, release verification, DMG install smoke testing, Chrome Web Store upload folder preparation, store package verification, and a final release verification after the store zip/checksum refresh. Release verification checks the packaged native host binary, bundled extension resources, DMG layout, checksums, and the Chrome native messaging manifest contract used by the Mac app.
 
 Development app bundle:
 
@@ -177,7 +177,7 @@ Check final pre-tag release state:
 npm run release:pretag
 ```
 
-This command verifies the working tree is clean, local release artifacts, the Chrome Web Store submission folder, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, synced release issue checklists, no open v0.1.0 milestone issues, configured signing/notarization secrets, current green CI for the local `HEAD`, and the latest green Release workflow run. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
+This command verifies the working tree is clean, local release artifacts, the Chrome Web Store submission folder prepared by `npm run package:release` or `npm run store:prepare`, version alignment, a dated `CHANGELOG.md` entry, no existing `v0.1.0` tag, synced release issue checklists, no open v0.1.0 milestone issues, configured signing/notarization secrets, current green CI for the local `HEAD`, and the latest green Release workflow run. It is intentionally stricter than local packaging and should fail until the external release blockers are finished.
 
 Create the release tag after `release:pretag` passes:
 

@@ -128,7 +128,7 @@ Checklist:
 - [ ] Confirm \`CHANGELOG.md\` no longer says \`Unreleased\` for 0.1.0.
 - [ ] Confirm \`release.json\`, \`package.json\`, and extension manifest versions are aligned.
 - [ ] Run \`npm run package:release\`.
-- [ ] Run \`npm run store:prepare\`.
+- [ ] Confirm \`dist/chrome-web-store/\` was refreshed by \`npm run package:release\`.
 - [ ] Confirm \`npm run release:pretag\` passes.
 - [ ] Create and push tag \`v0.1.0\` with \`npm run release:tag -- --push\`.
 - [ ] Confirm GitHub Release is created with \`Tacket.dmg\`, \`tacket-chrome-extension.zip\`, and \`SHA256SUMS\`.

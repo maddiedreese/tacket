@@ -6,7 +6,7 @@
 npm run package:release
 ```
 
-`npm run verify` checks required project files and runs:
+`npm run package:release` runs `npm run verify`, builds the release DMG and extension zip, prepares `dist/chrome-web-store/`, and verifies both the release downloads and Chrome Web Store upload folder. `npm run verify` checks required project files and runs:
 
 - `.tacket` bundle format tests
 - `.tacket` JSON Schema validation against a generated sample bundle

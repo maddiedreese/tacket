@@ -81,7 +81,7 @@ npm run store:prepare
 
 This writes `dist/chrome-web-store/` with the extension zip, required icon, small promotional image, screenshots, `listing.md`, `privacy.md`, and a short upload README. Review every generated image before submitting.
 
-If release artifacts already exist in `dist/`, `store:prepare` refreshes `SHA256SUMS` after rebuilding the extension zip so the release checksums do not go stale.
+`npm run package:release` also runs this preparation step after building the DMG and release zip. If release artifacts already exist in `dist/`, `store:prepare` refreshes `SHA256SUMS` after rebuilding the extension zip so the release checksums do not go stale.
 
 Verify the prepared upload folder independently with:
 
