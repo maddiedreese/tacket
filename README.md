@@ -4,6 +4,8 @@ Tacket moves complete AI chat threads into coding agents without turning them in
 
 It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gemini. Click the extension on a supported chat page, save the full thread as a local `.tacket` bundle, then transfer the raw transcript into Codex or Claude Code.
 
+Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
+
 Tacket is pre-release. Signed direct-download builds are coming with the first public release.
 
 ## What It Does
@@ -69,6 +71,10 @@ You can inspect the files yourself. The transcript is plain Markdown.
 ## Privacy
 
 Tacket is designed to stay on your Mac. See [docs/PRIVACY.md](docs/PRIVACY.md) and the public [privacy page](website/privacy.html) for the current privacy contract.
+
+## Support
+
+Tacket is made by [@maddiedreese](https://github.com/maddiedreese). If you want to support the project, you can sponsor development on [GitHub Sponsors](https://github.com/sponsors/maddiedreese).
 
 ## Contributing
 

@@ -5,7 +5,12 @@
   --muted: #5f6368;
   --line: #ddd8ce;
   --panel: #ffffff;
-  --accent: #245f73;
+  --accent: #075a91;
+  --accent-dark: #064a77;
+  --gold: #ffd06a;
+  --gold-strong: #ffc048;
+  --paper: #fbfaf7;
+  --rule: #d7dada;
 }
 
 * {
@@ -16,7 +21,8 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--bg);
-  font: 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: 16px/1.55 "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+  overflow-x: hidden;
 }
 
 a {
@@ -25,7 +31,7 @@ a {
 
 header {
   border-bottom: 1px solid var(--line);
-  background: rgba(248, 247, 244, 0.92);
+  background: rgba(248, 247, 244, 0.96);
 }
 
 nav,
@@ -61,7 +67,15 @@ nav div {
 }
 
 .hero {
-  padding: 84px 0 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 54px;
+  align-items: center;
+  padding: 82px 0 54px;
+}
+
+.hero-copy {
+  min-width: 0;
 }
 
 .eyebrow {
@@ -71,10 +85,11 @@ nav div {
 }
 
 h1 {
-  max-width: 780px;
+  max-width: 760px;
   margin: 0;
-  font-size: 72px;
+  font-size: 68px;
   line-height: 0.98;
+  overflow-wrap: break-word;
 }
 
 .lede {
@@ -82,6 +97,7 @@ h1 {
   margin: 24px 0 0;
   color: var(--muted);
   font-size: 20px;
+  overflow-wrap: break-word;
 }
 
 .actions {
@@ -109,34 +125,60 @@ h1 {
   background: var(--accent);
 }
 
-.download-note,
-.release-links {
-  max-width: 680px;
-  margin: 16px 0 0;
-  color: var(--muted);
+.button.sponsor {
+  border-color: var(--gold-strong);
+  background: var(--gold);
 }
 
-.release-links {
-  display: flex;
-  gap: 10px;
+.hero-mark {
+  display: grid;
+  place-items: center;
 }
 
-.grid {
+.hero-mark img {
+  width: 180px;
+  height: 180px;
+  border-radius: 38px;
+}
+
+.statement {
+  border-block: 1px solid var(--line);
+  padding: 30px 0;
+}
+
+.statement p {
+  max-width: 860px;
+  margin: 0;
+  color: var(--accent-dark);
+  font-size: 24px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  padding: 20px 0 48px;
+  padding: 52px 0 42px;
 }
 
-article,
-pre {
+.steps article {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
+  padding: 18px;
 }
 
-article {
-  padding: 18px;
+.steps span {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 16px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--accent-dark);
+  background: var(--gold);
+  font-weight: 800;
 }
 
 h2 {
@@ -153,9 +195,29 @@ section {
   padding-bottom: 56px;
 }
 
-pre {
-  overflow: auto;
-  padding: 18px;
+.details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 42px;
+}
+
+.details p,
+.maker p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.maker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.maker a:not(.button) {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .document {
@@ -172,13 +234,47 @@ pre {
   color: var(--muted);
 }
 
-@media (max-width: 760px) {
-  h1 {
-    font-size: 44px;
+@media (max-width: 900px) {
+  nav,
+  main {
+    width: calc(100vw - 36px);
+    max-width: calc(100vw - 36px);
   }
 
-  .grid {
+  .hero {
     grid-template-columns: 1fr;
+    gap: 32px;
+    padding-top: 54px;
+  }
+
+  .hero-copy,
+  h1,
+  .lede,
+  .statement p {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  h1 {
+    font-size: 40px;
+  }
+
+  .lede {
+    font-size: 19px;
+  }
+
+  .statement p {
+    font-size: 20px;
+  }
+
+  .steps,
+  .details {
+    grid-template-columns: 1fr;
+  }
+
+  .maker {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   nav {

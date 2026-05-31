@@ -68,7 +68,7 @@ function renderScene(scene) {
         --muted: #5f6368;
         --line: #ddd8ce;
         --panel: #ffffff;
-        --accent: #245f73;
+        --accent: #075a91;
         --tack: #d9c88f;
       }
       * { box-sizing: border-box; }
@@ -106,11 +106,79 @@ function renderScene(scene) {
         width: 48px;
         height: 48px;
         place-items: center;
-        border-radius: 11px;
-        color: white;
+        border-radius: 10px;
         background: var(--accent);
-        font-size: 26px;
-        font-weight: 800;
+        position: relative;
+        overflow: hidden;
+      }
+      .icon::before {
+        content: "";
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        left: 7px;
+        top: 4px;
+        border-radius: 50%;
+        background: #ffd16f;
+        z-index: 2;
+      }
+      .icon::after {
+        content: "";
+        position: absolute;
+        left: 27px;
+        top: 32px;
+        width: 18px;
+        height: 15px;
+        background: #ffd16f;
+        clip-path: polygon(0 0, 42% 0, 100% 100%);
+        z-index: 0;
+      }
+      .icon span {
+        position: absolute;
+        left: 11px;
+        top: 17px;
+        width: 31px;
+        height: 18px;
+        border-radius: 3px;
+        background: #fbfaf7;
+        z-index: 1;
+      }
+      .icon span b {
+        position: absolute;
+        left: 3px;
+        width: 26px;
+        height: 2px;
+        border-radius: 2px;
+        background: #d6d9d8;
+      }
+      .icon span b:nth-child(1) {
+        top: 5px;
+      }
+      .icon span b:nth-child(2) {
+        top: 11px;
+      }
+      .icon span b:nth-child(3) {
+        top: 17px;
+      }
+      .icon i {
+        position: absolute;
+        left: 16px;
+        top: 18px;
+        width: 13px;
+        height: 8px;
+        background: #ffd16f;
+        clip-path: polygon(0 0, 38% 0, 100% 100%, 63% 100%);
+        z-index: 3;
+      }
+      .icon em {
+        position: absolute;
+        left: 6px;
+        top: 3px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #fff1b6;
+        z-index: 4;
       }
       .eyebrow {
         margin: 0 0 16px;
@@ -140,7 +208,6 @@ function renderScene(scene) {
         border: 1px solid var(--line);
         border-radius: 8px;
         background: var(--panel);
-        box-shadow: 0 22px 60px rgba(21, 21, 21, 0.12);
       }
       .chrome {
         display: flex;
@@ -187,7 +254,7 @@ function renderScene(scene) {
     <div class="top"></div>
     <main>
       <section>
-        <div class="brand"><div class="icon">T</div><span>Tacket</span></div>
+        <div class="brand"><div class="icon"><span><b></b><b></b><b></b></span><i></i><em></em></div><span>Tacket</span></div>
         <p class="eyebrow">${escapeHtml(scene.eyebrow)}</p>
         <h1>${escapeHtml(scene.title)}</h1>
         <p>${escapeHtml(scene.body)}</p>

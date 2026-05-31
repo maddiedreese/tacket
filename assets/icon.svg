@@ -1,21 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Tacket app icon</title>
-  <desc id="desc">A clean brass tack on a teal field.</desc>
+  <desc id="desc">A clean gold tack piercing a single white note on a blue field.</desc>
   <defs>
-    <linearGradient id="field" x1="96" x2="416" y1="56" y2="456" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#2f7181"/>
-      <stop offset="1" stop-color="#17495b"/>
-    </linearGradient>
-    <linearGradient id="brass" x1="164" x2="330" y1="128" y2="332" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#f1df9c"/>
-      <stop offset=".55" stop-color="#d6b45b"/>
-      <stop offset="1" stop-color="#9f7a2d"/>
-    </linearGradient>
+    <clipPath id="tile">
+      <rect width="512" height="512" rx="108"/>
+    </clipPath>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#field)"/>
-  <path fill="#103947" opacity=".24" d="M246 170c77 14 132 70 132 135 0 78-67 141-148 141-30 0-57-8-79-23 13 8 30 12 49 12 82 0 148-63 148-141 0-48-24-91-62-116-12-4-26-7-40-8z"/>
-  <path fill="url(#brass)" d="M256 92c68 0 123 50 123 111 0 42-25 78-63 97l29 103-89 49-89-49 29-103c-38-19-63-55-63-97 0-61 55-111 123-111z"/>
-  <path fill="#8f6823" opacity=".72" d="M211 382h90l-45 72z"/>
-  <circle cx="217" cy="159" r="28" fill="#fff4bb" opacity=".78"/>
-  <circle cx="304" cy="260" r="42" fill="#9f7a2d" opacity=".76"/>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="#075a91"/>
+    <g transform="translate(-19 -15)">
+      <path fill="#ffd06a" d="M340 344 354 330 430 420z"/>
+      <path fill="#ffc048" d="M347 337 354 330 430 420z"/>
+      <rect x="142" y="194" width="262" height="154" rx="24" fill="#fbfaf7"/>
+      <path fill="#d7dada" d="M186 233h174v8H186zM186 271h174v8H186zM186 309h174v8H186z"/>
+      <path fill="#ffd06a" d="M232 238 242 228 278 266 268 276z"/>
+      <path fill="#ffc048" d="M242 228 278 266 273 271z"/>
+      <circle cx="188" cy="190" r="68" fill="#ffd06a"/>
+      <circle cx="158" cy="160" r="12" fill="#fff1b6"/>
+    </g>
+  </g>
 </svg>

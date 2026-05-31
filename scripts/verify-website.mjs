@@ -19,12 +19,16 @@ const css = await readFile(path.join(website, "styles.css"), "utf8");
 
 for (const phrase of [
   releasesUrl,
-  "Tacket.dmg",
-  "SHA256SUMS",
   repoUrl,
+  "https://github.com/sponsors/maddiedreese",
+  "https://twitter.com/maddiedreese",
   "./privacy.html",
-  "without summarizing it",
-  "No backend"
+  "transfer the full conversation",
+  "It will always be free",
+  "always be open source",
+  "see any of your chats",
+  "no accounts, no analytics",
+  "Made by"
 ]) {
   if (!index.includes(phrase)) throw new Error(`website/index.html missing: ${phrase}`);
 }
@@ -39,8 +43,12 @@ for (const phrase of [
   if (!privacy.includes(phrase)) throw new Error(`website/privacy.html missing: ${phrase}`);
 }
 
-for (const selector of [".release-links", ".download-note", ".button.primary"]) {
+for (const selector of [".hero-mark", ".statement", ".button.primary", ".maker", ".sponsor"]) {
   if (!css.includes(selector)) throw new Error(`website/styles.css missing: ${selector}`);
+}
+
+if (css.includes("Inter")) {
+  throw new Error("Website CSS must not use Inter.");
 }
 
 if (/font-size:\s*clamp\([^;]*vw/iu.test(css)) {

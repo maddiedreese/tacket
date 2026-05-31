@@ -77,26 +77,29 @@ async function renderPromoPng(width, height) {
 function renderIconPixels(size) {
   const pixels = Buffer.alloc(size * size * 4);
   const radius = size * 0.22;
-  const bgTop = [0x2f, 0x71, 0x81, 0xff];
-  const bgBottom = [0x17, 0x49, 0x5b, 0xff];
-  const tack = [0xd9, 0xc8, 0x8f, 0xff];
-  const tackDark = [0x9f, 0x7a, 0x2d, 0xff];
-  const highlight = [0xff, 0xf1, 0xb2, 0xd8];
-  const shadow = [0x10, 0x39, 0x47, 0x3d];
+  const bg = [0x07, 0x5a, 0x91, 0xff];
+  const paper = [0xfb, 0xfa, 0xf7, 0xff];
+  const rule = [0xd7, 0xda, 0xda, 0xff];
+  const brass = [0xff, 0xd0, 0x6a, 0xff];
+  const brassLight = [0xff, 0xf1, 0xb6, 0xff];
+  const brassDark = [0xff, 0xc0, 0x48, 0xff];
   const transparent = [0, 0, 0, 0];
 
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      let color = roundedRectContains(x, y, size, size, radius, size) ?
-        mix(bgTop, bgBottom, y / Math.max(1, size - 1)) :
-        transparent;
+      let color = roundedRectContains(x, y, size, size, radius, size) ? bg : transparent;
 
-      if (inCircle(x, y, size, 0.54, 0.56, 0.23)) color = shadow;
-      if (inTriangle(x, y, size, 0.43, 0.65, 0.57, 0.65, 0.50, 0.82)) color = tackDark;
-      if (inSoftRotatedRect(x, y, size, 0.50, 0.58, 0.20, 0.26, 0, 0.045)) color = tackDark;
-      if (inCircle(x, y, size, 0.50, 0.38, 0.24)) color = tack;
-      if (inCircle(x, y, size, 0.39, 0.29, 0.06)) color = highlight;
-      if (inCircle(x, y, size, 0.57, 0.47, 0.08)) color = tackDark;
+      if (inTriangle(x, y, size, 0.627, 0.643, 0.654, 0.615, 0.803, 0.791)) color = brass;
+      if (inTriangle(x, y, size, 0.641, 0.629, 0.654, 0.615, 0.803, 0.791)) color = brassDark;
+      if (inSoftRotatedRect(x, y, size, 0.498, 0.501, 0.64, 0.38, 0, 0.047)) color = paper;
+      if (inRect(x, y, size, 0.326, 0.426, 0.34, 0.02)) color = rule;
+      if (inRect(x, y, size, 0.326, 0.5, 0.34, 0.02)) color = rule;
+      if (inRect(x, y, size, 0.326, 0.575, 0.34, 0.02)) color = rule;
+      if (inTriangle(x, y, size, 0.416, 0.436, 0.436, 0.416, 0.506, 0.491)) color = brass;
+      if (inTriangle(x, y, size, 0.416, 0.436, 0.506, 0.491, 0.486, 0.51)) color = brass;
+      if (inTriangle(x, y, size, 0.436, 0.416, 0.506, 0.491, 0.496, 0.5)) color = brassDark;
+      if (inCircle(x, y, size, 0.33, 0.342, 0.17)) color = brass;
+      if (inCircle(x, y, size, 0.271, 0.283, 0.03)) color = brassLight;
       const offset = (y * size + x) * 4;
       pixels[offset] = color[0];
       pixels[offset + 1] = color[1];
@@ -193,11 +196,16 @@ function inCircle(x, y, size, centerX, centerY, radius) {
 function inTriangle(x, y, size, ax, ay, bx, by, cx, cy) {
   const px = x / size;
   const py = y / size;
-  const area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
-  const s = ((ay - cy) * (px - cx) + (cx - ax) * (py - cy)) / area;
-  const t = ((cy - by) * (px - cx) + (bx - cx) * (py - cy)) / area;
-  const u = 1 - s - t;
-  return s >= 0 && t >= 0 && u >= 0;
+  const d1 = triangleSign(px, py, ax, ay, bx, by);
+  const d2 = triangleSign(px, py, bx, by, cx, cy);
+  const d3 = triangleSign(px, py, cx, cy, ax, ay);
+  const hasNegative = d1 < 0 || d2 < 0 || d3 < 0;
+  const hasPositive = d1 > 0 || d2 > 0 || d3 > 0;
+  return !(hasNegative && hasPositive);
+}
+
+function triangleSign(px, py, ax, ay, bx, by) {
+  return (px - bx) * (ay - by) - (ax - bx) * (py - by);
 }
 
 function inSoftRotatedRect(x, y, size, centerX, centerY, width, height, angle, radius) {

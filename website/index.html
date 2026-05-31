@@ -6,7 +6,7 @@
     <title>Tacket</title>
     <meta
       name="description"
-      content="Tacket captures complete AI chat threads locally and transfers raw transcripts into coding agents."
+      content="Tacket transfers individual AI chat threads between tools with a click. Free, open source, and fully local."
     />
     <link rel="icon" href="./assets/favicon.png" />
     <link rel="apple-touch-icon" href="./assets/icon-180.png" />
@@ -19,58 +19,83 @@
         <div>
           <a href="./privacy.html">Privacy</a>
           <a href="https://github.com/maddiedreese/tacket">GitHub</a>
+          <a href="https://github.com/sponsors/maddiedreese">Sponsor</a>
         </div>
       </nav>
     </header>
 
     <main>
       <section class="hero">
-        <p class="eyebrow">Local-first thread transfer</p>
-        <h1>Move complete AI chat threads into coding agents.</h1>
-        <p class="lede">
-          Tacket captures raw ChatGPT, Claude, and Gemini conversations in Chrome,
-          stores them as inspectable local bundles, and transfers the full transcript
-          into Codex or Claude Code without summarizing it.
-        </p>
-        <div class="actions">
-          <a class="button primary" href="https://github.com/maddiedreese/tacket/releases">Download for Mac</a>
-          <a class="button" href="https://github.com/maddiedreese/tacket">View source</a>
+        <div class="hero-copy">
+          <p class="eyebrow">Local thread handoff for AI chats</p>
+          <h1>Move one chat thread into another tool.</h1>
+          <p class="lede">
+            Tacket lets you capture an individual ChatGPT, Claude, or Gemini thread
+            and transfer the full conversation into Codex, Claude Code, or your clipboard
+            with the click of a button.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/maddiedreese/tacket/releases">Download for Mac</a>
+            <a class="button" href="https://github.com/maddiedreese/tacket">View source</a>
+          </div>
         </div>
-        <p class="download-note">
-          Direct-download releases publish <code>Tacket.dmg</code> and <code>SHA256SUMS</code> on GitHub Releases after signing and notarization.
+        <div class="hero-mark" aria-hidden="true">
+          <img src="./assets/icon-180.png" alt="" />
+        </div>
+      </section>
+
+      <section class="statement">
+        <p>
+          It will always be free. It will always be open source. It runs fully
+          locally on your machine: no accounts, no analytics, and I do not ever
+          see any of your chats.
         </p>
-        <p class="release-links">
-          <a href="https://github.com/maddiedreese/tacket/releases">All releases</a>
+      </section>
+
+      <section class="steps" aria-label="How Tacket works">
+        <article>
+          <span>1</span>
+          <h2>Open a thread</h2>
+          <p>Use Chrome on a supported ChatGPT, Claude, or Gemini conversation.</p>
+        </article>
+        <article>
+          <span>2</span>
+          <h2>Click capture</h2>
+          <p>Tacket saves that one thread locally as a readable bundle.</p>
+        </article>
+        <article>
+          <span>3</span>
+          <h2>Transfer it</h2>
+          <p>Send the raw conversation to Codex, Claude Code, or the clipboard.</p>
+        </article>
+      </section>
+
+      <section class="details">
+        <div>
+          <h2>Built for handoff, not summaries</h2>
+          <p>
+            The main use case is moving the exact context from one chat session
+            into another tool. Tacket keeps the thread intact instead of asking
+            an AI model to compress it first.
+          </p>
+        </div>
+        <div>
+          <h2>Local by default</h2>
+          <p>
+            Captures are written to your Mac as inspectable files. There is no
+            Tacket backend, no hosted database, no telemetry, and no model/API calls.
+          </p>
+        </div>
+      </section>
+
+      <section class="maker">
+        <p>
+          Made by
+          <a href="https://github.com/maddiedreese">@maddiedreese</a>
           <span aria-hidden="true">/</span>
-          <a href="./privacy.html">Privacy</a>
+          <a href="https://twitter.com/maddiedreese">Twitter</a>
         </p>
-      </section>
-
-      <section class="grid">
-        <article>
-          <h2>User-click capture</h2>
-          <p>The extension reads a supported chat page only after you click Capture This Thread.</p>
-        </article>
-        <article>
-          <h2>Raw transcript transfer</h2>
-          <p>Tacket preserves the full thread as files and clipboard text instead of generating a summary.</p>
-        </article>
-        <article>
-          <h2>No backend</h2>
-          <p>Bundles are written to your Mac. There is no cloud account, telemetry, or hosted database.</p>
-        </article>
-      </section>
-
-      <section>
-        <h2>What Tacket writes</h2>
-        <pre><code>.tacket/
-  manifest.json
-  messages.jsonl
-  transcript.md
-  attachments/
-  targets/
-    codex.md
-    claude-code.md</code></pre>
+        <a class="button sponsor" href="https://github.com/sponsors/maddiedreese">Sponsor on GitHub</a>
       </section>
     </main>
   </body>
