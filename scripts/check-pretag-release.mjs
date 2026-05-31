@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import path from "node:path";
 
 const execFileAsync = promisify(execFile);
-const root = path.resolve(new URL("..", import.meta.url).pathname);
+const root = path.resolve(process.env.TACKET_RELEASE_ROOT ?? new URL("..", import.meta.url).pathname);
 const repo = "maddiedreese/tacket";
 const release = JSON.parse(await readFile(path.join(root, "release.json"), "utf8"));
 const tag = `v${release.version}`;
