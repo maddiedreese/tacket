@@ -11,6 +11,7 @@ await assertFile(path.join(website, "index.html"));
 await assertFile(path.join(website, "privacy.html"));
 await assertFile(path.join(website, "styles.css"));
 await assertFile(path.join(website, "assets/favicon.png"));
+await assertFile(path.join(website, "assets/favicon.svg"));
 await assertFile(path.join(website, "assets/icon-180.png"));
 
 const index = await readFile(path.join(website, "index.html"), "utf8");
@@ -23,10 +24,10 @@ for (const phrase of [
   "https://github.com/sponsors/maddiedreese",
   "https://twitter.com/maddiedreese",
   "./privacy.html",
-  "transfer the full conversation",
-  "It will always be free",
-  "always be open source",
-  "see any of your chats",
+  "No summary step",
+  "Free forever",
+  "Open source forever",
+  "never see your chats",
   "no accounts, no analytics",
   "Made by"
 ]) {
@@ -49,6 +50,10 @@ for (const selector of [".hero-mark", ".statement", ".button.primary", ".maker",
 
 if (css.includes("Inter")) {
   throw new Error("Website CSS must not use Inter.");
+}
+
+if (!css.includes("ui-monospace")) {
+  throw new Error("Website CSS must use the developer font stack.");
 }
 
 if (/font-size:\s*clamp\([^;]*vw/iu.test(css)) {

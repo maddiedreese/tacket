@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Tacket app icon</title>
+  <desc id="desc">A clean gold tack piercing a single white note on a blue field.</desc>
+  <defs>
+    <clipPath id="tile">
+      <rect width="512" height="512" rx="108"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="#075a91"/>
+    <g transform="translate(-19 -15)">
+      <path fill="#ffd06a" d="M340 344 354 330 430 420z"/>
+      <path fill="#ffc048" d="M347 337 354 330 430 420z"/>
+      <rect x="142" y="194" width="262" height="154" rx="24" fill="#fbfaf7"/>
+      <path fill="#d7dada" d="M186 233h174v8H186zM186 271h174v8H186zM186 309h174v8H186z"/>
+      <path fill="#ffd06a" d="M232 238 242 228 278 266 268 276z"/>
+      <path fill="#ffc048" d="M242 228 278 266 273 271z"/>
+      <circle cx="188" cy="190" r="68" fill="#ffd06a"/>
+      <circle cx="158" cy="160" r="12" fill="#fff1b6"/>
+    </g>
+  </g>
+</svg>
