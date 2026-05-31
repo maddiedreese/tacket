@@ -20,6 +20,7 @@ Tacket v1 is direct-download and local-only.
 - Review `docs/CHROME_WEB_STORE.md` before submitting the extension.
 - Prepare Chrome Web Store images using `docs/STORE_ASSETS.md`.
 - Prepare the Chrome Web Store upload folder with `npm run store:prepare`, then review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image before uploading.
+- After Chrome Web Store approval, verify the published extension ID with `npm run store:verify-id -- --extension-id <chrome-extension-id>`.
 - Run `npm run release:readiness` before pushing the release tag.
 - Run `npm run release:pretag` immediately before creating the release tag.
 - After the GitHub Release is published, run `npm run release:verify-download`.

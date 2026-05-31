@@ -80,3 +80,13 @@ npm run store:prepare
 ```
 
 This writes `dist/chrome-web-store/` with the extension zip, required icon, small promotional image, screenshots, `listing.md`, `privacy.md`, and a short upload README. Review every generated image before submitting.
+
+## Published Extension ID
+
+After Chrome Web Store approval, verify the published extension ID can be used by the local native messaging connector:
+
+```bash
+npm run store:verify-id -- --extension-id <chrome-extension-id>
+```
+
+The command uses an isolated temporary home directory, installs the native messaging manifest for that exact ID, checks the `allowed_origins` entry, then uninstalls it. It does not modify the user's real Chrome native messaging host setup.

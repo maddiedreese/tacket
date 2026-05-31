@@ -103,3 +103,9 @@ HOME="$tmp_home" node apps/cli/bin/tacket.js status-native-host
 The Mac app has equivalent **Check Status** and **Remove Connector** actions in the Chrome Connector panel.
 
 Native host tests also use `TACKET_CAPTURE_DIR` and `TACKET_CONFIG_FILE` to verify capture-folder overrides without touching a user's real Tacket config.
+
+After the Chrome Web Store extension is approved, verify the published extension ID without touching the real Chrome native messaging setup:
+
+```bash
+npm run store:verify-id -- --extension-id <chrome-extension-id>
+```

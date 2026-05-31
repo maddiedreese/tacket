@@ -75,7 +75,8 @@ const requiredFiles = [
   "scripts/verify-release-download.mjs",
   "scripts/assess-release-gatekeeper.mjs",
   "scripts/generate-store-screenshots.mjs",
-  "scripts/prepare-chrome-web-store.mjs"
+  "scripts/prepare-chrome-web-store.mjs",
+  "scripts/verify-web-store-extension-id.mjs"
 ];
 
 for (const file of requiredFiles) {
@@ -215,6 +216,9 @@ if (rootPackage.scripts?.["store:screenshots"] !== "node scripts/generate-store-
 if (rootPackage.scripts?.["store:prepare"] !== "node scripts/prepare-chrome-web-store.mjs") {
   throw new Error("package.json must expose npm run store:prepare.");
 }
+if (rootPackage.scripts?.["store:verify-id"] !== "node scripts/verify-web-store-extension-id.mjs") {
+  throw new Error("package.json must expose npm run store:verify-id.");
+}
 
 const liveQa = await readFile("scripts/new-live-qa.mjs", "utf8");
 for (const phrase of ["Do not paste private transcript text", "npm run qa:live:verify", "ChatGPT", "Claude", "Gemini", "Release Decision"]) {
@@ -324,6 +328,11 @@ for (const phrase of [
 const storePrepare = await readFile("scripts/prepare-chrome-web-store.mjs", "utf8");
 for (const phrase of ["assertExtensionZip", "listing.md", "privacy.md", "manifest.dev.json"]) {
   if (!storePrepare.includes(phrase)) throw new Error(`Chrome Web Store prep script missing: ${phrase}`);
+}
+
+const storeVerifyId = await readFile("scripts/verify-web-store-extension-id.mjs", "utf8");
+for (const phrase of ["--extension-id", "allowed_origins", "uninstall-native-host", "Chrome Web Store extension ID verification passed"]) {
+  if (!storeVerifyId.includes(phrase)) throw new Error(`Chrome Web Store extension ID verifier missing: ${phrase}`);
 }
 
 for (const file of ["CONTRIBUTING.md", ".github/pull_request_template.md"]) {
