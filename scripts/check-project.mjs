@@ -79,6 +79,7 @@ const requiredFiles = [
   "scripts/test/assess-release-gatekeeper.test.js",
   "scripts/test/prepare-signing-secrets.test.js",
   "scripts/test/release-status.test.js",
+  "scripts/test/check-release-issues.test.js",
   "scripts/test/check-pretag-release.test.js",
   "scripts/test/verify-release-artifact.test.js",
   "scripts/test/verify-release-download.test.js",
