@@ -6,6 +6,8 @@ import path from "node:path";
 import test from "node:test";
 import { writeBundle } from "../../packages/thread-format/src/index.js";
 
+const currentHead = (await runScript("git", ["rev-parse", "--short=12", "HEAD"])).stdout.trim();
+
 test("verifies live QA report evidence against provider manifests", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-pass-"));
   const bundles = {
@@ -95,7 +97,7 @@ test("rejects live QA reports with placeholder environment evidence", async () =
   await writeFile(
     reportPath,
     liveQaReport(bundles)
-      .replace("Tacket commit: abc123def456", "Tacket commit: test")
+      .replace(`Tacket commit: ${currentHead}`, "Tacket commit: test")
       .replace("Extension ID: abcdefghijklmnopabcdefghijklmnop", "Extension ID: not-a-real-id"),
     "utf8"
   );
@@ -104,6 +106,25 @@ test("rejects live QA reports with placeholder environment evidence", async () =
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /Tacket commit must identify the live QA environment/u);
   assert.match(result.stderr, /Extension ID must be the 32-letter Chrome extension ID tested/u);
+});
+
+test("rejects live QA reports for a different commit", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-commit-fail-"));
+  const bundles = {
+    ChatGPT: await providerBundle(root, "chatgpt", "https://chatgpt.com/c/live"),
+    Claude: await providerBundle(root, "claude", "https://claude.ai/chat/live"),
+    Gemini: await providerBundle(root, "gemini", "https://gemini.google.com/app/live")
+  };
+  const reportPath = path.join(root, "report.md");
+  await writeFile(
+    reportPath,
+    liveQaReport(bundles).replace(`Tacket commit: ${currentHead}`, "Tacket commit: 000000000000"),
+    "utf8"
+  );
+
+  const result = await runVerify(reportPath);
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /Tacket commit 000000000000 must match current HEAD/u);
 });
 
 test("rejects live QA reports missing required checklist items", async () => {
@@ -151,7 +172,7 @@ function liveQaReport(bundles) {
 
 Date: 2026-05-31T00:00:00.000Z
 Tester: automated
-Tacket commit: abc123def456
+Tacket commit: ${currentHead}
 Tacket version: 0.1.0
 macOS: 15.5
 Chrome: 125.0.0.0
@@ -231,7 +252,8 @@ function runVerify(reportPath) {
 
 function runScript(script, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn("node", [script, ...args], {
+    const isNodeScript = script.endsWith(".mjs");
+    const child = spawn(isNodeScript ? "node" : script, isNodeScript ? [script, ...args] : args, {
       cwd: path.resolve(new URL("../..", import.meta.url).pathname),
       stdio: ["ignore", "pipe", "pipe"]
     });

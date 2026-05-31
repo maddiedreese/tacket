@@ -5,6 +5,7 @@ import path from "node:path";
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 const reportPath = await resolveReportPath(process.argv[2]);
 const report = await readFile(reportPath, "utf8");
+const currentHead = (await run("git", ["rev-parse", "HEAD"])).trim();
 
 const failures = [];
 const decision = extractField(report, "Release decision");
@@ -22,6 +23,13 @@ for (const field of [
   "Capture folder"
 ]) {
   requireFilledTopLevelField(field);
+}
+
+const tacketCommit = extractField(report, "Tacket commit").toLowerCase();
+if (!/^[0-9a-f]{7,40}$/u.test(tacketCommit)) {
+  failures.push("Tacket commit must be a git commit hash for the live QA build.");
+} else if (!currentHead.startsWith(tacketCommit)) {
+  failures.push(`Tacket commit ${tacketCommit} must match current HEAD ${currentHead.slice(0, 12)}.`);
 }
 
 const extensionId = extractField(report, "Extension ID");

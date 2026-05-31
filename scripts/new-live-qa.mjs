@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 
@@ -7,17 +8,18 @@ const outDir = path.join(root, "qa", "live-capture");
 const now = new Date();
 const stamp = now.toISOString().replace(/[:.]/g, "-");
 const reportPath = path.join(outDir, `${stamp}.md`);
+const commit = await commandOutput("git", ["rev-parse", "--short=12", "HEAD"]).catch(() => "");
 
 await mkdir(outDir, { recursive: true });
-await writeFile(reportPath, report(now), "utf8");
+await writeFile(reportPath, report(now, commit), "utf8");
 console.log(reportPath);
 
-function report(date) {
+function report(date, commit) {
   return `# Tacket Live Capture QA
 
 Date: ${date.toISOString()}
 Tester:
-Tacket commit:
+Tacket commit: ${commit}
 Tacket version: 0.1.0
 macOS:
 Chrome:
@@ -136,4 +138,22 @@ Set \`Release decision:\` at the top of this report to one of:
 Follow-up issue links:
 
 `;
+}
+
+function commandOutput(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on("data", (chunk) => stdout.push(chunk));
+    child.stderr.on("data", (chunk) => stderr.push(chunk));
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) resolve(Buffer.concat(stdout).toString("utf8").trim());
+      else reject(new Error(Buffer.concat(stderr).toString("utf8").trim() || `${command} ${args.join(" ")} failed with ${code}`));
+    });
+  });
 }
