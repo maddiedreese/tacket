@@ -8,12 +8,31 @@
   </head>
   <body>
     <main>
-      <header>
-        <h1>Tacket</h1>
-        <p id="status">Ready to capture this thread locally.</p>
+      <header class="masthead">
+        <img src="../icons/tacket-48.png" alt="" class="mark" />
+        <div>
+          <h1>Tacket</h1>
+          <p>Capture the current AI chat and save it on this Mac.</p>
+        </div>
       </header>
-      <button id="capture" type="button">Capture This Thread</button>
-      <section id="result" hidden></section>
+
+      <section class="panel" aria-labelledby="capture-title">
+        <div class="section-label">Current tab</div>
+        <h2 id="capture-title">Save this thread locally</h2>
+        <p id="status" class="status" data-state="idle"><span class="dot"></span><span>Ready to capture.</span></p>
+        <button id="capture" type="button">Capture Thread</button>
+      </section>
+
+      <section class="panel compact">
+        <div class="section-label">What happens</div>
+        <ol>
+          <li>Reads the open ChatGPT, Claude, or Gemini thread.</li>
+          <li>Sends it to the local Tacket connector.</li>
+          <li>Writes a raw .tacket bundle on your machine.</li>
+        </ol>
+      </section>
+
+      <section id="result" class="result" hidden></section>
     </main>
     <script type="module" src="./popup.js"></script>
   </body>

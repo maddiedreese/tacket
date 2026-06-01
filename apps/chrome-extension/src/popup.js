@@ -1,12 +1,13 @@
 const captureButton = document.querySelector("#capture");
 const status = document.querySelector("#status");
 const result = document.querySelector("#result");
+const statusText = status.querySelector("span:last-child");
 
 captureButton.addEventListener("click", async () => {
   result.hidden = true;
-  result.className = "";
+  result.className = "result";
   captureButton.disabled = true;
-  status.textContent = "Capturing visible thread content...";
+  setStatus("Capturing visible thread content...", "working");
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -24,7 +25,7 @@ captureButton.addEventListener("click", async () => {
       throw new Error("Tacket could not find messages on this page.");
     }
 
-    status.textContent = `Captured ${capture.messages.length} messages. Saving locally...`;
+    setStatus(`Captured ${capture.messages.length} messages. Saving locally...`, "working");
     const response = await chrome.runtime.sendMessage({
       type: "TACKET_SAVE_CAPTURE",
       capture
@@ -33,17 +34,35 @@ captureButton.addEventListener("click", async () => {
     if (!response?.ok) throw new Error(response?.error ?? "Native host did not save the capture.");
 
     result.hidden = false;
-    result.textContent = `Saved ${capture.messages.length} messages to ${response.bundlePath}`;
-    status.textContent = "Capture complete.";
+    result.className = "result success";
+    result.replaceChildren(
+      element("strong", "Saved locally"),
+      document.createTextNode(`${capture.messages.length} messages written to ${response.bundlePath}`)
+    );
+    setStatus("Capture complete.", "success");
   } catch (error) {
     result.hidden = false;
-    result.className = "error";
-    result.textContent = error?.message ?? String(error);
-    status.textContent = "Capture failed.";
+    result.className = "result error";
+    result.replaceChildren(
+      element("strong", "Capture failed"),
+      document.createTextNode(error?.message ?? String(error))
+    );
+    setStatus("Capture failed.", "error");
   } finally {
     captureButton.disabled = false;
   }
 });
+
+function setStatus(message, state = "idle") {
+  status.dataset.state = state;
+  statusText.textContent = message;
+}
+
+function element(tagName, text) {
+  const node = document.createElement(tagName);
+  node.textContent = text;
+  return node;
+}
 
 function isSupportedChatUrl(value) {
   try {
