@@ -47,13 +47,20 @@ async function installNativeHost(options) {
   const hostScript = path.join(rootDir, "apps/native-host/bin/tacket-native-host.js");
   const manifestDir = nativeHostManifestDir();
   const manifestPath = nativeHostManifestPath();
+  const launcherPath = nativeHostLauncherPath();
   await mkdir(manifestDir, { recursive: true });
   await chmod(hostScript, 0o755);
+  await writeFile(
+    launcherPath,
+    `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(hostScript)}\n`,
+    "utf8"
+  );
+  await chmod(launcherPath, 0o755);
 
   const manifest = {
     name: "dev.tacket.host",
     description: "Tacket local capture host",
-    path: hostScript,
+    path: launcherPath,
     type: "stdio",
     allowed_origins: [`chrome-extension://${extensionId}/`]
   };
@@ -82,7 +89,9 @@ async function statusNativeHost() {
 
 async function uninstallNativeHost() {
   const manifestPath = nativeHostManifestPath();
+  const launcherPath = nativeHostLauncherPath();
   await rm(manifestPath, { force: true });
+  await rm(launcherPath, { force: true });
   console.log(`Removed Chrome native messaging host manifest: ${manifestPath}`);
 }
 
@@ -165,12 +174,14 @@ async function transfer(options) {
       console.log(`Copied ${chunks.length} raw transcript chunk(s); dry run skipped Terminal launch for ${command}.`);
       return;
     }
-    const launch = launchTerminal(command, terminalTitle, options.paste !== false && options["no-paste"] !== true);
+    const shouldPaste = options.paste !== false && options["no-paste"] !== true;
+    const launch = launchTerminal(command, terminalTitle, shouldPaste);
     if (!launch.ok) {
       console.log(`Copied ${chunks.length} raw transcript chunk(s), but Terminal launch did not complete: ${launch.error}`);
       return;
     }
-    console.log(`Launched ${command}, copied ${chunks.length} raw transcript chunk(s), and requested paste into Terminal.`);
+    const pasteDetail = shouldPaste ? "and requested paste into Terminal" : "without requesting paste";
+    console.log(`Launched ${command}, copied ${chunks.length} raw transcript chunk(s), ${pasteDetail}.`);
     return;
   }
 
@@ -288,8 +299,16 @@ function nativeHostManifestPath() {
   return path.join(nativeHostManifestDir(), "dev.tacket.host.json");
 }
 
+function nativeHostLauncherPath() {
+  return path.join(nativeHostManifestDir(), "dev.tacket.host.sh");
+}
+
 function validateChromeExtensionId(extensionId) {
   if (!/^[a-p]{32}$/.test(extensionId)) {
     throw new Error("Invalid Chrome extension ID. Expected 32 lowercase letters from a to p.");
   }
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
 }

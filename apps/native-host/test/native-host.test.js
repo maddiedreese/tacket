@@ -87,11 +87,29 @@ test("native host rejects trailing native-message input", async () => {
   assert.match(response.error, /expected exactly one native message/);
 });
 
+test("native host responds after one complete message without waiting for stdin to close", async () => {
+  const outputRoot = await mkdtemp(path.join(os.tmpdir(), "tacket-node-host-open-"));
+  try {
+    const response = await sendRawNativeMessage(nativeBytes(validCapture("Open Pipe")), {
+      outputRoot,
+      keepStdinOpen: true
+    });
+    assert.equal(response.ok, true, response.error);
+    assert.equal(response.manifest.messageCount, 1);
+  } finally {
+    await rm(outputRoot, { recursive: true, force: true });
+  }
+});
+
 function sendNativeMessage(message, options) {
+  return sendRawNativeMessage(nativeBytes(message), options);
+}
+
+function nativeBytes(message) {
   const body = Buffer.from(JSON.stringify(message));
   const header = Buffer.alloc(4);
   header.writeUInt32LE(body.length, 0);
-  return sendRawNativeMessage(Buffer.concat([header, body]), options);
+  return Buffer.concat([header, body]);
 }
 
 function sendRawNativeMessage(input, options) {
@@ -108,19 +126,52 @@ function sendRawNativeMessage(input, options) {
     });
     const stdout = [];
     const stderr = [];
-    child.stdout.on("data", (chunk) => stdout.push(chunk));
+    let resolved = false;
+    let timeout;
+    function cleanup() {
+      clearTimeout(timeout);
+      child.stdout.removeAllListeners("data");
+      child.removeAllListeners("exit");
+      child.removeAllListeners("error");
+    }
+    function resolveOutput() {
+      if (resolved) return;
+      const output = Buffer.concat(stdout);
+      if (output.length < 4) return;
+      const length = output.readUInt32LE(0);
+      if (output.length < 4 + length) return;
+      resolved = true;
+      cleanup();
+      child.stdin.end();
+      resolve(JSON.parse(output.subarray(4, 4 + length).toString("utf8")));
+    }
+
+    child.stdout.on("data", (chunk) => {
+      stdout.push(chunk);
+      if (options?.keepStdinOpen) resolveOutput();
+    });
     child.stderr.on("data", (chunk) => stderr.push(chunk));
     child.on("error", reject);
     child.on("exit", (code) => {
+      if (resolved) return;
       if (code !== 0) {
         reject(new Error(`Native host exited with ${code}: ${Buffer.concat(stderr).toString("utf8")}`));
         return;
       }
-      const output = Buffer.concat(stdout);
-      const length = output.readUInt32LE(0);
-      resolve(JSON.parse(output.subarray(4, 4 + length).toString("utf8")));
+      resolveOutput();
     });
-    child.stdin.end(input);
+    timeout = setTimeout(() => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      child.kill();
+      reject(new Error("Timed out waiting for native host response."));
+    }, 2000);
+    if (options?.keepStdinOpen) {
+      child.stdin.write(input);
+    } else {
+      child.stdin.end(input);
+    }
   });
 }
 

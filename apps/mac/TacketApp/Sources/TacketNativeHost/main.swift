@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 struct NativeResponse: Encodable {
     let ok: Bool
@@ -385,18 +386,66 @@ struct BundleWriter {
 }
 
 func readNativeMessage() throws -> [String: Any] {
-    let input = FileHandle.standardInput.readDataToEndOfFile()
-    guard input.count >= 4 else { throw NativeHostError.emptyInput }
-    let length = input.prefix(4).withUnsafeBytes { pointer in
-        pointer.load(as: UInt32.self).littleEndian
-    }
-    let expectedLength = 4 + Int(length)
-    guard input.count >= expectedLength else { throw NativeHostError.truncatedInput }
-    guard input.count == expectedLength else { throw NativeHostError.trailingInput }
-    let body = input.dropFirst(4).prefix(Int(length))
+    let header = try readExactly(byteCount: 4, emptyError: .emptyInput)
+    let bytes = [UInt8](header)
+    let length = UInt32(bytes[0])
+        | (UInt32(bytes[1]) << 8)
+        | (UInt32(bytes[2]) << 16)
+        | (UInt32(bytes[3]) << 24)
+    let body = try readExactly(byteCount: Int(length), emptyError: .truncatedInput)
+    try rejectBufferedTrailingInput()
     let json = try JSONSerialization.jsonObject(with: body)
     guard let dictionary = json as? [String: Any] else { throw NativeHostError.invalidInput }
     return dictionary
+}
+
+func readExactly(byteCount: Int, emptyError: NativeHostError) throws -> Data {
+    var data = Data()
+    data.reserveCapacity(byteCount)
+    var buffer = [UInt8](repeating: 0, count: min(max(byteCount, 1), 8192))
+
+    while data.count < byteCount {
+        let remaining = byteCount - data.count
+        let count = Darwin.read(STDIN_FILENO, &buffer, min(buffer.count, remaining))
+        if count > 0 {
+            data.append(contentsOf: buffer.prefix(count))
+            continue
+        }
+        if count == 0 {
+            throw data.isEmpty ? emptyError : NativeHostError.truncatedInput
+        }
+        if errno == EINTR {
+            continue
+        }
+        throw NativeHostError.invalidInput
+    }
+
+    return data
+}
+
+func rejectBufferedTrailingInput() throws {
+    let flags = fcntl(STDIN_FILENO, F_GETFL, 0)
+    guard flags >= 0 else { return }
+    _ = fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK)
+    defer { _ = fcntl(STDIN_FILENO, F_SETFL, flags) }
+
+    var byte: UInt8 = 0
+    while true {
+        let count = Darwin.read(STDIN_FILENO, &byte, 1)
+        if count > 0 {
+            throw NativeHostError.trailingInput
+        }
+        if count == 0 {
+            return
+        }
+        if errno == EINTR {
+            continue
+        }
+        if errno == EAGAIN || errno == EWOULDBLOCK {
+            return
+        }
+        throw NativeHostError.invalidInput
+    }
 }
 
 func writeNativeMessage(_ message: [String: Any]) throws {

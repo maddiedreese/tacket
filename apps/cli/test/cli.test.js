@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -31,7 +32,34 @@ test("install-native-host writes an allowed origin for a valid Chrome extension 
     );
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     assert.equal(manifest.name, "dev.tacket.host");
+    assert.equal(manifest.path, path.join(path.dirname(manifestPath), "dev.tacket.host.sh"));
     assert.deepEqual(manifest.allowed_origins, [`chrome-extension://${validExtensionId}/`]);
+    const launcher = await readFile(manifest.path, "utf8");
+    assert.match(launcher, new RegExp(`^#!/bin/sh\\nexec '${escapeRegex(process.execPath)}' `, "u"));
+    assert.match(launcher, /apps\/native-host\/bin\/tacket-native-host\.js'/u);
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test("uninstall-native-host removes the manifest and launcher", async () => {
+  const home = await mkdtemp(path.join(os.tmpdir(), "tacket-cli-home-"));
+  try {
+    const install = await runCli(["install-native-host", "--extension-id", validExtensionId], { HOME: home });
+    assert.equal(install.status, 0, install.stderr);
+
+    const manifestPath = path.join(
+      home,
+      "Library/Application Support/Google/Chrome/NativeMessagingHosts/dev.tacket.host.json"
+    );
+    const launcherPath = path.join(path.dirname(manifestPath), "dev.tacket.host.sh");
+    await access(manifestPath, constants.R_OK);
+    await access(launcherPath, constants.R_OK);
+
+    const uninstall = await runCli(["uninstall-native-host"], { HOME: home });
+    assert.equal(uninstall.status, 0, uninstall.stderr);
+    await assertMissing(manifestPath);
+    await assertMissing(launcherPath);
   } finally {
     await rm(home, { recursive: true, force: true });
   }
@@ -61,6 +89,28 @@ test("transfer rejects bundles with drifted target transcripts before copying", 
     const result = await runCli(["transfer", bundlePath, "--to", "codex", "--dry-run"]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /targets\/codex\.md must match transcript\.md exactly/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("transfer no-paste launch wording does not claim a paste request", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-cli-transfer-no-paste-"));
+  try {
+    const bin = path.join(root, "bin");
+    await mkdir(bin);
+    await writeFile(path.join(bin, "osascript"), "#!/bin/sh\nexit 0\n", "utf8");
+    await chmod(path.join(bin, "osascript"), 0o755);
+
+    const sample = await runCli(["sample", "--out", root]);
+    assert.equal(sample.status, 0, sample.stderr);
+    const bundlePath = sample.stdout.trim();
+    const result = await runCli(["transfer", bundlePath, "--to", "codex", "--no-paste"], {
+      PATH: `${bin}:${process.env.PATH ?? ""}`
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /without requesting paste/u);
+    assert.doesNotMatch(result.stdout, /requested paste into Terminal/u);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -116,4 +166,17 @@ function runCli(args, env = {}) {
       });
     });
   });
+}
+
+async function assertMissing(file) {
+  try {
+    await access(file, constants.R_OK);
+  } catch {
+    return;
+  }
+  throw new Error(`Expected missing file: ${file}`);
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }

@@ -27,20 +27,53 @@ async function main() {
 }
 
 async function readNativeMessage() {
-  const chunks = [];
-  for await (const chunk of process.stdin) chunks.push(chunk);
-  const buffer = Buffer.concat(chunks);
-  if (buffer.length < 4) throw new Error("No native message received.");
-  const length = buffer.readUInt32LE(0);
-  const expectedLength = 4 + length;
-  if (buffer.length < expectedLength) {
-    throw new Error("Native message body was shorter than declared length.");
-  }
-  if (buffer.length > expectedLength) {
-    throw new Error("Native host expected exactly one native message.");
-  }
-  const body = buffer.subarray(4, 4 + length).toString("utf8");
-  return JSON.parse(body);
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let settled = false;
+
+    function finish(fn, value) {
+      if (settled) return;
+      settled = true;
+      process.stdin.pause();
+      process.stdin.removeAllListeners("data");
+      process.stdin.removeAllListeners("end");
+      process.stdin.removeAllListeners("error");
+      fn(value);
+    }
+
+    process.stdin.on("data", (chunk) => {
+      if (settled) return;
+      chunks.push(chunk);
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length < 4) return;
+      const length = buffer.readUInt32LE(0);
+      const expectedLength = 4 + length;
+      if (buffer.length < expectedLength) return;
+      if (buffer.length > expectedLength) {
+        finish(reject, new Error("Native host expected exactly one native message."));
+        return;
+      }
+      const body = buffer.subarray(4, 4 + length).toString("utf8");
+      try {
+        finish(resolve, JSON.parse(body));
+      } catch (error) {
+        finish(reject, error);
+      }
+    });
+
+    process.stdin.on("end", () => {
+      if (settled) return;
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length < 4) {
+        finish(reject, new Error("No native message received."));
+        return;
+      }
+      finish(reject, new Error("Native message body was shorter than declared length."));
+    });
+
+    process.stdin.on("error", (error) => finish(reject, error));
+    process.stdin.resume();
+  });
 }
 
 function writeNativeMessage(message) {
