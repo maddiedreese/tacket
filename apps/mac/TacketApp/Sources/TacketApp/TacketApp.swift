@@ -9,9 +9,10 @@ struct TacketApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 780, minHeight: 560)
+                .frame(minWidth: 840, minHeight: 620)
         }
         .windowStyle(.titleBar)
+        .defaultSize(width: 1040, height: 760)
     }
 }
 
@@ -205,9 +206,19 @@ final class TacketModel: ObservableObject {
     }
 
     func openChromeExtensions() {
-        if let url = URL(string: "chrome://extensions") {
-            NSWorkspace.shared.open(url)
-        }
+        openInChrome("chrome://extensions")
+    }
+
+    func openChatGPT() {
+        openInChrome("https://chatgpt.com")
+    }
+
+    func openClaude() {
+        openInChrome("https://claude.ai")
+    }
+
+    func openGemini() {
+        openInChrome("https://gemini.google.com")
     }
 
     func openDocs() {
@@ -215,6 +226,19 @@ final class TacketModel: ObservableObject {
             NSWorkspace.shared.open(repoRoot.appendingPathComponent("README.md"))
         } else {
             NSWorkspace.shared.open(resourcesRoot)
+        }
+    }
+
+    private func openInChrome(_ target: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", "Google Chrome", target]
+        do {
+            try process.run()
+            status = "Opened Chrome."
+        } catch {
+            status = "Could not open Chrome."
+            commandOutput = error.localizedDescription
         }
     }
 
@@ -292,9 +316,6 @@ final class TacketModel: ObservableObject {
             return
         }
 
-        isRunning = true
-        status = "Transferring raw transcript..."
-        commandOutput = ""
         let target = selectedTarget
         guard let maxChunkCharacters = Int(maxChunkCharacters.trimmingCharacters(in: .whitespacesAndNewlines)),
               maxChunkCharacters >= 1000 else {
@@ -302,6 +323,10 @@ final class TacketModel: ObservableObject {
             commandOutput = "Max chunk characters must be an integer of at least 1000."
             return
         }
+
+        isRunning = true
+        status = "Transferring raw transcript..."
+        commandOutput = ""
 
         Task {
             do {
@@ -558,16 +583,18 @@ struct ContentView: View {
     @EnvironmentObject private var model: TacketModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             HeaderView()
             Divider()
             HStack(alignment: .top, spacing: 0) {
                 SidebarView()
-                    .frame(width: 220)
+                    .frame(width: 250)
                 Divider()
                 MainPanelView()
             }
         }
+        .background(TacketColors.window)
+        .tint(TacketColors.accent)
     }
 }
 
@@ -575,26 +602,28 @@ struct HeaderView: View {
     @EnvironmentObject private var model: TacketModel
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 18) {
+            AppMark()
+                .frame(width: 46, height: 46)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 5) {
                 Text("Tacket")
-                    .font(.system(size: 24, weight: .semibold))
-                Text("Capture raw AI threads locally and transfer them into coding agents.")
-                    .font(.callout)
+                    .font(.tacketTitle)
+                Text("Move one raw AI chat thread into the coding tool you want next.")
+                    .font(.tacketBody)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
-            Button("Open Extension") {
-                model.openExtensionFolder()
-            }
-            Button("Chrome Extensions") {
-                model.openChromeExtensions()
-            }
-            Button("Docs") {
-                model.openDocs()
-            }
+
+            Spacer(minLength: 16)
+
+            HeaderButton(title: "Captures", action: model.revealCaptureDirectory)
+            HeaderButton(title: "Chrome", action: model.openChromeExtensions)
+            HeaderButton(title: "Docs", action: model.openDocs)
         }
-        .padding(20)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 18)
     }
 }
 
@@ -602,187 +631,473 @@ struct SidebarView: View {
     @EnvironmentObject private var model: TacketModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            SectionLabel("Sources")
-            ForEach(model.supportedSources, id: \.self) { source in
-                Text(source)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 24) {
+            SidebarSection(title: "How it works") {
+                WorkflowStep(number: "1", title: "Capture", detail: "Open a supported chat and capture the thread.")
+                WorkflowStep(number: "2", title: "Review", detail: "Pick the saved .tacket bundle on this Mac.")
+                WorkflowStep(number: "3", title: "Transfer", detail: "Copy or paste the raw transcript into a coding session.")
             }
 
-            SectionLabel("Targets")
-            ForEach(TacketModel.TransferTarget.allCases) { target in
-                Text(target.label)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            SidebarSection(title: "Sources") {
+                SourceButton(title: "ChatGPT", action: model.openChatGPT)
+                SourceButton(title: "Claude", action: model.openClaude)
+                SourceButton(title: "Gemini", action: model.openGemini)
             }
-            Spacer()
+
+            SidebarSection(title: "Targets") {
+                ForEach(TacketModel.TransferTarget.allCases) { target in
+                    TargetRow(target: target, isSelected: model.selectedTarget == target)
+                        .onTapGesture {
+                            model.selectedTarget = target
+                        }
+                }
+            }
+
+            Spacer(minLength: 0)
         }
-        .padding(16)
+        .padding(20)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(TacketColors.sidebar)
     }
 }
 
 struct MainPanelView: View {
     @EnvironmentObject private var model: TacketModel
+    @State private var showsAdvancedConnector = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            GroupBox("Chrome Connector") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Load the Chrome extension folder in Chrome, paste its extension ID, then install the local connector.")
-                        .foregroundStyle(.secondary)
-                    HStack {
-                        Button("Open Chrome Extensions") {
-                            model.openChromeExtensions()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                StatusBanner(status: model.status)
+
+                SectionCard(
+                    eyebrow: "Setup",
+                    title: "Chrome connector",
+                    detail: "The browser extension captures the page. The local connector writes the raw thread bundle on this Mac."
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ConnectorStatusView()
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 10) {
+                                Button("Open Chrome Extensions") {
+                                    model.openChromeExtensions()
+                                }
+                                Button("Reveal Extension Folder") {
+                                    model.openExtensionFolder()
+                                }
+                            }
+                            HStack(spacing: 10) {
+                                Button("Copy Folder Path") {
+                                    model.copyExtensionFolderPath()
+                                }
+                                Button("Check Connector") {
+                                    model.refreshConnectorStatus()
+                                }
+                            }
                         }
-                        Button("Reveal Extension Folder") {
-                            model.openExtensionFolder()
+
+                        DisclosureGroup("Advanced: local development extension", isExpanded: $showsAdvancedConnector) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Use this while Tacket is running from source or before the official Chrome Web Store extension ID is built into the app.")
+                                    .font(.tacketFootnote)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                HStack(spacing: 10) {
+                                    TextField("Chrome extension ID", text: $model.extensionId)
+                                        .textFieldStyle(.roundedBorder)
+                                        .font(.system(.body, design: .monospaced))
+                                    Button("Install Connector") {
+                                        model.installConnector()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(model.isRunning)
+                                }
+
+                                Button("Remove Connector") {
+                                    model.uninstallConnector()
+                                }
+                            }
+                            .padding(.top, 10)
                         }
-                        Button("Copy Folder Path") {
-                            model.copyExtensionFolderPath()
-                        }
-                    }
-                    HStack {
-                        TextField("Chrome extension ID", text: $model.extensionId)
-                            .textFieldStyle(.roundedBorder)
-                        Button("Install Connector") {
-                            model.installConnector()
-                        }
-                        .disabled(model.isRunning)
-                    }
-                    HStack {
-                        Button("Check Status") {
-                            model.refreshConnectorStatus()
-                        }
-                        Button("Remove Connector") {
-                            model.uninstallConnector()
-                        }
-                    }
-                    Text(model.connectorStatus)
-                        .foregroundStyle(.secondary)
-                    if let installedHostPath = model.installedHostPath {
-                        Text(installedHostPath)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
+                        .font(.tacketBody)
                     }
                 }
-                .padding(.vertical, 4)
-            }
 
-            GroupBox("Captured Bundles") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(model.captureDirectory.path)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .lineLimit(2)
-                    HStack {
-                        Button("Reveal Folder") {
-                            model.revealCaptureDirectory()
-                        }
-                        Button("Choose Capture Folder") {
-                            model.chooseCaptureDirectory()
-                        }
-                        Button("Reset Folder") {
-                            model.resetCaptureDirectory()
-                        }
-                        Button("Choose Bundle") {
-                            model.chooseBundle()
-                        }
-                    }
-                    if let bundle = model.selectedBundle {
-                        Text(bundle.path)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                    }
-                    if let info = model.selectedBundleInfo {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(info.title)
-                                .font(.headline)
-                            Text("\(info.platform) • \(info.messageCount) messages • \(info.capturedAt)")
-                                .foregroundStyle(.secondary)
-                            if !info.url.isEmpty {
-                                Text(info.url)
-                                    .font(.system(.caption, design: .monospaced))
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .textSelection(.enabled)
-                            }
-                            if info.warnings.isEmpty {
-                                Text("No local warnings in manifest.")
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(info.warnings) { warning in
-                                    Text("Warning: \(warning.kind) (\(warning.count)) in \(warning.messageIds.joined(separator: ", "))")
-                                        .foregroundStyle(.orange)
-                                        .textSelection(.enabled)
+                SectionCard(
+                    eyebrow: "Captures",
+                    title: "Local thread bundles",
+                    detail: "Tacket saves captures as folders you can inspect, copy, and transfer without an account or backend."
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        PathField(label: "Capture folder", value: model.captureDirectory.path)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 10) {
+                                Button("Reveal Folder") {
+                                    model.revealCaptureDirectory()
+                                }
+                                Button("Choose Capture Folder") {
+                                    model.chooseCaptureDirectory()
                                 }
                             }
-                            HStack {
-                                Button("Reveal Bundle") {
-                                    model.revealSelectedBundle()
+                            HStack(spacing: 10) {
+                                Button("Reset Folder") {
+                                    model.resetCaptureDirectory()
                                 }
-                                Button("Open Transcript") {
-                                    model.openSelectedTranscript()
+                                Button("Choose Bundle") {
+                                    model.chooseBundle()
                                 }
-                                Button("Copy Transcript") {
-                                    model.copySelectedTranscript()
-                                }
+                                .buttonStyle(.borderedProminent)
                             }
                         }
-                        .padding(10)
-                        .background(Color(nsColor: .textBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                        if let bundle = model.selectedBundle {
+                            PathField(label: "Selected bundle", value: bundle.path)
+                        } else {
+                            EmptyStateText("No bundle selected yet.")
+                        }
+
+                        if let info = model.selectedBundleInfo {
+                            BundleSummary(info: info)
+                        }
                     }
                 }
-                .padding(.vertical, 4)
-            }
 
-            GroupBox("Transfer Raw Transcript") {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
+                SectionCard(
+                    eyebrow: "Transfer",
+                    title: "Send the raw transcript",
+                    detail: "Choose a destination. Tacket keeps the transcript raw and preserves the full thread content it captured."
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
                         Picker("Target", selection: $model.selectedTarget) {
                             ForEach(TacketModel.TransferTarget.allCases) { target in
                                 Text(target.label).tag(target)
                             }
                         }
                         .pickerStyle(.segmented)
-                        Button("Transfer") {
-                            model.transferSelectedBundle()
+
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text("Chunk size")
+                                .font(.tacketBody)
+                            TextField("24000", text: $model.maxChunkCharacters)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(.body, design: .monospaced))
+                                .frame(width: 120)
+                            Text("Used only when a transcript is too long for one paste.")
+                                .font(.tacketFootnote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(model.isRunning)
-                    }
-                    HStack {
-                        Text("Max chunk characters")
-                        TextField("24000", text: $model.maxChunkCharacters)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 110)
-                        Text("Long transcripts are copied as ordered raw chunks.")
-                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 10) {
+                                Button("Transfer") {
+                                    model.transferSelectedBundle()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(model.isRunning)
+                                Button("Copy Transcript") {
+                                    model.copySelectedTranscript()
+                                }
+                            }
+                            HStack(spacing: 10) {
+                                Button("Open Transcript") {
+                                    model.openSelectedTranscript()
+                                }
+                                Button("Reveal Bundle") {
+                                    model.revealSelectedBundle()
+                                }
+                            }
+                        }
                     }
                 }
-                .padding(.vertical, 4)
-            }
 
-            Text(model.status)
-                .foregroundStyle(model.status.contains("failed") ? .red : .secondary)
-
-            ScrollView {
-                Text(model.commandOutput.isEmpty ? "Command output will appear here." : model.commandOutput)
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
+                OutputPanel()
             }
-            .frame(minHeight: 110)
-            .background(Color(nsColor: .textBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .padding(24)
+            .frame(maxWidth: 850, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(20)
+        .background(TacketColors.content)
     }
 }
 
-struct SectionLabel: View {
+struct SectionCard<Content: View>: View {
+    let eyebrow: String
+    let title: String
+    let detail: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(eyebrow)
+                    .font(.tacketLabel)
+                    .foregroundStyle(TacketColors.accent)
+                Text(title)
+                    .font(.tacketSectionTitle)
+                Text(detail)
+                    .font(.tacketBody)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            content
+        }
+        .padding(18)
+        .background(TacketColors.card)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(TacketColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+struct ConnectorStatusView: View {
+    @EnvironmentObject private var model: TacketModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(model.installedHostPath == nil ? TacketColors.warning : TacketColors.success)
+                    .frame(width: 8, height: 8)
+                Text(model.connectorStatus)
+                    .font(.tacketBody)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let installedHostPath = model.installedHostPath {
+                Text(installedHostPath)
+                    .font(.tacketMono)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(TacketColors.recessed)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct BundleSummary: View {
+    @EnvironmentObject private var model: TacketModel
+    let info: BundleInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(info.title)
+                    .font(.tacketSectionTitle)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("\(info.platform) · \(info.messageCount) messages · \(info.capturedAt)")
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !info.url.isEmpty {
+                    Text(info.url)
+                        .font(.tacketMono)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if info.warnings.isEmpty {
+                Text("No local warnings in this bundle.")
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(info.warnings) { warning in
+                        Text("Warning: \(warning.kind) (\(warning.count)) in \(warning.messageIds.joined(separator: ", "))")
+                            .font(.tacketFootnote)
+                            .foregroundStyle(TacketColors.warning)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(TacketColors.recessed)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct OutputPanel: View {
+    @EnvironmentObject private var model: TacketModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Activity")
+                .font(.tacketLabel)
+                .foregroundStyle(.secondary)
+            ScrollView {
+                Text(model.commandOutput.isEmpty ? "Actions and connector details will appear here." : model.commandOutput)
+                    .font(.tacketMono)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+            }
+            .frame(minHeight: 120, maxHeight: 190)
+            .background(TacketColors.recessed)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+}
+
+struct StatusBanner: View {
+    let status: String
+
+    private var color: Color {
+        let lower = status.lowercased()
+        if lower.contains("failed") || lower.contains("invalid") || lower.contains("could not") {
+            return TacketColors.danger
+        }
+        if lower.contains("done") || lower.contains("installed") || lower.contains("copied") || lower.contains("opened") {
+            return TacketColors.success
+        }
+        return TacketColors.accent
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(status)
+                .font(.tacketBody)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(TacketColors.card)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(TacketColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+struct SidebarSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.tacketLabel)
+                .foregroundStyle(.secondary)
+            content
+        }
+    }
+}
+
+struct WorkflowStep: View {
+    let number: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(number)
+                .font(.tacketLabel)
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(TacketColors.accent)
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.tacketBody.weight(.semibold))
+                Text(detail)
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+struct SourceButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .font(.tacketBody)
+                Spacer()
+                Text("Open")
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(TacketColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct TargetRow: View {
+    let target: TacketModel.TransferTarget
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(isSelected ? TacketColors.accent : TacketColors.border)
+                .frame(width: 8, height: 8)
+            Text(target.label)
+                .font(.tacketBody)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(isSelected ? TacketColors.selected : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .contentShape(Rectangle())
+    }
+}
+
+struct PathField: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.tacketLabel)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.tacketMono)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(TacketColors.recessed)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+}
+
+struct EmptyStateText: View {
     let text: String
 
     init(_ text: String) {
@@ -791,8 +1106,80 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(text)
-            .font(.caption)
+            .font(.tacketBody)
             .foregroundStyle(.secondary)
-            .textCase(.uppercase)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(TacketColors.recessed)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
+}
+
+struct HeaderButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(title, action: action)
+            .font(.tacketBody)
+            .buttonStyle(.bordered)
+    }
+}
+
+struct AppMark: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(TacketColors.accent)
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.white)
+                .frame(width: 24, height: 16)
+                .offset(x: 3, y: 2)
+            VStack(spacing: 3) {
+                Capsule().fill(TacketColors.paperLine).frame(width: 13, height: 2)
+                Capsule().fill(TacketColors.paperLine).frame(width: 17, height: 2)
+                Capsule().fill(TacketColors.paperLine).frame(width: 14, height: 2)
+            }
+            .offset(x: 5, y: 2)
+            Capsule()
+                .fill(TacketColors.pin)
+                .frame(width: 6, height: 29)
+                .rotationEffect(.degrees(-39))
+                .offset(x: -2, y: 7)
+            Circle()
+                .fill(TacketColors.pin)
+                .frame(width: 18, height: 18)
+                .offset(x: -8, y: -7)
+            Circle()
+                .fill(Color.white.opacity(0.45))
+                .frame(width: 5, height: 5)
+                .offset(x: -12, y: -11)
+        }
+    }
+}
+
+enum TacketColors {
+    static let accent = Color(red: 0.04, green: 0.36, blue: 0.56)
+    static let selected = Color(red: 0.04, green: 0.36, blue: 0.56).opacity(0.12)
+    static let pin = Color(red: 0.96, green: 0.74, blue: 0.34)
+    static let paperLine = Color(red: 0.78, green: 0.79, blue: 0.78)
+    static let success = Color(red: 0.12, green: 0.50, blue: 0.34)
+    static let warning = Color(red: 0.78, green: 0.48, blue: 0.12)
+    static let danger = Color(red: 0.72, green: 0.18, blue: 0.16)
+
+    static let window = Color(nsColor: .windowBackgroundColor)
+    static let content = Color(nsColor: .underPageBackgroundColor)
+    static let sidebar = Color(nsColor: .controlBackgroundColor)
+    static let card = Color(nsColor: .textBackgroundColor)
+    static let recessed = Color(nsColor: .controlBackgroundColor)
+    static let border = Color(nsColor: .separatorColor)
+}
+
+extension Font {
+    static let tacketTitle = Font.system(size: 28, weight: .semibold, design: .rounded)
+    static let tacketSectionTitle = Font.system(size: 17, weight: .semibold, design: .rounded)
+    static let tacketBody = Font.system(size: 13, weight: .regular, design: .rounded)
+    static let tacketFootnote = Font.system(size: 12, weight: .regular, design: .rounded)
+    static let tacketLabel = Font.system(size: 11, weight: .semibold, design: .rounded)
+    static let tacketMono = Font.system(size: 11, weight: .regular, design: .monospaced)
 }
