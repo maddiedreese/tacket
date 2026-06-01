@@ -28,7 +28,7 @@ test("release issue checker reports drift and suggests sync", async () => {
     const result = await runIssues([], { PATH: `${binDir}:${process.env.PATH}` });
 
     assert.equal(result.code, 1);
-    assert.match(result.stdout, /FAIL #3 Prepare and submit Chrome Web Store listing - drift: body/u);
+    assert.match(result.stdout, /FAIL #3 Prepare Chrome Web Store draft listing - drift: body/u);
     assert.match(result.stderr, /Run `npm run release:issues -- --sync` to update release issue bodies\./u);
   } finally {
     await rm(temp, { recursive: true, force: true });
@@ -146,8 +146,8 @@ The Release workflow intentionally fails tag releases when these secrets are mis
     },
     {
       number: 3,
-      title: "Prepare and submit Chrome Web Store listing",
-      body: `Publish the Chrome extension through the Chrome Web Store for v0.1.0.
+      title: "Prepare Chrome Web Store draft listing",
+      body: `Prepare the Chrome Web Store listing for v0.1.0 without submitting it for review.
 
 Checklist:
 
@@ -159,10 +159,11 @@ Checklist:
 - [ ] Upload \`dist/chrome-web-store/tacket-chrome-extension.zip\`.
 - [ ] Use the permission justifications from \`docs/CHROME_WEB_STORE.md\`.
 - [ ] Add privacy practices: no collection, no sale, no remote processing, local native messaging only.
-- [ ] Review generated screenshots from non-private demo data before upload.
-- [ ] Submit for review.
-- [ ] After approval, install the Web Store extension and test native messaging with its real extension ID using \`npm run store:verify-id -- --extension-id <chrome-extension-id>\`.
-- [ ] Update docs/website if the Web Store URL is public before the GitHub release.`
+- [ ] Review generated screenshots from non-private demo data.
+- [ ] Save the item as a Chrome Web Store draft.
+- [ ] Confirm the item remains in draft status and has not been submitted for review.
+
+After the extension is approved later, install the Web Store extension and test native messaging with its real extension ID using \`npm run store:verify-id -- --extension-id <chrome-extension-id>\`.`
     },
     {
       number: 4,

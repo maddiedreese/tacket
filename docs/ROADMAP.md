@@ -14,7 +14,7 @@ Release blockers:
 
 - live capture validation for current ChatGPT, Claude, and Gemini pages
 - Developer ID signing and Apple notarization for direct-download Mac builds, with secrets prepared by `scripts/prepare-signing-secrets.sh`
-- Chrome Web Store listing, review, and final extension ID testing
+- Chrome Web Store draft listing prepared without submitting for review
 - signed GitHub release with `Tacket.dmg`, `tacket-chrome-extension.zip`, and `SHA256SUMS`
 
 ## Later
