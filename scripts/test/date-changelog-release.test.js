@@ -6,12 +6,11 @@ import path from "node:path";
 import test from "node:test";
 
 const root = path.resolve(new URL("../..", import.meta.url).pathname);
-const changelogPath = path.join(root, "CHANGELOG.md");
-
 test("checks changelog dating without editing", async () => {
-  const original = await readFile(changelogPath, "utf8");
-  const result = await runDateChangelog(["--date", "2026-05-31", "--check"]);
-  const after = await readFile(changelogPath, "utf8");
+  const fixture = await createFixture();
+  const original = await readFile(fixture.changelog, "utf8");
+  const result = await run("node", [fixture.script, "--date", "2026-05-31", "--check"], fixture.tmp);
+  const after = await readFile(fixture.changelog, "utf8");
 
   assert.equal(result.code, 0, result.stderr);
   assert.equal(after, original);
@@ -19,6 +18,14 @@ test("checks changelog dating without editing", async () => {
 });
 
 test("dates changelog release heading", async () => {
+  const fixture = await createFixture();
+  const result = await run("node", [fixture.script, "--date", "2026-05-31"], fixture.tmp);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(await readFile(fixture.changelog, "utf8"), /^## 0\.1\.0 - 2026-05-31$/mu);
+});
+
+async function createFixture() {
   const tmp = await mkdtemp(path.join(os.tmpdir(), "tacket-date-changelog-"));
   const scriptsDir = path.join(tmp, "scripts");
   const script = path.join(scriptsDir, "date-changelog-release.mjs");
@@ -31,13 +38,7 @@ test("dates changelog release heading", async () => {
   await writeFile(releaseJson, JSON.stringify({ version: "0.1.0" }), "utf8");
   await writeFile(changelog, "# Changelog\n\n## 0.1.0 - Unreleased\n\nInitial.\n", "utf8");
 
-  const result = await run("node", [script, "--date", "2026-05-31"], tmp);
-  assert.equal(result.code, 0, result.stderr);
-  assert.match(await readFile(changelog, "utf8"), /^## 0\.1\.0 - 2026-05-31$/mu);
-});
-
-function runDateChangelog(args) {
-  return run("node", ["scripts/date-changelog-release.mjs", ...args], root);
+  return { tmp, script, changelog };
 }
 
 function run(command, args, cwd) {
