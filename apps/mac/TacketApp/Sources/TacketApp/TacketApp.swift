@@ -668,15 +668,31 @@ final class TacketModel: ObservableObject {
                   ordinal INTEGER,
                   FOREIGN KEY(bundle_id) REFERENCES bundles(id) ON DELETE CASCADE
                 );
-                CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
-                  bundle_id UNINDEXED,
-                  message_id UNINDEXED,
-                  title,
-                  platform,
-                  role,
-                  text
-                );
                 """)
+            if supportsFTS5(db) {
+                try sqliteExec(db, """
+                    CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                      bundle_id UNINDEXED,
+                      message_id UNINDEXED,
+                      title,
+                      platform,
+                      role,
+                      text
+                    );
+                    """)
+            } else {
+                try sqliteExec(db, """
+                    CREATE TABLE IF NOT EXISTS messages_fts (
+                      bundle_id TEXT,
+                      message_id TEXT,
+                      title TEXT,
+                      platform TEXT,
+                      role TEXT,
+                      text TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS messages_fts_bundle_id ON messages_fts(bundle_id);
+                    """)
+            }
         }
     }
 
@@ -691,20 +707,41 @@ final class TacketModel: ObservableObject {
                 LIMIT 100;
                 """)
         }
-        let query = "\"\(trimmed.replacingOccurrences(of: "\"", with: "\"\""))\""
+        if try libraryUsesFTS5() {
+            let query = "\"\(trimmed.replacingOccurrences(of: "\"", with: "\"\""))\""
+            return try queryLibraryItems("""
+                SELECT b.id, b.path, b.title, b.platform, b.url, b.captured_at, b.message_count, b.indexed_at,
+                       snippet(messages_fts, 5, '[', ']', ' ... ', 18) AS snippet
+                FROM messages_fts
+                JOIN bundles b ON b.id = messages_fts.bundle_id
+                WHERE messages_fts MATCH \(sqliteQuote(query))
+                  AND messages_fts.rowid IN (
+                    SELECT min(rowid)
+                    FROM messages_fts
+                    WHERE messages_fts MATCH \(sqliteQuote(query))
+                    GROUP BY bundle_id
+                  )
+                ORDER BY rank
+                LIMIT 100;
+                """)
+        }
+
+        let pattern = sqliteLikePattern(trimmed.lowercased())
         return try queryLibraryItems("""
             SELECT b.id, b.path, b.title, b.platform, b.url, b.captured_at, b.message_count, b.indexed_at,
-                   snippet(messages_fts, 5, '[', ']', ' ... ', 18) AS snippet
-            FROM messages_fts
-            JOIN bundles b ON b.id = messages_fts.bundle_id
-            WHERE messages_fts MATCH \(sqliteQuote(query))
-              AND messages_fts.rowid IN (
+                   substr(m.text, 1, 240) AS snippet
+            FROM messages_fts m
+            JOIN bundles b ON b.id = m.bundle_id
+            WHERE lower(m.text || ' ' || m.title || ' ' || m.platform || ' ' || m.role)
+              LIKE \(sqliteQuote(pattern)) ESCAPE '\\'
+              AND m.rowid IN (
                 SELECT min(rowid)
                 FROM messages_fts
-                WHERE messages_fts MATCH \(sqliteQuote(query))
+                WHERE lower(text || ' ' || title || ' ' || platform || ' ' || role)
+                  LIKE \(sqliteQuote(pattern)) ESCAPE '\\'
                 GROUP BY bundle_id
               )
-            ORDER BY rank
+            ORDER BY b.captured_at DESC, b.indexed_at DESC
             LIMIT 100;
             """)
     }
@@ -796,6 +833,37 @@ final class TacketModel: ObservableObject {
 
     private func sqliteQuote(_ value: String) -> String {
         "'\(value.replacingOccurrences(of: "'", with: "''"))'"
+    }
+
+    private func sqliteLikePattern(_ value: String) -> String {
+        let escaped = value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_")
+        return "%\(escaped)%"
+    }
+
+    private func supportsFTS5(_ db: OpaquePointer?) -> Bool {
+        do {
+            try sqliteExec(db, "CREATE VIRTUAL TABLE temp.tacket_fts_probe USING fts5(value);")
+            try sqliteExec(db, "DROP TABLE temp.tacket_fts_probe;")
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func libraryUsesFTS5() throws -> Bool {
+        try withLibraryDatabase { db in
+            let sql = "SELECT sql FROM sqlite_master WHERE name = 'messages_fts' LIMIT 1;"
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                throw TacketAppError.libraryDatabase(sqliteError(db))
+            }
+            defer { sqlite3_finalize(statement) }
+            guard sqlite3_step(statement) == SQLITE_ROW else { return false }
+            return sqliteColumnText(statement, 0).lowercased().contains("using fts5")
+        }
     }
 
     private func sqliteError(_ db: OpaquePointer?) -> String {
