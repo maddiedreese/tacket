@@ -40,7 +40,7 @@ Tacket treats `.tacket` bundles as the source of truth. The Mac app and CLI can 
 ~/Library/Application Support/Tacket/library.sqlite
 ```
 
-The library uses SQLite FTS5 over raw message text and bundle metadata. It is explicit: users index the capture folder or another chosen folder. Tacket does not silently scan app session stores, summarize transcripts, create embeddings, use model/API calls, or sync library data to a backend.
+The library uses SQLite FTS5 over raw message text and bundle metadata, with local fallback matching when FTS5 is unavailable. Advanced search can switch between exact phrase, all-term, and any-term matching; scope queries to transcript text or titles; and filter by source or message role. It is explicit: users index the capture folder or another chosen folder. Tacket does not silently scan app session stores, summarize transcripts, create embeddings, use model/API calls, or sync library data to a backend.
 
 ## CLI and Mac App
 

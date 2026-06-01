@@ -49,46 +49,104 @@ export async function searchLibrary(query, options = {}) {
   const dbPath = expandHome(options.db ?? defaultLibraryDatabasePath());
   await initLibrary(dbPath);
   const trimmed = String(query ?? "").trim();
-  if (!trimmed) return listLibrary(options);
+  const filters = normalizedSearchOptions(options);
+  const hasFilters = filters.scope !== "everywhere" || filters.source !== "all" || filters.role !== "all";
+  if (!trimmed && !hasFilters) return listLibrary(options);
   const limit = Number(options.limit ?? 50);
-  if (!(await supportsFts5())) {
+  if (filters.match === "phrase" && filters.scope === "everywhere" && filters.source === "all" && filters.role === "all" && trimmed && await supportsFts5()) {
+    const ftsQuery = ftsPhrase(trimmed);
     return queryJson(dbPath, `
       SELECT b.id, b.path, b.title, b.platform, b.url,
              b.captured_at AS capturedAt, b.message_count AS messageCount,
-             substr(m.text, 1, 240) AS snippet
-      FROM messages_fts m
-      JOIN bundles b ON b.id = m.bundle_id
-      WHERE lower(m.text || ' ' || m.title || ' ' || m.platform || ' ' || m.role)
-        LIKE ${sqlString(`%${trimmed.toLowerCase()}%`)}
-        AND m.rowid IN (
+             snippet(messages_fts, 5, '[', ']', ' ... ', 18) AS snippet
+      FROM messages_fts
+      JOIN bundles b ON b.id = messages_fts.bundle_id
+      WHERE messages_fts MATCH ${sqlString(ftsQuery)}
+        AND messages_fts.rowid IN (
           SELECT min(rowid)
           FROM messages_fts
-          WHERE lower(text || ' ' || title || ' ' || platform || ' ' || role)
-            LIKE ${sqlString(`%${trimmed.toLowerCase()}%`)}
+          WHERE messages_fts MATCH ${sqlString(ftsQuery)}
           GROUP BY bundle_id
         )
-      ORDER BY b.captured_at DESC, b.indexed_at DESC
+      ORDER BY rank
       LIMIT ${limit};
     `);
   }
 
-  const ftsQuery = ftsPhrase(trimmed);
+  const conditions = librarySearchConditions(trimmed, filters, "m", "b");
+  const innerConditions = librarySearchConditions(trimmed, filters, "", "");
+  const whereClause = conditions.length ? conditions.join("\n        AND ") : "1 = 1";
+  const innerWhereClause = innerConditions.length ? innerConditions.join("\n          AND ") : "1 = 1";
+  const snippetExpression = filters.scope === "title" ? "b.title" : "m.text";
+
   return queryJson(dbPath, `
     SELECT b.id, b.path, b.title, b.platform, b.url,
            b.captured_at AS capturedAt, b.message_count AS messageCount,
-           snippet(messages_fts, 5, '[', ']', ' ... ', 18) AS snippet
-    FROM messages_fts
-    JOIN bundles b ON b.id = messages_fts.bundle_id
-    WHERE messages_fts MATCH ${sqlString(ftsQuery)}
-      AND messages_fts.rowid IN (
+           substr(${snippetExpression}, 1, 240) AS snippet
+    FROM messages_fts m
+    JOIN bundles b ON b.id = m.bundle_id
+    WHERE ${whereClause}
+      AND m.rowid IN (
         SELECT min(rowid)
         FROM messages_fts
-        WHERE messages_fts MATCH ${sqlString(ftsQuery)}
+        WHERE ${innerWhereClause}
         GROUP BY bundle_id
       )
-    ORDER BY rank
+    ORDER BY b.captured_at DESC, b.indexed_at DESC
     LIMIT ${limit};
   `);
+}
+
+function normalizedSearchOptions(options) {
+  return {
+    match: ["phrase", "all", "any"].includes(options.match) ? options.match : "phrase",
+    scope: ["everywhere", "transcript", "title"].includes(options.scope) ? options.scope : "everywhere",
+    source: normalizeFilter(options.source),
+    role: normalizeFilter(options.role)
+  };
+}
+
+function normalizeFilter(value) {
+  const normalized = String(value ?? "all").trim().toLowerCase();
+  return normalized || "all";
+}
+
+function librarySearchConditions(query, filters, messageAlias, bundleAlias) {
+  const conditions = [];
+  const alias = (name, selectedAlias = messageAlias) => selectedAlias ? `${selectedAlias}.${name}` : name;
+  const expression = librarySearchExpression(filters.scope, messageAlias);
+  const trimmed = query.toLowerCase();
+  if (trimmed) {
+    if (filters.match === "phrase") {
+      conditions.push(`${expression} LIKE ${sqlString(sqlLikePattern(trimmed))} ESCAPE '\\'`);
+    } else {
+      const terms = trimmed.split(/\s+/u).filter(Boolean);
+      const parts = terms.map((term) => `${expression} LIKE ${sqlString(sqlLikePattern(term))} ESCAPE '\\'`);
+      if (filters.match === "all") conditions.push(...parts);
+      else if (parts.length) conditions.push(`(${parts.join(" OR ")})`);
+    }
+  }
+
+  if (filters.source !== "all") {
+    conditions.push(`lower(${alias("platform", bundleAlias || messageAlias)}) = ${sqlString(filters.source)}`);
+  }
+
+  if (filters.role !== "all") {
+    conditions.push(`lower(${alias("role")}) = ${sqlString(filters.role)}`);
+  }
+
+  return conditions;
+}
+
+function librarySearchExpression(scope, messageAlias) {
+  const prefix = messageAlias ? `${messageAlias}.` : "";
+  if (scope === "transcript") return `lower(${prefix}text)`;
+  if (scope === "title") return `lower(${prefix}title)`;
+  return `lower(${prefix}text || ' ' || ${prefix}title || ' ' || ${prefix}platform || ' ' || ${prefix}role)`;
+}
+
+function sqlLikePattern(value) {
+  return `%${String(value).replace(/\\/gu, "\\\\").replace(/%/gu, "\\%").replace(/_/gu, "\\_")}%`;
 }
 
 export async function removeMissingBundles(options = {}) {

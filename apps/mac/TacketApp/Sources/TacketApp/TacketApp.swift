@@ -6,11 +6,13 @@ import SQLite3
 @main
 struct TacketApp: App {
     @StateObject private var model = TacketModel()
+    @AppStorage("appearanceMode") private var appearanceMode = AppearanceMode.system.rawValue
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
+                .preferredColorScheme(AppearanceMode(rawValue: appearanceMode).flatMap(\.colorScheme))
                 .frame(minWidth: 780, minHeight: 560)
         }
         .windowStyle(.titleBar)
@@ -20,6 +22,86 @@ struct TacketApp: App {
 
 @MainActor
 final class TacketModel: ObservableObject {
+    enum LibraryViewMode: String, CaseIterable, Identifiable {
+        case gallery = "gallery"
+        case list = "list"
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .gallery: "Gallery"
+            case .list: "List"
+            }
+        }
+    }
+
+    enum LibraryMatchMode: String, CaseIterable, Identifiable {
+        case phrase = "phrase"
+        case allTerms = "all"
+        case anyTerm = "any"
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .phrase: "Phrase"
+            case .allTerms: "All terms"
+            case .anyTerm: "Any term"
+            }
+        }
+    }
+
+    enum LibrarySearchScope: String, CaseIterable, Identifiable {
+        case everywhere = "everywhere"
+        case transcript = "transcript"
+        case title = "title"
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .everywhere: "Everything"
+            case .transcript: "Transcript"
+            case .title: "Title"
+            }
+        }
+    }
+
+    enum LibrarySourceFilter: String, CaseIterable, Identifiable {
+        case all = "all"
+        case chatgpt = "chatgpt"
+        case claude = "claude"
+        case gemini = "gemini"
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .all: "All sources"
+            case .chatgpt: "ChatGPT"
+            case .claude: "Claude"
+            case .gemini: "Gemini"
+            }
+        }
+    }
+
+    enum LibraryRoleFilter: String, CaseIterable, Identifiable {
+        case all = "all"
+        case user = "user"
+        case assistant = "assistant"
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .all: "All roles"
+            case .user: "User"
+            case .assistant: "Assistant"
+            }
+        }
+    }
+
     enum TransferTarget: String, CaseIterable, Identifiable {
         case clipboard = "clipboard"
         case codex = "codex"
@@ -50,11 +132,27 @@ final class TacketModel: ObservableObject {
     @Published var maxChunkCharacters = "24000"
     @Published var selectedBundleInfo: BundleInfo?
     @Published var librarySearchText = ""
+    @Published var libraryMatchMode: LibraryMatchMode = .phrase
+    @Published var librarySearchScope: LibrarySearchScope = .everywhere
+    @Published var librarySourceFilter: LibrarySourceFilter = .all
+    @Published var libraryRoleFilter: LibraryRoleFilter = .all
+    @Published var libraryViewMode: LibraryViewMode = .gallery
     @Published var libraryItems: [LibraryItem] = []
     @Published var selectedLibraryItem: LibraryItem?
     @Published var libraryStatus = "Index your capture folder to search saved raw transcripts."
 
     let supportedSources = ["ChatGPT", "Claude", "Gemini"]
+
+    var advancedSearchIsActive: Bool {
+        libraryMatchMode != .phrase ||
+        librarySearchScope != .everywhere ||
+        librarySourceFilter != .all ||
+        libraryRoleFilter != .all
+    }
+
+    var libraryIsFiltered: Bool {
+        !librarySearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || advancedSearchIsActive
+    }
 
     init() {
         captureDirectory = Self.readConfiguredCaptureDirectory() ?? Self.defaultCaptureDirectory()
@@ -373,7 +471,7 @@ final class TacketModel: ObservableObject {
             selectedLibraryItem = selectedLibraryItem.flatMap { selected in
                 libraryItems.first(where: { $0.id == selected.id })
             } ?? libraryItems.first
-            libraryStatus = libraryItems.isEmpty ? "No indexed transcripts yet." : "\(libraryItems.count) indexed transcript(s)."
+            libraryStatus = libraryItems.isEmpty ? "No indexed tackets yet." : "\(libraryItems.count) indexed tacket(s)."
         } catch {
             libraryStatus = "Library refresh failed."
             commandOutput = error.localizedDescription
@@ -381,6 +479,14 @@ final class TacketModel: ObservableObject {
     }
 
     func searchLibrary() {
+        refreshLibrary()
+    }
+
+    func resetAdvancedSearch() {
+        libraryMatchMode = .phrase
+        librarySearchScope = .everywhere
+        librarySourceFilter = .all
+        libraryRoleFilter = .all
         refreshLibrary()
     }
 
@@ -699,7 +805,8 @@ final class TacketModel: ObservableObject {
     private func queryLibrary(search: String) throws -> [LibraryItem] {
         try ensureLibraryDatabase()
         let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
+        let hasFilters = librarySourceFilter != .all || libraryRoleFilter != .all || librarySearchScope != .everywhere
+        if trimmed.isEmpty && !hasFilters {
             return try queryLibraryItems("""
                 SELECT id, path, title, platform, url, captured_at, message_count, indexed_at, '' AS snippet
                 FROM bundles
@@ -707,7 +814,12 @@ final class TacketModel: ObservableObject {
                 LIMIT 100;
                 """)
         }
-        if try libraryUsesFTS5() {
+        if libraryMatchMode == .phrase,
+           librarySearchScope == .everywhere,
+           librarySourceFilter == .all,
+           libraryRoleFilter == .all,
+           !trimmed.isEmpty,
+           try libraryUsesFTS5() {
             let query = "\"\(trimmed.replacingOccurrences(of: "\"", with: "\"\""))\""
             return try queryLibraryItems("""
                 SELECT b.id, b.path, b.title, b.platform, b.url, b.captured_at, b.message_count, b.indexed_at,
@@ -726,24 +838,76 @@ final class TacketModel: ObservableObject {
                 """)
         }
 
-        let pattern = sqliteLikePattern(trimmed.lowercased())
+        let conditions = librarySearchConditions(for: trimmed)
+        let whereClause = conditions.isEmpty ? "1 = 1" : conditions.joined(separator: "\n              AND ")
+        let snippetExpression = librarySearchScope == .title ? "b.title" : "m.text"
         return try queryLibraryItems("""
             SELECT b.id, b.path, b.title, b.platform, b.url, b.captured_at, b.message_count, b.indexed_at,
-                   substr(m.text, 1, 240) AS snippet
+                   substr(\(snippetExpression), 1, 240) AS snippet
             FROM messages_fts m
             JOIN bundles b ON b.id = m.bundle_id
-            WHERE lower(m.text || ' ' || m.title || ' ' || m.platform || ' ' || m.role)
-              LIKE \(sqliteQuote(pattern)) ESCAPE '\\'
+            WHERE \(whereClause)
               AND m.rowid IN (
                 SELECT min(rowid)
                 FROM messages_fts
-                WHERE lower(text || ' ' || title || ' ' || platform || ' ' || role)
-                  LIKE \(sqliteQuote(pattern)) ESCAPE '\\'
+                WHERE \(whereClause.replacingOccurrences(of: "m.", with: "").replacingOccurrences(of: "b.", with: ""))
                 GROUP BY bundle_id
               )
             ORDER BY b.captured_at DESC, b.indexed_at DESC
             LIMIT 100;
             """)
+    }
+
+    private func librarySearchConditions(for search: String) -> [String] {
+        let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        var conditions: [String] = []
+
+        if !trimmed.isEmpty {
+            let expression = librarySearchExpression()
+            switch libraryMatchMode {
+            case .phrase:
+                conditions.append("\(expression) LIKE \(sqliteQuote(sqliteLikePattern(trimmed))) ESCAPE '\\'")
+            case .allTerms:
+                for term in librarySearchTerms(trimmed) {
+                    conditions.append("\(expression) LIKE \(sqliteQuote(sqliteLikePattern(term))) ESCAPE '\\'")
+                }
+            case .anyTerm:
+                let parts = librarySearchTerms(trimmed).map {
+                    "\(expression) LIKE \(sqliteQuote(sqliteLikePattern($0))) ESCAPE '\\'"
+                }
+                if !parts.isEmpty {
+                    conditions.append("(\(parts.joined(separator: " OR ")))")
+                }
+            }
+        }
+
+        if librarySourceFilter != .all {
+            conditions.append("lower(b.platform) = \(sqliteQuote(librarySourceFilter.rawValue))")
+        }
+
+        if libraryRoleFilter != .all {
+            conditions.append("lower(m.role) = \(sqliteQuote(libraryRoleFilter.rawValue))")
+        }
+
+        return conditions
+    }
+
+    private func librarySearchExpression() -> String {
+        switch librarySearchScope {
+        case .everywhere:
+            "lower(m.text || ' ' || m.title || ' ' || m.platform || ' ' || m.role)"
+        case .transcript:
+            "lower(m.text)"
+        case .title:
+            "lower(m.title)"
+        }
+    }
+
+    private func librarySearchTerms(_ value: String) -> [String] {
+        value
+            .split { $0.isWhitespace }
+            .map(String.init)
+            .filter { !$0.isEmpty }
     }
 
     private func queryLibraryItems(_ sql: String) throws -> [LibraryItem] {
@@ -1090,6 +1254,30 @@ private func friendlyDate(_ value: String) -> String {
     return formatter.string(from: date)
 }
 
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system = "system"
+    case light = "light"
+    case dark = "dark"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject private var model: TacketModel
     @State private var selectedSection: AppSection = .library
@@ -1159,17 +1347,17 @@ struct SidebarView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                SidebarSection(title: "Flow") {
+                    WorkflowStep(number: "1", title: "Capture", detail: "Save a supported chat.")
+                    WorkflowStep(number: "2", title: "Find", detail: "Browse or narrow saved tackets.")
+                    WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the thread.")
+                }
+
                 SidebarSection(title: "Library") {
-                    SidebarNavRow(title: "Search transcripts", systemImage: "magnifyingglass", isSelected: selectedSection == .library)
+                    SidebarNavRow(title: "All Tackets", systemImage: "square.grid.2x2", isSelected: selectedSection == .library)
                         .onTapGesture {
                             selectedSection = .library
                         }
-                }
-
-                SidebarSection(title: "Sources") {
-                    SourceButton(title: "ChatGPT", action: model.openChatGPT)
-                    SourceButton(title: "Claude", action: model.openClaude)
-                    SourceButton(title: "Gemini", action: model.openGemini)
                 }
 
                 SidebarSection(title: "Transfer targets") {
@@ -1180,12 +1368,6 @@ struct SidebarView: View {
                                 model.selectedTarget = target
                             }
                     }
-                }
-
-                SidebarSection(title: "Flow") {
-                    WorkflowStep(number: "1", title: "Capture", detail: "Save a supported chat.")
-                    WorkflowStep(number: "2", title: "Find", detail: "Search saved raw transcripts.")
-                    WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the thread.")
                 }
 
                 SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
@@ -1311,6 +1493,7 @@ struct MainPanelView: View {
 
 struct LibraryPanelView: View {
     @EnvironmentObject private var model: TacketModel
+    @State private var showAdvancedSearch = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -1320,17 +1503,44 @@ struct LibraryPanelView: View {
 
                     SectionCard(
                         eyebrow: "Library",
-                        title: "Find saved threads",
-                        detail: "Search raw local transcripts from Tacket captures and imported bundles. Nothing leaves this Mac."
+                        title: "All Tackets",
+                        detail: "Browse every indexed .tacket bundle. Search and filters narrow the local collection without sending anything off this Mac."
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
-                            SearchBox(text: $model.librarySearchText)
-                                .onSubmit {
-                                    model.searchLibrary()
+                            HStack(spacing: 10) {
+                                SearchBox(text: $model.librarySearchText)
+                                    .onSubmit {
+                                        model.searchLibrary()
+                                    }
+                                    .onChange(of: model.librarySearchText) { _ in
+                                        model.searchLibrary()
+                                    }
+
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        showAdvancedSearch.toggle()
+                                    }
+                                } label: {
+                                    Label("Advanced", systemImage: "slider.horizontal.3")
+                                        .labelStyle(.iconOnly)
                                 }
-                                .onChange(of: model.librarySearchText) { _ in
-                                    model.searchLibrary()
+                                .buttonStyle(.bordered)
+                                .help("Advanced search")
+                                .accessibilityLabel("Advanced search")
+                            }
+
+                            Picker("View", selection: $model.libraryViewMode) {
+                                ForEach(TacketModel.LibraryViewMode.allCases) { mode in
+                                    Text(mode.label).tag(mode)
                                 }
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(maxWidth: 240)
+
+                            if showAdvancedSearch {
+                                AdvancedSearchPanel()
+                                    .transition(.opacity)
+                            }
 
                             HStack(spacing: 10) {
                                 Button {
@@ -1357,6 +1567,9 @@ struct LibraryPanelView: View {
 
                             HStack(spacing: 8) {
                                 MetadataPill(text: "\(model.libraryItems.count) shown")
+                                if model.advancedSearchIsActive {
+                                    MetadataPill(text: "advanced")
+                                }
                                 Text(model.libraryStatus)
                                     .font(.tacketFootnote)
                                     .foregroundStyle(.secondary)
@@ -1367,8 +1580,6 @@ struct LibraryPanelView: View {
                     }
 
                     libraryContent(isWide: geometry.size.width >= 780)
-
-                    OutputPanel()
                 }
                 .padding(18)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -1382,7 +1593,15 @@ struct LibraryPanelView: View {
 
     @ViewBuilder
     private func libraryContent(isWide: Bool) -> some View {
-        if isWide {
+        if model.libraryViewMode == .gallery {
+            VStack(alignment: .leading, spacing: 14) {
+                resultsCard
+
+                if let item = model.selectedLibraryItem {
+                    LibraryDetailCard(item: item)
+                }
+            }
+        } else if isWide {
             HStack(alignment: .top, spacing: 14) {
                 resultsCard
                     .frame(minWidth: 300, maxWidth: .infinity)
@@ -1406,24 +1625,139 @@ struct LibraryPanelView: View {
 
     private var resultsCard: some View {
         SectionCard(
-            eyebrow: "Results",
-            title: "\(model.libraryItems.count) transcript\(model.libraryItems.count == 1 ? "" : "s")",
-            detail: model.librarySearchText.isEmpty ? "Recent indexed captures." : "Matches for “\(model.librarySearchText)”"
+            eyebrow: model.libraryIsFiltered ? "Filtered Tackets" : "All Tackets",
+            title: "\(model.libraryItems.count) tacket\(model.libraryItems.count == 1 ? "" : "s")",
+            detail: resultsDetail
         ) {
-            VStack(alignment: .leading, spacing: 8) {
+            Group {
                 if model.libraryItems.isEmpty {
                     LibraryEmptyState {
                         model.indexCaptureFolderForLibrary()
                     }
+                } else if model.libraryViewMode == .gallery {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 10)], spacing: 10) {
+                        ForEach(model.libraryItems) { item in
+                            LibraryGalleryCard(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
+                                .onTapGesture {
+                                    model.selectLibraryItem(item)
+                                }
+                        }
+                    }
                 } else {
-                    ForEach(model.libraryItems) { item in
-                        LibraryResultRow(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
-                            .onTapGesture {
-                                model.selectLibraryItem(item)
-                            }
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(model.libraryItems) { item in
+                            LibraryResultRow(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
+                                .onTapGesture {
+                                    model.selectLibraryItem(item)
+                                }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private var resultsDetail: String {
+        let trimmed = model.librarySearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty && !model.advancedSearchIsActive {
+            return "Every indexed bundle, newest saved first."
+        }
+        if trimmed.isEmpty {
+            return "Filtered indexed tackets."
+        }
+        return "Matches for “\(trimmed)”"
+    }
+}
+
+struct AdvancedSearchPanel: View {
+    @EnvironmentObject private var model: TacketModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Advanced search")
+                    .font(.tacketLabel)
+                    .foregroundStyle(TacketColors.accent)
+                Spacer()
+                Button("Reset") {
+                    model.resetAdvancedSearch()
+                }
+                .buttonStyle(.plain)
+                .font(.tacketFootnote.weight(.semibold))
+                .foregroundStyle(TacketColors.accent)
+                .disabled(!model.advancedSearchIsActive)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 10)], alignment: .leading, spacing: 10) {
+                AdvancedPicker(
+                    title: "Match",
+                    selection: $model.libraryMatchMode,
+                    options: TacketModel.LibraryMatchMode.allCases
+                )
+                AdvancedPicker(
+                    title: "Search in",
+                    selection: $model.librarySearchScope,
+                    options: TacketModel.LibrarySearchScope.allCases
+                )
+                AdvancedPicker(
+                    title: "Source",
+                    selection: $model.librarySourceFilter,
+                    options: TacketModel.LibrarySourceFilter.allCases
+                )
+                AdvancedPicker(
+                    title: "Role",
+                    selection: $model.libraryRoleFilter,
+                    options: TacketModel.LibraryRoleFilter.allCases
+                )
+            }
+        }
+        .padding(12)
+        .background(TacketColors.recessed)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(TacketColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .onChange(of: model.libraryMatchMode) { _ in model.searchLibrary() }
+        .onChange(of: model.librarySearchScope) { _ in model.searchLibrary() }
+        .onChange(of: model.librarySourceFilter) { _ in model.searchLibrary() }
+        .onChange(of: model.libraryRoleFilter) { _ in model.searchLibrary() }
+    }
+}
+
+struct AdvancedPicker<Option: Identifiable & Hashable>: View where Option.ID == String {
+    let title: String
+    @Binding var selection: Option
+    let options: [Option]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.tacketLabel)
+                .foregroundStyle(.secondary)
+            Picker(title, selection: $selection) {
+                ForEach(options) { option in
+                    Text(optionLabel(option)).tag(option)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func optionLabel(_ option: Option) -> String {
+        switch option {
+        case let value as TacketModel.LibraryMatchMode:
+            value.label
+        case let value as TacketModel.LibrarySearchScope:
+            value.label
+        case let value as TacketModel.LibrarySourceFilter:
+            value.label
+        case let value as TacketModel.LibraryRoleFilter:
+            value.label
+        default:
+            option.id
         }
     }
 }
@@ -1493,11 +1827,11 @@ struct LibraryDetailCard: View {
         SectionCard(
             eyebrow: "Selected",
             title: item.title,
-            detail: "\(item.platform.capitalized) · \(item.messageCount) messages · \(friendlyDate(item.capturedAt))"
+            detail: "\(item.platform.capitalized) · \(item.messageCount) messages · Saved \(friendlyDate(item.capturedAt))"
         ) {
             VStack(alignment: .leading, spacing: 12) {
                 if !item.snippet.isEmpty {
-                    Text(cleanSnippet(item.snippet))
+                    Text(cleanLibrarySnippet(item.snippet))
                         .font(.tacketBody)
                         .foregroundStyle(.primary)
                         .textSelection(.enabled)
@@ -1543,11 +1877,6 @@ struct LibraryDetailCard: View {
         }
     }
 
-    private func cleanSnippet(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: "[", with: "")
-            .replacingOccurrences(of: "]", with: "")
-    }
 }
 
 struct MetadataPill: View {
@@ -1566,11 +1895,26 @@ struct MetadataPill: View {
 
 struct SettingsPanelView: View {
     @EnvironmentObject private var model: TacketModel
+    @AppStorage("appearanceMode") private var appearanceMode = AppearanceMode.system.rawValue
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 StatusBanner(status: model.status)
+
+                SectionCard(
+                    eyebrow: "Appearance",
+                    title: "Theme",
+                    detail: "Choose whether Tacket follows macOS or uses a fixed light or dark appearance."
+                ) {
+                    Picker("Theme", selection: $appearanceMode) {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            Text(mode.label).tag(mode.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 320)
+                }
 
                 SectionCard(
                     eyebrow: "Settings",
@@ -1773,20 +2117,22 @@ struct OutputPanel: View {
     @EnvironmentObject private var model: TacketModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Activity")
-                .font(.tacketLabel)
-                .foregroundStyle(.secondary)
-            ScrollView {
-                Text(model.commandOutput.isEmpty ? "Library activity and action details will appear here." : model.commandOutput)
-                    .font(.tacketMono)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
+        if !model.commandOutput.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Details")
+                    .font(.tacketLabel)
+                    .foregroundStyle(.secondary)
+                ScrollView {
+                    Text(model.commandOutput)
+                        .font(.tacketMono)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                }
+                .frame(minHeight: 96, maxHeight: 170)
+                .background(TacketColors.recessed)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .frame(minHeight: 120, maxHeight: 190)
-            .background(TacketColors.recessed)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 }
@@ -1920,6 +2266,56 @@ struct TargetRow: View {
     }
 }
 
+struct LibraryGalleryCard: View {
+    let item: LibraryItem
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(isSelected ? TacketColors.accent : .secondary)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.title)
+                        .font(.tacketBody.weight(.semibold))
+                        .lineLimit(2)
+                    Text(item.platform.capitalized)
+                        .font(.tacketFootnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+
+            Text("\(item.messageCount) messages")
+                .font(.tacketFootnote)
+                .foregroundStyle(.secondary)
+
+            Text("Saved \(friendlyDate(item.capturedAt))")
+                .font(.tacketFootnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            if !item.snippet.isEmpty {
+                Text(cleanLibrarySnippet(item.snippet))
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
+        .background(isSelected ? TacketColors.selected : TacketColors.recessed)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isSelected ? TacketColors.accent.opacity(0.55) : TacketColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
 struct LibraryResultRow: View {
     let item: LibraryItem
     let isSelected: Bool
@@ -1939,12 +2335,12 @@ struct LibraryResultRow: View {
                     .font(.tacketFootnote)
                     .foregroundStyle(.secondary)
             }
-            Text("\(item.messageCount) messages · \(friendlyDate(item.capturedAt))")
+            Text("\(item.messageCount) messages · Saved \(friendlyDate(item.capturedAt))")
                 .font(.tacketFootnote)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             if !item.snippet.isEmpty {
-                Text(item.snippet.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: ""))
+                Text(cleanLibrarySnippet(item.snippet))
                     .font(.tacketFootnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -1956,6 +2352,12 @@ struct LibraryResultRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
     }
+}
+
+private func cleanLibrarySnippet(_ value: String) -> String {
+    value
+        .replacingOccurrences(of: "[", with: "")
+        .replacingOccurrences(of: "]", with: "")
 }
 
 struct SidebarNavRow: View {
@@ -1998,9 +2400,15 @@ struct PathField: View {
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(TacketColors.recessed)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
+}
+
+private func cleanLibrarySnippet(_ value: String) -> String {
+    value
+        .replacingOccurrences(of: "[", with: "")
+        .replacingOccurrences(of: "]", with: "")
+}
 }
 
 struct EmptyStateText: View {

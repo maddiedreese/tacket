@@ -72,6 +72,77 @@ test("removeMissingBundles drops bundles that are no longer on disk", async () =
   }
 });
 
+test("advanced search supports all-term matching and field filters", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-library-advanced-"));
+  try {
+    const db = path.join(root, "library.sqlite");
+    await writeBundle({
+      title: "Webhook retry plan",
+      source: { url: "https://chatgpt.com/c/retry" },
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "The webhook keeps failing during signature verification." }]
+        },
+        {
+          role: "assistant",
+          content: [{ type: "text", text: "Add a retry queue after verification succeeds." }]
+        }
+      ]
+    }, root);
+    await writeBundle({
+      title: "Design notes",
+      source: { url: "https://claude.ai/chat/design" },
+      messages: [
+        {
+          role: "assistant",
+          content: [{ type: "text", text: "Use calm colors and compact spacing." }]
+        }
+      ]
+    }, root);
+    await indexLibraryFolder(root, { db });
+
+    assert.equal((await searchLibrary("webhook verification", { db })).length, 0);
+    const allTerms = await searchLibrary("webhook verification", { db, match: "all", scope: "transcript" });
+    assert.equal(allTerms.length, 1);
+    assert.equal(allTerms[0].title, "Webhook retry plan");
+
+    const titleOnly = await searchLibrary("retry", { db, scope: "title" });
+    assert.equal(titleOnly.length, 1);
+    assert.equal(titleOnly[0].title, "Webhook retry plan");
+
+    const claudeOnly = await searchLibrary("", { db, source: "claude", role: "assistant" });
+    assert.equal(claudeOnly.length, 1);
+    assert.equal(claudeOnly[0].title, "Design notes");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("advanced search supports any-term matching", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-library-any-"));
+  try {
+    const db = path.join(root, "library.sqlite");
+    await writeBundle({
+      title: "Database migration",
+      source: { url: "https://gemini.google.com/app/migration" },
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "Plan the migration indexes." }]
+        }
+      ]
+    }, root);
+    await indexLibraryFolder(root, { db });
+
+    const results = await searchLibrary("missing migration", { db, match: "any", scope: "transcript" });
+    assert.equal(results.length, 1);
+    assert.equal(results[0].title, "Database migration");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("falls back to local LIKE search when SQLite FTS5 is unavailable", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "tacket-library-like-"));
   const previous = process.env.TACKET_DISABLE_FTS5_FOR_TESTS;

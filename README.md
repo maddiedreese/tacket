@@ -80,6 +80,8 @@ Tacket can index `.tacket` bundles into:
 
 The library uses local SQLite full-text search. It does not summarize transcripts, generate embeddings, call a model, sync to a server, or send indexed text anywhere.
 
+Advanced search can match an exact phrase, all terms, or any term; search everything, transcript text, or titles; and filter by source or message role.
+
 ## Privacy
 
 Tacket is designed to stay on your Mac. See [docs/PRIVACY.md](docs/PRIVACY.md) and the public [privacy page](website/privacy.html) for the current privacy contract.

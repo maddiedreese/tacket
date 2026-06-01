@@ -104,8 +104,17 @@ async function libraryIndex(options) {
 
 async function librarySearch(options) {
   const query = options._.join(" ").trim();
-  if (!query) throw new Error("Usage: tacket library-search <query> [--db <library.sqlite>] [--limit <n>]");
-  const result = await searchLibrary(query, { db: options.db, limit: options.limit });
+  if (!query && !options.source && !options.role && !options.scope) {
+    throw new Error("Usage: tacket library-search <query> [--db <library.sqlite>] [--limit <n>] [--match phrase|all|any] [--scope everywhere|transcript|title] [--source chatgpt|claude|gemini] [--role user|assistant]");
+  }
+  const result = await searchLibrary(query, {
+    db: options.db,
+    limit: options.limit,
+    match: options.match,
+    scope: options.scope,
+    source: options.source,
+    role: options.role
+  });
   console.log(JSON.stringify(result, null, 2));
 }
 
@@ -197,6 +206,7 @@ Usage:
   tacket uninstall-native-host
   tacket library-index --folder ~/Documents/Tacket\\ Captures
   tacket library-search "stripe webhook"
+  tacket library-search "webhook retry" --match all --scope transcript --source chatgpt
   tacket library-list
   tacket library-remove-missing
   tacket sample --out /tmp/tacket-demo
@@ -208,6 +218,10 @@ Options:
   --no-paste          Launch target and copy transcript, but do not request Cmd+V
   --dry-run           Copy transcript and skip target launch
   --chunk-size <n>    Maximum characters per raw transcript chunk
+  --match <mode>      Search mode: phrase, all, or any
+  --scope <scope>     Search scope: everywhere, transcript, or title
+  --source <source>   Filter search by source: chatgpt, claude, or gemini
+  --role <role>       Filter search by role: user or assistant
 `);
 }
 
