@@ -1345,40 +1345,48 @@ struct SidebarView: View {
     @Binding var selectedSection: AppSection
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                SidebarSection(title: "Flow") {
-                    WorkflowStep(number: "1", title: "Capture", detail: "Save a supported chat.")
-                    WorkflowStep(number: "2", title: "Find", detail: "Browse or narrow saved tackets.")
-                    WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the thread.")
-                }
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    SidebarSection(title: "Flow") {
+                        WorkflowStep(number: "1", title: "Capture", detail: "Save a supported chat.")
+                        WorkflowStep(number: "2", title: "Find", detail: "Browse or narrow saved tackets.")
+                        WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the thread.")
+                    }
 
-                SidebarSection(title: "Library") {
-                    SidebarNavRow(title: "All Tackets", systemImage: "square.grid.2x2", isSelected: selectedSection == .library)
-                        .onTapGesture {
-                            selectedSection = .library
-                        }
-                }
-
-                SidebarSection(title: "Transfer targets") {
-                    ForEach(TacketModel.TransferTarget.allCases) { target in
-                        TargetRow(target: target, isSelected: model.selectedTarget == target)
+                    SidebarSection(title: "Library") {
+                        SidebarNavRow(title: "All Tackets", systemImage: "square.grid.2x2", isSelected: selectedSection == .library)
                             .onTapGesture {
-                                selectedSection = .transfer
-                                model.selectedTarget = target
+                                selectedSection = .library
                             }
                     }
-                }
 
-                SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
-                    .onTapGesture {
-                        selectedSection = .settings
+                    SidebarSection(title: "Transfer targets") {
+                        ForEach(TacketModel.TransferTarget.allCases) { target in
+                            TargetRow(target: target, isSelected: model.selectedTarget == target)
+                                .onTapGesture {
+                                    selectedSection = .transfer
+                                    model.selectedTarget = target
+                                }
+                        }
                     }
+                }
+                .padding(16)
+                .padding(.bottom, 18)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+
+            Divider()
+
+            SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
+                .onTapGesture {
+                    selectedSection = .settings
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(TacketColors.sidebar)
     }
 }
@@ -1483,7 +1491,9 @@ struct MainPanelView: View {
 
                 OutputPanel()
             }
-            .padding(24)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 40)
             .frame(maxWidth: 850, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
@@ -1581,7 +1591,9 @@ struct LibraryPanelView: View {
 
                     libraryContent(isWide: geometry.size.width >= 780)
                 }
-                .padding(18)
+                .padding(.horizontal, 18)
+                .padding(.top, 18)
+                .padding(.bottom, 40)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .background(TacketColors.content)
@@ -1997,7 +2009,9 @@ struct SettingsPanelView: View {
 
                 OutputPanel()
             }
-            .padding(24)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 40)
             .frame(maxWidth: 850, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
