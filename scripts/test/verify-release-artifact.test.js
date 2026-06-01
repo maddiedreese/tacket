@@ -112,7 +112,7 @@ JSON
     printf 'icon\\n' > "$dir/chrome-web-store/icon-128.png"
     printf 'promo\\n' > "$dir/chrome-web-store/small-promo-440x280.png"
     printf 'Single Purpose\\nPermission Justification\\nhttps://gemini.google.com/*\\n' > "$dir/chrome-web-store/listing.md"
-    printf 'No backend\\nNo analytics\\nChrome Native Messaging\\n' > "$dir/chrome-web-store/privacy.md"
+    printf 'No backend\\nNo analytics\\nsaved conversation is sent to the local Tacket app\\n' > "$dir/chrome-web-store/privacy.md"
     printf 'Upload \`tacket-chrome-extension.zip\`\\nReview every image before upload\\n' > "$dir/chrome-web-store/README.md"
     printf 'screenshot\\n' > "$dir/chrome-web-store/screenshots/01-capture-popup-1280x800.png"
     printf 'screenshot\\n' > "$dir/chrome-web-store/screenshots/02-local-bundle-1280x800.png"

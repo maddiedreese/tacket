@@ -26,7 +26,7 @@ test("rejects malformed capture payloads before writing bundles", () => {
   assert.throws(() => validateCapture({ messages: [] }), /at least one message/);
 });
 
-test("renders raw transcript without summarizing", () => {
+test("renders full conversation without summarizing", () => {
   const capture = normalizeCapture({
     title: "Implement auth",
     source: { url: "https://chatgpt.com/c/123" },
@@ -42,7 +42,7 @@ test("renders raw transcript without summarizing", () => {
     ]
   });
   const transcript = renderTranscript(capture);
-  assert.match(transcript, /full raw transcript/);
+  assert.match(transcript, /full saved AI chat conversation/);
   assert.match(transcript, /Use local storage only\./);
   assert.match(transcript, /```js\nconsole\.log/);
 });
@@ -206,20 +206,20 @@ test("downgrades invalid captured data URL attachments to references", async () 
   }
 });
 
-test("splits large transcript into ordered raw chunks", () => {
+test("splits large transcript into ordered conversation chunks", () => {
   const chunks = splitTranscript("a".repeat(2500), 1000);
   assert.ok(chunks.length > 1);
   assert.match(chunks[0], /chunk 1 of/);
-  assert.match(chunks.at(-1), /raw transcript complete/);
+  assert.match(chunks.at(-1), /conversation complete/);
 });
 
-test("rejects invalid raw transcript chunk sizes", () => {
+test("rejects invalid conversation chunk sizes", () => {
   for (const value of [0, 999, 12.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert.throws(() => splitTranscript("a".repeat(1200), value), /Chunk size must be an integer/u);
   }
 });
 
-test("adds local possible-secret warnings without redacting raw content", async () => {
+test("adds local possible-secret warnings without redacting saved content", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "tacket-warning-test-"));
   const apiKey = "sk-1234567890abcdefghijklmnopqrstuvwxyz";
   try {

@@ -125,7 +125,7 @@ function privateReportValues() {
   const values = [
     ["tester", extractField(report, "Tester")],
     ["extension ID", extractField(report, "Extension ID")],
-    ["capture folder", extractField(report, "Capture folder")]
+    ["save folder", extractField(report, "Save folder")]
   ];
   for (const name of ["ChatGPT", "Claude", "Gemini"]) {
     const section = extractSection(report, name);

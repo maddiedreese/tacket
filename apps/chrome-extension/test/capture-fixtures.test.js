@@ -44,7 +44,7 @@ test("captures Claude-like user and assistant messages", async () => {
     "https://claude.ai/chat/test",
     `
       <main>
-        <div data-testid="user-message">Prioritize raw transcript transfer.</div>
+        <div data-testid="user-message">Prioritize full conversation transfer.</div>
         <div data-testid="assistant-message">
           <h2>Claude responded: No summaries in v1…</h2>
           <p>No summaries in v1.</p>

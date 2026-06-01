@@ -1,6 +1,6 @@
 # `.tacket` Bundle Format
 
-A `.tacket` bundle is a directory containing raw thread data and renderings.
+A `.tacket` folder is a directory containing one saved AI chat conversation and supporting files.
 
 ```text
 2026-06-01 10.51 - ChatGPT - Planning the app.tacket/
@@ -12,13 +12,13 @@ A `.tacket` bundle is a directory containing raw thread data and renderings.
   targets/
 ```
 
-Bundle folder names are meant for Finder first: capture date and time, source platform, then thread title. When a name already exists, Tacket appends a Finder-style suffix such as `(2)`.
+Folder names are meant for Finder first: save date and time, source platform, then chat title. When a name already exists, Tacket appends a Finder-style suffix such as `(2)`.
 
 `README.md` is a short human-readable guide to the bundle. The source of truth remains `manifest.json`, `messages.jsonl`, and `transcript.md`.
 
 ## `manifest.json`
 
-The manifest records capture metadata, source platform, counts, and attachment status.
+The manifest records save metadata, source platform, counts, and attachment status.
 
 It may also include local-only warnings:
 
@@ -49,12 +49,12 @@ node scripts/validate-bundle.mjs path/to/thread.tacket
 
 ## `transcript.md`
 
-The transcript is a raw rendering for paste transfer. It includes a small transfer envelope, then each captured message in order. It is not a summary and does not replace `messages.jsonl`.
+The transcript is a readable rendering for paste transfer. It includes a small transfer envelope, then each saved message in order. It is not a summary and does not replace `messages.jsonl`.
 
-Long transcripts may be transferred as ordered raw chunks:
+Long conversations may be transferred as ordered chunks:
 
 ```text
-[raw transcript chunk 1 of 3]
+[conversation chunk 1 of 3]
 
 ...
 
@@ -64,7 +64,7 @@ Please acknowledge receipt only.
 The final chunk ends with:
 
 ```text
-[raw transcript complete]
+[conversation complete]
 ```
 
 ## Attachments

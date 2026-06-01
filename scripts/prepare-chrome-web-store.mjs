@@ -85,7 +85,7 @@ Reference docs:
 - \`docs/CHROME_WEB_STORE.md\`
 - \`docs/STORE_ASSETS.md\`
 
-Review every image before upload. The generated screenshots are synthetic and should not contain private transcripts, private code, tokens, local usernames, or personal file names.
+Review every image before upload. The generated screenshots are synthetic and should not contain private chat text, private code, tokens, local usernames, or personal file names.
 `;
 }
 

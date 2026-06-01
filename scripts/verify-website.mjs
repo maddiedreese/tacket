@@ -24,11 +24,11 @@ for (const phrase of [
   "https://github.com/sponsors/maddiedreese",
   "https://twitter.com/maddiedreese",
   "./privacy.html",
-  "Local transcript library",
-  "No summary",
+  "Private AI chat library",
+  "No summary step",
   "Free forever",
   "Open source forever",
-  "never see your chats",
+  "never see what you save",
   "no accounts, no analytics",
   "Made by"
 ]) {
@@ -39,7 +39,7 @@ for (const phrase of [
   "No analytics",
   "No telemetry",
   "No model/API calls",
-  "Chrome Native Messaging",
+  "saved conversation is sent to the Tacket app on your Mac",
   "private vulnerability reporting"
 ]) {
   if (!privacy.includes(phrase)) throw new Error(`website/privacy.html missing: ${phrase}`);

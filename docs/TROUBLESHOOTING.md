@@ -1,8 +1,8 @@
 # Troubleshooting
 
-Tacket is local-first, so most setup issues are local connector, browser permission, local library, or macOS permission issues.
+Tacket runs locally, so most setup issues are local app connection, browser permission, local library, or macOS permission issues.
 
-## The Extension Says Capture Failed
+## The Extension Says Save Failed
 
 Confirm the active tab is a supported chat page:
 
@@ -11,13 +11,13 @@ Confirm the active tab is a supported chat page:
 - `https://claude.ai/*`
 - `https://gemini.google.com/*`
 
-Tacket refuses capture on other hosts before injecting the capture script.
+Tacket refuses to save pages outside supported chat sites.
 
-If the page is supported but no messages are found, reload the chat page and try again. Live AI apps change their DOMs, so capture regressions should include the source app, Chrome version, Tacket version, and a synthetic/minimal reproduction when possible.
+If the page is supported but no messages are found, reload the chat page and try again. Live AI apps change their pages often, so bug reports should include the source app, Chrome version, Tacket version, and a synthetic or minimal reproduction when possible.
 
-## Native Host Not Found
+## Chrome Extension Cannot Reach the App
 
-Chrome Native Messaging requires a local manifest that points to the Tacket native host.
+The Chrome extension talks to the Tacket app through Chrome's local app connection system. For normal users this should be set up by the packaged app and store extension. Development builds may need manual setup.
 
 For development:
 
@@ -26,30 +26,30 @@ node apps/cli/bin/tacket.js status-native-host
 node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension-id>
 ```
 
-For the packaged Mac app, use the **Chrome Connector** panel:
+For development builds, use the advanced Chrome connection settings:
 
 1. Click **Chrome Extensions**.
 2. Enable Developer Mode or install the published extension.
 3. Copy the extension ID.
 4. Paste it into Tacket.
-5. Click **Install Connector**.
+5. Click **Install Connection**.
 6. Click **Check Status**.
 
 Chrome extension IDs are 32 lowercase letters from `a` to `p`.
 
-## Captures Go to the Wrong Folder
+## Saved Chats Go to the Wrong Folder
 
-The Mac app stores the selected capture folder at:
+The Mac app stores the selected save folder at:
 
 ```text
 ~/Library/Application Support/Tacket/config.json
 ```
 
-Use **Choose Capture Folder** or **Reset Folder** in the Mac app. The packaged Swift host and development Node host both read this config file. `TACKET_CAPTURE_DIR` overrides it for tests.
+Use **Choose Save Folder** or **Reset Folder** in the Mac app. `TACKET_CAPTURE_DIR` overrides it for tests.
 
 ## Library Search Finds Nothing
 
-Tacket only searches `.tacket` bundles that you have indexed. In the Mac app, open Library and click **Index Captures** to index the current capture folder, or choose another folder that contains `.tacket` bundles.
+Tacket only searches saved chats that you have added to the Library. In the Mac app, open Library and click **Add Saved Chats** to add the current save folder, or choose another folder that contains Tacket chat folders.
 
 The local search database is stored at:
 
@@ -57,11 +57,11 @@ The local search database is stored at:
 ~/Library/Application Support/Tacket/library.sqlite
 ```
 
-If files were moved or deleted, click **Remove Missing** and index the folder again.
+If files were moved or deleted, click **Remove Missing Chats** and add the folder again.
 
 ## Terminal Paste Does Not Happen
 
-Tacket copies the transcript to the clipboard before trying to automate Terminal. If macOS blocks automation, you can still paste manually.
+Tacket copies the saved conversation to the clipboard before trying to automate Terminal. If macOS blocks automation, you can still paste manually.
 
 Check macOS settings for:
 
@@ -71,14 +71,14 @@ Check macOS settings for:
 The CLI can launch/copy without requesting paste:
 
 ```bash
-node apps/cli/bin/tacket.js transfer path/to/thread.tacket --to codex --no-paste
+node apps/cli/bin/tacket.js transfer "path/to/saved-chat.tacket" --to codex --no-paste
 ```
 
 For automated checks, use `--dry-run`.
 
-## Bundle Transfer Is Rejected
+## Transfer Is Rejected
 
-Before copying to the clipboard or opening Terminal, Tacket checks that a selected `.tacket` bundle still has `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets that exactly match `transcript.md`. If this fails, re-capture the thread or restore the bundle files from the original capture.
+Before copying to the clipboard or opening Terminal, Tacket checks that the selected saved chat still has the files it needs. If this fails, save the conversation again or restore the missing files.
 
 ## Unsigned App Warning
 
@@ -92,7 +92,7 @@ The production extension manifest does not include `file://` permissions. For th
 
 Tacket does not install a background service. To remove a direct-download install:
 
-1. Open Tacket and click **Remove Connector** in the Chrome Connector panel, or run:
+1. Open Tacket and click **Remove Connection** in the advanced Chrome connection settings, or run:
 
    ```bash
    node apps/cli/bin/tacket.js uninstall-native-host
@@ -105,6 +105,6 @@ Optional local files:
 
 - Connector manifest: `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/dev.tacket.host.json`
 - App preferences: `~/Library/Application Support/Tacket/config.json`
-- Default capture folder: `~/Documents/Tacket Captures/`
+- Default save folder: `~/Documents/Tacket Captures/`
 
-Only delete `.tacket` bundles if you no longer need the captured transcripts.
+Only delete saved Tacket chat folders if you no longer need those conversations.

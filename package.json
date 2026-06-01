@@ -2,7 +2,7 @@
   "name": "tacket",
   "private": true,
   "version": "0.1.0",
-  "description": "Local-first AI transcript library and raw handoff tool.",
+  "description": "Private local library for saving, searching, and reusing AI chats.",
   "license": "Apache-2.0",
   "type": "module",
   "workspaces": [

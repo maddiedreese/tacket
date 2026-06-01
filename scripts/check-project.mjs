@@ -189,8 +189,8 @@ if (!security.includes("GitHub private vulnerability reporting is enabled")) {
 
 const troubleshooting = await readFile("docs/TROUBLESHOOTING.md", "utf8");
 for (const phrase of [
-  "Native Host Not Found",
-  "Captures Go to the Wrong Folder",
+  "Chrome Extension Cannot Reach the App",
+  "Saved Chats Go to the Wrong Folder",
   "Terminal Paste Does Not Happen",
   "Uninstall Tacket",
   "dev.tacket.host.json",
@@ -200,7 +200,7 @@ for (const phrase of [
 }
 
 const changelog = await readFile("CHANGELOG.md", "utf8");
-for (const phrase of ["0.1.0", "Chrome extension capture", "Raw transcript transfer"]) {
+for (const phrase of ["0.1.0", "Chrome extension save", "Full-conversation transfer"]) {
   if (!changelog.includes(phrase)) throw new Error(`Changelog missing: ${phrase}`);
 }
 
@@ -210,7 +210,7 @@ if (!readme.includes("docs/ROADMAP.md")) {
 }
 
 const roadmap = await readFile("docs/ROADMAP.md", "utf8");
-for (const phrase of ["milestone/1", "live capture validation", "Developer ID signing", "scripts/prepare-signing-secrets.sh", "Chrome Web Store"]) {
+for (const phrase of ["milestone/1", "live save validation", "Developer ID signing", "scripts/prepare-signing-secrets.sh", "Chrome Web Store"]) {
   if (!roadmap.includes(phrase)) throw new Error(`Roadmap missing: ${phrase}`);
 }
 
@@ -494,7 +494,7 @@ for (const phrase of [
   "listing.md",
   "privacy.md",
   "store-assets/chrome-web-store/screenshots/",
-  "Do not use private AI chat transcripts",
+  "Do not use private AI chat text",
   "https://developer.chrome.com/docs/webstore/images"
 ]) {
   if (!storeAssets.includes(phrase)) throw new Error(`Store asset guide missing: ${phrase}`);

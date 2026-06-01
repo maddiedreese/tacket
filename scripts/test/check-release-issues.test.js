@@ -109,7 +109,7 @@ function expectedIssues() {
 Checklist:
 
 - [ ] Run \`npm run qa:live\` and fill the generated local report without private transcript text.
-- [ ] Fill required tester/build/environment fields, including commit, macOS, Chrome, extension ID, native host, and capture folder.
+- [ ] Fill required tester/build/environment fields, including commit, macOS, Chrome, extension ID, native host, and save folder.
 - [ ] Test ChatGPT text, code, image/image-like attachment, and long-scroll capture.
 - [ ] Test Claude text, code, attached/linked file, and long-scroll capture.
 - [ ] Test Gemini text, code, and long-scroll capture.
@@ -119,7 +119,7 @@ Checklist:
 - [ ] Generate a public-safe issue summary with \`npm run qa:live:summary -- qa/live-capture/<report>.md\`.
 - [ ] Open follow-up issues for any provider DOM regressions.
 
-Do not attach private transcripts, bundle paths, extension IDs, screenshots with private content, local capture folders, API keys, tokens, or private file names. Use the sanitized summary output for public issue comments.`
+Do not attach private chat text, saved chat paths, extension IDs, screenshots with private content, local save folders, API keys, tokens, or private file names. Use the sanitized summary output for public issue comments.`
     },
     {
       number: 2,

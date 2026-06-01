@@ -23,7 +23,7 @@ test("verifies live QA report evidence against provider manifests", async () => 
   assert.match(result.stdout, /Live QA verification passed/u);
 });
 
-test("summarizes live QA reports without leaking local bundle paths", async () => {
+test("summarizes live QA reports without leaking local saved chat paths", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "tacket-live-qa-summary-"));
   const bundles = {
     ChatGPT: await providerBundle(root, "chatgpt", "https://chatgpt.com/c/live"),
@@ -137,13 +137,13 @@ test("rejects live QA reports missing required checklist items", async () => {
   const reportPath = path.join(root, "report.md");
   await writeFile(
     reportPath,
-    liveQaReport(bundles).replace("- [x] Clipboard transfer copies raw transcript.\n", ""),
+    liveQaReport(bundles).replace("- [x] Clipboard transfer copies the full saved conversation.\n", ""),
     "utf8"
   );
 
   const result = await runVerify(reportPath);
   assert.notEqual(result.code, 0);
-  assert.match(result.stderr, /Required checked item missing: Clipboard transfer copies raw transcript/u);
+  assert.match(result.stderr, /Required checked item missing: Clipboard transfer copies the full saved conversation/u);
 });
 
 async function providerBundle(root, platform, url) {
@@ -178,7 +178,7 @@ macOS: 15.5
 Chrome: 125.0.0.0
 Extension ID: abcdefghijklmnopabcdefghijklmnop
 Native host: installed
-Capture folder: /tmp/tacket-live-capture
+Save folder: /tmp/tacket-live-capture
 Release decision: Pass
 
 ## Preflight
@@ -187,7 +187,7 @@ Release decision: Pass
 - [x] \`npm run package:release\` passed locally or in GitHub CI.
 - [x] Production extension manifest does not include \`file:///*\`.
 - [x] Native messaging connector is installed for the tested Chrome extension ID.
-- [x] Capture folder is known and writable.
+- [x] Save folder is known and writable.
 - [x] Existing test bundles are moved aside or clearly separated.
 
 ${providerSection("ChatGPT", bundles.ChatGPT)}
@@ -198,17 +198,17 @@ ${providerSection("Gemini", bundles.Gemini)}
 
 ## Mac App Review
 
-- [x] Choose Bundle shows title, platform, URL, captured date, and message count.
+- [x] Choose Saved Chat shows title, platform, URL, saved date, and message count.
 - [x] Possible-secret warnings render without exposing secret values in app chrome.
-- [x] Reveal Bundle opens Finder at the selected bundle.
-- [x] Open Transcript opens \`transcript.md\`.
-- [x] Copy Transcript copies the raw transcript.
-- [x] Choose Capture Folder persists to \`~/Library/Application Support/Tacket/config.json\`.
+- [x] Reveal in Finder opens Finder at the selected saved chat.
+- [x] Open Conversation File opens \`transcript.md\`.
+- [x] Copy Conversation copies the full saved conversation.
+- [x] Choose Save Folder persists to \`~/Library/Application Support/Tacket/config.json\`.
 - [x] Reset Folder returns to \`~/Documents/Tacket Captures\`.
 
 ## Transfer
 
-- [x] Clipboard transfer copies raw transcript.
+- [x] Clipboard transfer copies the full saved conversation.
 - [x] Codex transfer launches Terminal and requests paste.
 - [x] Claude Code transfer launches Terminal and requests paste.
 - [x] \`--dry-run\` CLI transfer works for Codex.

@@ -25,10 +25,9 @@
 
       <h2>Local-only by design</h2>
       <p>
-        Tacket captures AI chat threads only when you explicitly click Capture This Thread.
-        Captured data is sent to the local Tacket app through Chrome Native Messaging,
-        written to local files on your Mac, and indexed locally only when you choose to
-        add it to your Tacket library.
+        Tacket saves AI chat conversations only when you explicitly click the extension.
+        The saved conversation is sent to the Tacket app on your Mac, written to local
+        files, and added to local search only when you choose to index it.
       </p>
 
       <h2>What Tacket does not collect</h2>
@@ -43,27 +42,27 @@
 
       <h2>Browser permissions</h2>
       <p>
-        The Chrome extension requests access only to supported AI chat domains and only
-        uses that access after you click the extension capture button. The popup refuses
-        capture outside ChatGPT, Claude, and Gemini hosts.
+        The Chrome extension requests access only to supported AI chat sites and only
+        uses that access after you click the save button. It refuses to save pages
+        outside ChatGPT, Claude, and Gemini.
       </p>
       <p>
         Installing through the Chrome Web Store means Google handles extension distribution.
-        Tacket does not send captured chat text to me or to a Tacket server; captured content
-        goes from the extension to the local Tacket app on your Mac.
+        Tacket does not send saved chat text to me or to a Tacket server; the saved
+        conversation goes from the extension to the Tacket app on your Mac.
       </p>
 
       <h2>Local files</h2>
       <p>
-        Captured `.tacket` bundles may contain private conversation text, code, images,
-        and attachment references. You control where those files are stored and whether
-        they are committed to git or shared with other tools.
+        Saved chat folders may contain private conversation text, code, images, and
+        attachment references. You control where those files are stored and whether
+        they are shared with other tools.
       </p>
 
       <h2>Local search</h2>
       <p>
-        Tacket's library search uses a SQLite database on your Mac. It does not create
-        embeddings, call a model, sync to a server, or send indexed transcript text to me.
+        Tacket's library search runs on your Mac. It does not create embeddings, call a
+        model, sync to a server, or send searchable chat text to me.
       </p>
 
       <h2>Contact</h2>

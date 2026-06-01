@@ -5,17 +5,17 @@ Tacket v1 is direct-download and local-only.
 ## Before Release
 
 - Confirm `npm run package:release` passes and refreshes `dist/chrome-web-store/`.
-- Confirm `npm run smoke:first-run` passes for the local connector/capture/transfer rehearsal.
+- Confirm `npm run smoke:first-run` passes for the local extension/save/transfer rehearsal.
 - Confirm `npm run smoke:dmg-install` passes for the packaged direct-download install rehearsal.
-- Create a local live-capture QA report with `npm run qa:live`.
+- Create a local live QA report with `npm run qa:live`.
 - Generate a public-safe live QA issue summary with `npm run qa:live:summary -- qa/live-capture/<report>.md`.
-- Test unpacked Chrome extension capture on ChatGPT, Claude, and Gemini.
-- Test native messaging host installation with the current draft Chrome Web Store extension ID when available.
-- Test native messaging host status and removal from the Mac app.
-- Test capture output in `~/Documents/Tacket Captures`.
-- Test selected bundle review in the Mac app, including warning display and transcript open/copy actions.
+- Test unpacked Chrome extension saving on ChatGPT, Claude, and Gemini.
+- Test local Chrome app connection installation with the current draft Chrome Web Store extension ID when available.
+- Test local connection status and removal from the Mac app.
+- Test saved chat output in `~/Documents/Tacket Captures`.
+- Test selected saved chat review in the Mac app, including warning display and conversation open/copy actions.
 - Test transfer to Clipboard, Codex, and Claude Code.
-- Confirm the macOS Automation prompt explains that Tacket opens Terminal and pastes raw transcripts.
+- Confirm the macOS Automation prompt explains that Tacket opens Terminal and pastes the saved conversation.
 - Update `CHANGELOG.md`.
 - Review `docs/PRIVACY.md` and Chrome listing copy for consistency.
 - Confirm `npm run website:verify` passes before merging website changes for Netlify.
@@ -37,7 +37,7 @@ The repository can build unsigned local artifacts without paid accounts. Public 
 - Apple Developer ID certificate for signing
 - Apple notarization credentials
 - Chrome Web Store developer account
-- live capture validation against current ChatGPT, Claude, and Gemini pages
+- live save validation against current ChatGPT, Claude, and Gemini pages
 
 ## Chrome Web Store
 
@@ -48,7 +48,7 @@ The extension should request only:
 - `nativeMessaging`
 - host permissions for supported AI chat domains
 
-The listing should say that capture happens only after the user clicks the extension button and that chat content is saved locally by the Tacket app.
+The listing should say that saving happens only after the user clicks the extension button and that chat content is saved locally by the Tacket app.
 
 Listing copy and permission justifications live in `docs/CHROME_WEB_STORE.md`.
 
@@ -56,7 +56,7 @@ Listing copy and permission justifications live in `docs/CHROME_WEB_STORE.md`.
 
 The public Mac build should be signed with Developer ID and notarized. A `.dmg` release can be attached to GitHub Releases and linked from the static website deployed by Netlify.
 
-The signing script enables hardened runtime and signs the app with `apps/mac/TacketApp/Tacket.entitlements`. That entitlement file is intentionally small: it grants Apple Events automation so Tacket can open Terminal and paste the raw transcript after the user chooses Codex or Claude Code. Keep `NSAppleEventsUsageDescription` in `Info.plist` aligned with that behavior.
+The signing script enables hardened runtime and signs the app with `apps/mac/TacketApp/Tacket.entitlements`. That entitlement file is intentionally small: it grants Apple Events automation so Tacket can open Terminal and paste the saved conversation after the user chooses Codex or Claude Code. Keep `NSAppleEventsUsageDescription` in `Info.plist` aligned with that behavior.
 
 The GitHub Actions release workflow builds `Tacket.dmg`, `tacket-chrome-extension.zip`, `SHA256SUMS`, and `dist/chrome-web-store/` on `v*` tags or manual dispatch. Manual dispatch can produce unsigned test artifacts. Tag releases are stricter: they fail unless all signing and notarization secrets are configured, then import the Developer ID certificate, sign the app, package the DMG, notarize it, run Gatekeeper assessment, verify the final artifacts, prepare the Chrome Web Store upload folder, upload an Actions artifact, and publish a GitHub Release.
 

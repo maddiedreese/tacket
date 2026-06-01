@@ -1,21 +1,20 @@
 # Tacket
 
-Tacket is a private local library for AI and agent transcripts.
+Tacket is a private library for saving and searching your AI chats on your Mac.
 
-It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gemini. Click the extension on a supported chat page, save the full thread as a local `.tacket` bundle, search the raw transcript later, then transfer the exact conversation to Clipboard, Codex, or Claude Code when you need it.
+Use the Chrome extension on ChatGPT, Claude, or Gemini to save the conversation you are viewing. Tacket stores it locally, makes it searchable, and lets you copy or send the full conversation to Codex, Claude Code, or your clipboard when you need the context again.
 
 Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
 
-The Chrome extension may be installed through the Chrome Web Store, but captured chat text still goes only to the local Tacket app through Chrome Native Messaging. Tacket does not send your transcripts to me or to a Tacket server.
+The Chrome extension may be installed through the Chrome Web Store, but saved chat text still goes only to the Tacket app on your Mac. Tacket does not send your conversations to me or to a Tacket server.
 
 ## What It Does
 
-- Captures supported AI chats only after you click the extension.
-- Saves readable local bundles in `~/Documents/Tacket Captures`.
-- Indexes saved `.tacket` bundles into a local SQLite search library.
-- Preserves the raw transcript as Markdown and structured JSONL.
+- Saves ChatGPT, Claude, and Gemini conversations only after you click the extension.
+- Keeps saved chats as readable files on your Mac.
+- Lets you browse all saved chats in one place.
 - Searches saved chats, code snippets, decisions, and errors without sending them anywhere.
-- Transfers exact raw transcripts to Clipboard, Codex, or Claude Code.
+- Copies or sends the full saved conversation to Clipboard, Codex, or Claude Code.
 - Uses no backend, no analytics, no telemetry, and no model/API calls.
 
 Tacket is not an agent harness. It does not run agents for you or reach into private app session stores.
@@ -27,7 +26,7 @@ Public releases will be the shortest path:
 1. Download `Tacket.dmg` from the [latest release](https://github.com/maddiedreese/tacket/releases).
 2. Open the DMG and drag Tacket into Applications.
 3. Add the Tacket Chrome extension.
-4. Open Tacket once so it can install its local Chrome connector.
+4. Open Tacket once so the app and extension can talk to each other locally.
 
 You can also build it from source:
 
@@ -37,7 +36,7 @@ npm run package:release
 open dist/Tacket.app
 ```
 
-Then load `apps/chrome-extension` as an unpacked Chrome extension and install the connector:
+Then load `apps/chrome-extension` as an unpacked Chrome extension and connect it to the local app:
 
 ```bash
 node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension-id>
@@ -45,18 +44,18 @@ node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension
 
 ## Use
 
-1. Open a ChatGPT, Claude, or Gemini thread in Chrome.
+1. Open a ChatGPT, Claude, or Gemini conversation in Chrome.
 2. Click the Tacket extension.
-3. Choose **Capture This Thread**.
-4. Open Tacket and choose **Index Capture Folder** in Library.
-5. Search or select the saved thread.
+3. Choose **Save Conversation**.
+4. Open Tacket and choose **Add Saved Chats** in Library.
+5. Search, filter, or select the saved chat.
 6. Transfer it to Clipboard, Codex, or Claude Code.
 
-The first automated transfer may trigger a macOS permission prompt. Tacket uses that permission only to open Terminal and paste the transcript after you choose a transfer target.
+The first automated transfer may trigger a macOS permission prompt. Tacket uses that permission only to open Terminal and paste the saved conversation after you choose a transfer target.
 
-## Local Bundles
+## Saved Files
 
-Each capture is saved as a folder ending in `.tacket`:
+Each saved chat is stored as a local folder. The folder includes a readable transcript, structured message data, and any attachments Tacket was able to save:
 
 ```text
 2026-06-01 10.51 - ChatGPT - Planning the app.tacket/
@@ -70,19 +69,13 @@ Each capture is saved as a folder ending in `.tacket`:
     claude-code.md
 ```
 
-You can inspect the files yourself. The folder name includes the capture date, source app, and thread title. If Tacket saves the same thread name twice, it adds a Finder-style suffix like `(2)`. The transcript is plain Markdown.
+You can inspect these files yourself. The folder name includes the date you saved the chat, the source app, and the chat title. If Tacket saves the same chat name twice, it adds a Finder-style suffix like `(2)`.
 
 ## Local Library
 
-Tacket can index `.tacket` bundles into:
+Tacket builds a local search index from the chats you choose to add to the Library. The index stays on your Mac. It does not summarize conversations, generate embeddings, call a model, sync to a server, or send indexed text anywhere.
 
-```text
-~/Library/Application Support/Tacket/library.sqlite
-```
-
-The library uses local SQLite full-text search. It does not summarize transcripts, generate embeddings, call a model, sync to a server, or send indexed text anywhere.
-
-Advanced search can match an exact phrase, all terms, or any term; search everything, transcript text, or titles; and filter by source or message role.
+Advanced search can match an exact phrase, all terms, or any term; search conversation text or titles; and filter by source or message role.
 
 ## Privacy
 

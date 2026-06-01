@@ -25,12 +25,12 @@ macOS:
 Chrome:
 Extension ID:
 Native host:
-Capture folder:
+Save folder:
 Release decision: Unset
 
 Do not paste private transcript text, screenshots with private content, API keys, tokens, or private file names into this report. Record counts, paths, statuses, and synthetic/minimal notes only.
 
-After completing the checklist, fill the top-level environment fields, the three provider bundle paths, and the evidence fields. Use numbers from each bundle's \`manifest.json\`: \`Message count\`, \`Attachment counts\` as \`captured / referenced / unavailable\`, and \`Warning kinds\` as \`none\` or comma-separated warning kinds. Use \`yes\`, \`pass\`, or \`ok\` for evidence checks that passed. The verifier requires a real 32-letter Chrome extension ID and non-placeholder tester/build/environment fields.
+After completing the checklist, fill the top-level environment fields, the three provider saved chat paths, and the evidence fields. Use numbers from each saved chat's \`manifest.json\`: \`Message count\`, \`Attachment counts\` as \`saved / referenced / unavailable\`, and \`Warning kinds\` as \`none\` or comma-separated warning kinds. Use \`yes\`, \`pass\`, or \`ok\` for evidence checks that passed. The verifier requires a real 32-letter Chrome extension ID and non-placeholder tester/build/environment fields.
 
 Then verify this report with:
 
@@ -44,7 +44,7 @@ npm run qa:live:verify -- ${reportPath}
 - [ ] \`npm run package:release\` passed locally or in GitHub CI.
 - [ ] Production extension manifest does not include \`file:///*\`.
 - [ ] Native messaging connector is installed for the tested Chrome extension ID.
-- [ ] Capture folder is known and writable.
+- [ ] Save folder is known and writable.
 - [ ] Existing test bundles are moved aside or clearly separated.
 
 ## ChatGPT
@@ -110,17 +110,17 @@ Capture evidence:
 
 ## Mac App Review
 
-- [ ] Choose Bundle shows title, platform, URL, captured date, and message count.
+- [ ] Choose Saved Chat shows title, platform, URL, saved date, and message count.
 - [ ] Possible-secret warnings render without exposing secret values in app chrome.
-- [ ] Reveal Bundle opens Finder at the selected bundle.
-- [ ] Open Transcript opens \`transcript.md\`.
-- [ ] Copy Transcript copies the raw transcript.
-- [ ] Choose Capture Folder persists to \`~/Library/Application Support/Tacket/config.json\`.
+- [ ] Reveal in Finder opens Finder at the selected saved chat.
+- [ ] Open Conversation File opens \`transcript.md\`.
+- [ ] Copy Conversation copies the full saved conversation.
+- [ ] Choose Save Folder persists to \`~/Library/Application Support/Tacket/config.json\`.
 - [ ] Reset Folder returns to \`~/Documents/Tacket Captures\`.
 
 ## Transfer
 
-- [ ] Clipboard transfer copies raw transcript.
+- [ ] Clipboard transfer copies the full saved conversation.
 - [ ] Codex transfer launches Terminal and requests paste.
 - [ ] Claude Code transfer launches Terminal and requests paste.
 - [ ] \`--dry-run\` CLI transfer works for Codex.

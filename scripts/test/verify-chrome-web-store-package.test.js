@@ -113,7 +113,7 @@ async function fakeExecutable(binDir, name, source) {
 
 function listingCopy() {
   return `Tacket
-Capture AI chat threads for a local, searchable transcript library
+Save AI chats locally and search them later.
 Single Purpose
 Permission Justification
 \`activeTab\`
@@ -134,8 +134,8 @@ function privacyCopy() {
 No backend
 No analytics
 No model calls
-Captured thread content is stored locally
-Chrome Native Messaging
+Saved chat content is stored locally
+saved conversation is sent to the local Tacket app
 `;
 }
 
@@ -143,7 +143,7 @@ function readmeCopy() {
   return `Upload \`tacket-chrome-extension.zip\`
 Use these generated assets
 Review every image before upload
-should not contain private transcripts
+should not contain private chat text
 `;
 }
 

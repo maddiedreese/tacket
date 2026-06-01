@@ -66,7 +66,7 @@ async function verifyStoreCopy(dir) {
   for (const phrase of ["Single Purpose", "Permission Justification", "https://gemini.google.com/*"]) {
     if (!listing.includes(phrase)) throw new Error(`Chrome Web Store artifact listing missing: ${phrase}`);
   }
-  for (const phrase of ["No backend", "No analytics", "Chrome Native Messaging"]) {
+  for (const phrase of ["No backend", "No analytics", "saved conversation is sent to the local Tacket app"]) {
     if (!privacy.includes(phrase)) throw new Error(`Chrome Web Store artifact privacy copy missing: ${phrase}`);
   }
   for (const phrase of ["Upload `tacket-chrome-extension.zip`", "Review every image before upload"]) {

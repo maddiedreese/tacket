@@ -1,7 +1,7 @@
 {
   "name": "@tacket/native-host",
   "version": "0.1.0",
-  "description": "Chrome Native Messaging host for Tacket.",
+  "description": "Local Chrome app connection host for Tacket.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {

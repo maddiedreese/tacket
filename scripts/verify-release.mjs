@@ -61,7 +61,7 @@ async function verifyInfoPlist(plistPath) {
   if (!text.includes("<key>NSAppleEventsUsageDescription</key>")) {
     throw new Error("Info.plist missing NSAppleEventsUsageDescription.");
   }
-  if (!text.includes("open Terminal and paste raw transcripts")) {
+  if (!text.includes("open Terminal and paste the saved conversation")) {
     throw new Error("Info.plist Apple Events purpose string is missing or too vague.");
   }
 }

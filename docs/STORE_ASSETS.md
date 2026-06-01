@@ -1,6 +1,6 @@
 # Store Assets
 
-Tacket's Chrome Web Store submission should use only synthetic or demo content. Do not use private AI chat transcripts, private code, customer data, real tokens, personal file names, or screenshots from a private account.
+Tacket's Chrome Web Store submission should use only synthetic or demo content. Do not use private AI chat text, private code, customer data, real tokens, personal file names, or screenshots from a private account.
 
 Chrome's current image guidance says the extension icon, a small promotional image, and at least one screenshot are mandatory. Screenshots should be either 1280 by 800 pixels or 640 by 400 pixels. Use the larger 1280 by 800 size unless the UI becomes unreadable.
 
@@ -42,19 +42,19 @@ This writes `dist/chrome-web-store/` with the extension zip, required 128 pixel 
 
 Prepare screenshots from synthetic data that show:
 
-- extension popup before capture
-- successful capture result with a local bundle path
-- Tacket Mac app connector setup
-- Tacket Mac app selected bundle review with local warning display
+- extension popup before saving
+- successful save result with a local folder path
+- Tacket Mac app local connection setup
+- Tacket Mac app selected saved chat review with local warning display
 - Tacket Mac app local library search and transfer target selector
-- local `.tacket` bundle files in Finder
+- local Tacket chat files in Finder
 
 ## Capture Rules
 
 - Use a demo Chrome profile or a test account.
-- Use `examples/capture-demo/index.html` or a synthetic provider thread.
+- Use `examples/capture-demo/index.html` or a synthetic provider conversation.
 - Keep local usernames out of visible file paths when possible.
-- Do not show raw transcript text that came from a private conversation.
+- Do not show saved chat text that came from a private conversation.
 - Do not show API keys, tokens, private repository names, or private attachment names.
 - Recreate screenshots after any visible UI change before submitting a new store version.
 
@@ -65,6 +65,6 @@ Prepare screenshots from synthetic data that show:
 - [ ] Generated screenshots have been reviewed after running `npm run store:screenshots`.
 - [ ] Small promotional image is exactly 440 by 280 pixels.
 - [ ] Extension icon matches the packaged 128 pixel icon.
-- [ ] The first screenshot makes Tacket's local-first transcript library purpose obvious.
-- [ ] The native messaging/local app relationship is visible in at least one screenshot.
+- [ ] The first screenshot makes Tacket's private local chat library purpose obvious.
+- [ ] The extension/local app relationship is visible in at least one screenshot.
 - [ ] No screenshots imply background capture, cloud sync, analytics, or summarization.

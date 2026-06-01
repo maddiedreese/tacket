@@ -138,12 +138,12 @@ async function sample(options) {
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: "I want the full raw thread transferred, not a summary." }]
+          content: [{ type: "text", text: "I want the full conversation transferred, not a summary." }]
         },
         {
           role: "assistant",
           content: [
-            { type: "text", text: "Understood. Preserve the raw transcript and paste it into the coding agent." },
+            { type: "text", text: "Understood. Preserve the full conversation and paste it into the coding agent." },
             { type: "code", language: "bash", text: "tacket transfer ./thread.tacket --to codex" }
           ]
         }
@@ -171,7 +171,7 @@ async function transfer(options) {
 
   if (target === "clipboard") {
     await copyToClipboard(chunks.join("\n\n"));
-    console.log(`Copied ${chunks.length} raw transcript chunk(s) to the clipboard.`);
+    console.log(`Copied ${chunks.length} conversation chunk(s) to the clipboard.`);
     return;
   }
 
@@ -180,17 +180,17 @@ async function transfer(options) {
     const terminalTitle = target === "codex" ? "Tacket Codex Transfer" : "Tacket Claude Code Transfer";
     await copyToClipboard(chunks.join("\n\n"));
     if (options["dry-run"] === true) {
-      console.log(`Copied ${chunks.length} raw transcript chunk(s); dry run skipped Terminal launch for ${command}.`);
+      console.log(`Copied ${chunks.length} conversation chunk(s); dry run skipped Terminal launch for ${command}.`);
       return;
     }
     const shouldPaste = options.paste !== false && options["no-paste"] !== true;
     const launch = launchTerminal(command, terminalTitle, shouldPaste);
     if (!launch.ok) {
-      console.log(`Copied ${chunks.length} raw transcript chunk(s), but Terminal launch did not complete: ${launch.error}`);
+      console.log(`Copied ${chunks.length} conversation chunk(s), but Terminal launch did not complete: ${launch.error}`);
       return;
     }
     const pasteDetail = shouldPaste ? "and requested paste into Terminal" : "without requesting paste";
-    console.log(`Launched ${command}, copied ${chunks.length} raw transcript chunk(s), ${pasteDetail}.`);
+    console.log(`Launched ${command}, copied ${chunks.length} conversation chunk(s), ${pasteDetail}.`);
     return;
   }
 
@@ -215,9 +215,9 @@ Usage:
   tacket transfer <bundle.tacket> --to claude-code
 
 Options:
-  --no-paste          Launch target and copy transcript, but do not request Cmd+V
-  --dry-run           Copy transcript and skip target launch
-  --chunk-size <n>    Maximum characters per raw transcript chunk
+  --no-paste          Launch target and copy the conversation, but do not request Cmd+V
+  --dry-run           Copy the conversation and skip target launch
+  --chunk-size <n>    Maximum characters per conversation chunk
   --match <mode>      Search mode: phrase, all, or any
   --scope <scope>     Search scope: everywhere, transcript, or title
   --source <source>   Filter search by source: chatgpt, claude, or gemini

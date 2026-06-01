@@ -12,23 +12,23 @@ const height = 800;
 const scenes = [
   {
     name: "01-capture-popup-1280x800.png",
-    eyebrow: "User-click capture",
-    title: "Save a supported AI thread only when you ask.",
-    body: "Tacket adds ChatGPT, Claude, and Gemini conversations to your local transcript library after you click capture.",
+    eyebrow: "User-click save",
+    title: "Save one AI conversation only when you ask.",
+    body: "Tacket saves ChatGPT, Claude, and Gemini conversations to a private library on your Mac after you click save.",
     mockup: popupMockup()
   },
   {
     name: "02-local-bundle-1280x800.png",
-    eyebrow: "Local bundle",
-    title: "Save the raw transcript as inspectable local files.",
-    body: "Each .tacket bundle contains a manifest, JSONL messages, transcript Markdown, and local attachments.",
+    eyebrow: "Local files",
+    title: "Keep saved chats as files you can inspect.",
+    body: "Each saved chat folder contains readable conversation text, structured message data, and any attachments Tacket could save.",
     mockup: bundleMockup()
   },
   {
     name: "03-transfer-targets-1280x800.png",
     eyebrow: "Search and transfer",
-    title: "Find the raw context, then send it where it belongs.",
-    body: "Tacket searches local transcript text and can copy or launch ordered raw chunks for Codex or Claude Code.",
+    title: "Find the conversation, then send it where it belongs.",
+    body: "Tacket searches saved chat text locally and can copy or send the full conversation to Codex or Claude Code.",
     mockup: transferMockup()
   }
 ];
@@ -278,7 +278,7 @@ function popupMockup() {
       <div class="popup card">
         <h2>Tacket</h2>
         <p>Supported source detected.</p>
-        <div class="button">Capture This Thread</div>
+        <div class="button">Save Conversation</div>
         <div class="fine">Saves locally through the Tacket app</div>
       </div>
     </div>
@@ -289,12 +289,12 @@ function bundleMockup() {
   return `<div class="window">
     <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="bar grow"></div></div>
     <div class="content bundle">
-      <div class="folder-title">planning-thread.tacket</div>
+      <div class="folder-title">2026-06-01 - ChatGPT - Planning.tacket</div>
       ${fileRow("manifest.json", "source, warnings, counts")}
-      ${fileRow("messages.jsonl", "one raw message per line")}
-      ${fileRow("transcript.md", "full raw transcript")}
+      ${fileRow("messages.jsonl", "structured message data")}
+      ${fileRow("transcript.md", "readable conversation")}
       ${fileRow("attachments/", "captured or referenced files")}
-      ${fileRow("targets/codex.md", "paste-ready raw context")}
+      ${fileRow("targets/codex.md", "paste-ready conversation")}
       <div class="warning">possible_secret warning saved locally, no upload</div>
     </div>
   </div>`;
@@ -305,20 +305,20 @@ function transferMockup() {
     <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="bar grow"></div></div>
     <div class="app">
       <aside>
-        <b>Sources</b>
-        <span>ChatGPT</span><span>Claude</span><span>Gemini</span>
+        <b>Library</b>
+        <span>All Tackets</span><span>Search</span><span>Advanced</span>
         <b>Targets</b>
         <span>Clipboard</span><span>Codex</span><span>Claude Code</span>
       </aside>
       <section>
         <div class="panel">
-          <h2>Selected bundle</h2>
+          <h2>Selected saved chat</h2>
           <div class="bar long"></div>
           <div class="bar medium"></div>
           <div class="warning">local warning: possible token</div>
         </div>
         <div class="panel">
-          <h2>Transfer raw transcript</h2>
+          <h2>Transfer full conversation</h2>
           <div class="row">
             <div class="button">Codex</div>
             <div class="button muted-button">Claude Code</div>

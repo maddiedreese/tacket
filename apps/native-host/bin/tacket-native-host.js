@@ -100,7 +100,7 @@ async function captureDirectory() {
     const config = JSON.parse(await readFile(configPath, "utf8"));
     if (config.captureDirectory) return expandHome(String(config.captureDirectory));
   } catch {
-    // Missing or malformed config falls back to the default capture folder.
+    // Missing or malformed config falls back to the default save folder.
   }
 
   return path.join(os.homedir(), "Documents", "Tacket Captures");

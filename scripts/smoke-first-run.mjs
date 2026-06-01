@@ -59,12 +59,12 @@ function sendCapture() {
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: "Please transfer this full raw thread into Codex." }]
+          content: [{ type: "text", text: "Please transfer this full conversation into Codex." }]
         },
         {
           role: "assistant",
           content: [
-            { type: "text", text: "I will preserve the raw transcript and avoid summarizing it." },
+            { type: "text", text: "I will preserve the full conversation and avoid summarizing it." },
             { type: "code", language: "bash", text: "npm run smoke:first-run" }
           ]
         }

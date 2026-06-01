@@ -6,42 +6,42 @@ Tacket
 
 ## Short Description
 
-Capture AI chat threads for a local, searchable transcript library.
+Save AI chats locally and search them later.
 
 ## Detailed Description
 
-Tacket captures complete AI chat threads from supported pages and saves them locally on your Mac as inspectable `.tacket` bundles. It is built for keeping a private searchable transcript library from ChatGPT, Claude, and Gemini, then transferring exact raw conversations to Clipboard, Codex, or Claude Code when you need the full context. Long transcripts can be copied as ordered raw chunks.
+Tacket saves ChatGPT, Claude, and Gemini conversations to your Mac so you can search them later and reuse the full conversation when you need the context again. Saved chats can be copied to your clipboard or sent to coding tools such as Codex and Claude Code.
 
 Tacket is local-first:
 
-- capture runs only after you click **Capture This Thread**
-- captured content is sent to the local Tacket Mac app through Chrome Native Messaging
-- bundles are written to your Mac
+- Tacket saves a conversation only after you click the extension
+- saved chat text goes to the Tacket app on your Mac
+- saved chats are written to local files you control
 - local library search stays on your Mac
 - no analytics, telemetry, backend account, or model/API calls
 - no background chat collection
 - local manifest warnings for possible secrets, without redaction or upload
-- Chrome Web Store distribution does not mean Tacket transcript content is sent to the developer or a Tacket server
+- Chrome Web Store distribution does not mean saved chat text is sent to the developer or a Tacket server
 
-The extension works with the Tacket Mac app. Install the app, add the Chrome extension, click capture on a supported thread, then search or transfer the raw transcript from your local library.
+The extension works with the Tacket Mac app. Install the app, add the Chrome extension, save a supported conversation, then browse, search, copy, or transfer it from your local library.
 
 ## Single Purpose
 
-Tacket captures user-selected AI chat threads from supported providers and sends the captured thread to the local Tacket app for local storage, local search, and raw transcript transfer.
+Tacket saves user-selected AI chat conversations from supported providers and sends the saved conversation to the local Tacket app for local storage, local search, and user-chosen transfer.
 
 ## Permission Justification
 
 ### `activeTab`
 
-Used to capture the current supported AI chat page only after the user clicks the extension button.
+Used to read the current supported AI chat page only after the user clicks the extension button.
 
 ### `scripting`
 
-Used to inject the capture script into the active tab after the user clicks **Capture This Thread**.
+Used to read the active supported chat tab after the user clicks the save button.
 
 ### `nativeMessaging`
 
-Used to send the captured thread to the local Tacket Mac app. Tacket does not send captured content to a remote server.
+Used to send the saved conversation to the local Tacket Mac app. Tacket does not send saved chat content to a remote server.
 
 ### Host permissions
 
@@ -52,11 +52,11 @@ Tacket requests host permissions only for supported AI chat pages:
 - `https://claude.ai/*`
 - `https://gemini.google.com/*`
 
-These permissions allow the extension to read the current thread when the user requests capture.
+These permissions allow the extension to read the current conversation when the user asks Tacket to save it.
 
 ## Privacy Practices
 
-Tacket does not collect, sell, transmit, or remotely process user data. Captured data remains local unless the user chooses to share or commit the generated files. Google may process normal Chrome Web Store installation and distribution metadata, but Tacket does not send captured transcript content to the developer or to a Tacket backend.
+Tacket does not collect, sell, transmit, or remotely process user data. Saved chat content remains local unless the user chooses to share the generated files. Google may process normal Chrome Web Store installation and distribution metadata, but Tacket does not send saved chat content to the developer or to a Tacket backend.
 
 ## Screenshot Checklist
 
@@ -64,12 +64,12 @@ Detailed asset requirements and privacy rules live in `docs/STORE_ASSETS.md`.
 
 Prepare Chrome Web Store screenshots showing:
 
-- extension popup before capture
-- successful capture result with local bundle path
-- Tacket Mac app connector setup
+- extension popup before saving
+- successful save result with a local folder path
+- Tacket Mac app local connection setup
 - Tacket Mac app transfer target selector
-- Tacket Mac app selected bundle review with local warnings
-- local `.tacket` bundle files in Finder
+- Tacket Mac app selected saved chat review with local warnings
+- local Tacket chat files in Finder
 
 The extension package includes generated PNG icons at 16, 32, 48, and 128 pixels.
 
@@ -97,10 +97,10 @@ This checks the extension zip contents, confirms the upload zip matches `dist/ta
 
 ## Published Extension ID
 
-After Chrome Web Store approval, verify the published extension ID can be used by the local native messaging connector:
+After Chrome Web Store approval, verify the published extension ID can be used by the local app connection:
 
 ```bash
 npm run store:verify-id -- --extension-id <chrome-extension-id>
 ```
 
-The command uses an isolated temporary home directory, installs the native messaging manifest for that exact ID, checks the `allowed_origins` entry, then uninstalls it. It does not modify the user's real Chrome native messaging host setup.
+The command uses an isolated temporary home directory, installs the local Chrome app connection for that exact ID, checks the `allowed_origins` entry, then uninstalls it. It does not modify the user's real Chrome setup.

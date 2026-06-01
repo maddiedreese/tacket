@@ -221,10 +221,10 @@ struct BundleWriter {
 
     private func renderTranscript(title: String, source: [String: Any], capturedAt: String, messages: [[String: Any]]) -> String {
         var lines: [String] = [
-            "The following is the full raw transcript of an AI chat thread being transferred into this coding session.",
+            "The following is the full saved AI chat conversation being transferred into this coding session.",
             "Continue from it. Do not treat this as a summary.",
             "",
-            "[raw transcript begins]",
+            "[conversation begins]",
             "",
             "# \(title)",
             "",
@@ -258,7 +258,7 @@ struct BundleWriter {
             }
         }
 
-        lines.append("[raw transcript ends]")
+        lines.append("[conversation ends]")
         lines.append("")
         return lines.joined(separator: "\n")
     }
@@ -382,12 +382,12 @@ struct BundleWriter {
         """
         # \(title)
 
-        This is a local Tacket capture.
+        This is a local Tacket saved chat.
 
-        - Open `transcript.md` to read the full raw transcript.
+        - Open `transcript.md` to read the full saved conversation.
         - `attachments/` contains any files Tacket was able to save locally.
-        - `targets/` contains ready-to-transfer transcript files for supported tools.
-        - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the capture.
+        - `targets/` contains ready-to-transfer conversation files for supported tools.
+        - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the saved chat.
 
         Source: \(platformLabel(source["platform"] as? String))
         Captured: \(capturedAt)

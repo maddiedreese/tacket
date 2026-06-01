@@ -1,6 +1,6 @@
 # Architecture
 
-Tacket has three local components that save, index, search, and transfer raw AI transcripts without a backend.
+Tacket has three local components that save, index, search, and transfer AI chat conversations without a backend.
 
 ## Chrome Extension
 
@@ -10,13 +10,13 @@ The extension runs only on supported AI chat pages:
 - Claude: `claude.ai`
 - Gemini: `gemini.google.com`
 
-Capture is user-click only. The extension reads a page when the user opens the popup and clicks **Capture This Thread**. It does not run background collection, keep hidden memory, or send chat content over the network.
+Saving is user-click only. The extension reads a page when the user opens the popup and clicks **Save Conversation**. It does not run background collection, keep hidden memory, or send chat content over the network.
 
-The extension auto-scrolls the current conversation after the user clicks capture, normalizes captured messages into Tacket's thread model, and sends them to the local native host using Chrome Native Messaging. Fetchable images are stored as local attachment bytes; other files and images are preserved as references with capture status.
+The extension auto-scrolls the current conversation after the user clicks save, normalizes saved messages into Tacket's chat model, and sends them to the local app through Chrome's native messaging system. Fetchable images are stored as local attachment bytes; other files and images are preserved as references with attachment status.
 
 ## Native Host
 
-The native host is a small local process registered with Chrome. The packaged app uses the Swift `TacketNativeHost` executable; the Node host remains available for development. The host receives one capture payload at a time, writes a `.tacket` bundle to disk, and returns the local path to the extension.
+The native host is a small local process registered with Chrome. The packaged app uses the Swift `TacketNativeHost` executable; the Node host remains available for development. The host receives one saved chat payload at a time, writes a `.tacket` folder to disk, and returns the local path to the extension.
 
 Default development output:
 
@@ -24,42 +24,42 @@ Default development output:
 ~/Documents/Tacket Captures/
 ```
 
-The production Mac app owns host registration, output folder selection, local library indexing/search, and transfer target configuration. The selected capture directory is stored locally at:
+The production Mac app owns local Chrome registration, output folder selection, local library indexing/search, and transfer target configuration. The selected save directory is stored locally at:
 
 ```text
 ~/Library/Application Support/Tacket/config.json
 ```
 
-Both native host implementations read that file before falling back to `~/Documents/Tacket Captures/`. `TACKET_CAPTURE_DIR` can override the capture folder in tests, and `TACKET_CONFIG_FILE` can point at an isolated config file for smoke tests.
+Both native host implementations read that file before falling back to `~/Documents/Tacket Captures/`. `TACKET_CAPTURE_DIR` can override the save folder in tests, and `TACKET_CONFIG_FILE` can point at an isolated config file for smoke tests.
 
 ## Local Library
 
-Tacket treats `.tacket` bundles as the source of truth. The Mac app and CLI can index those bundles into a local SQLite database at:
+Tacket treats saved `.tacket` chat folders as the source of truth. The Mac app and CLI can add those folders to a local SQLite database at:
 
 ```text
 ~/Library/Application Support/Tacket/library.sqlite
 ```
 
-The library uses SQLite FTS5 over raw message text and bundle metadata, with local fallback matching when FTS5 is unavailable. Advanced search can switch between exact phrase, all-term, and any-term matching; scope queries to transcript text or titles; and filter by source or message role. It is explicit: users index the capture folder or another chosen folder. Tacket does not silently scan app session stores, summarize transcripts, create embeddings, use model/API calls, or sync library data to a backend.
+The library uses SQLite FTS5 over saved message text and chat metadata, with local fallback matching when FTS5 is unavailable. Advanced search can switch between exact phrase, all-term, and any-term matching; scope queries to conversation text or titles; and filter by source or message role. It is explicit: users add the save folder or another chosen folder. Tacket does not silently scan app session stores, summarize conversations, create embeddings, use model/API calls, or sync library data to a backend.
 
 ## CLI and Mac App
 
 The Mac app owns the direct-download user workflow:
 
-- index and search saved `.tacket` transcript bundles
-- install the Chrome native messaging manifest
-- reveal the local capture folder
-- choose `.tacket` bundles
-- copy raw transcripts
+- browse and search saved Tacket chat folders
+- install the local Chrome app connection
+- reveal the local save folder
+- choose saved Tacket chats
+- copy full saved conversations
 - launch Codex or Claude Code and request paste through macOS automation
 
 The CLI remains useful for development and scripted checks:
 
-- render raw `transcript.md`
-- index/search/list local `.tacket` bundles
-- copy raw transcript to the clipboard
+- render `transcript.md`
+- index/search/list local saved Tacket chats
+- copy the full saved conversation to the clipboard
 - launch Codex or Claude Code in Terminal
-- paste the transcript using macOS automation when requested
+- paste the saved conversation using macOS automation when requested
 
 ## Data Flow
 
@@ -67,8 +67,8 @@ The CLI remains useful for development and scripted checks:
 AI chat page
   -> user clicks Tacket extension
   -> content script extracts messages/assets
-  -> extension sends payload to native host
-  -> native host writes .tacket bundle
-  -> Mac app/CLI indexes raw transcript locally
-  -> CLI/Mac app searches locally or transfers raw transcript to the chosen target
+  -> extension sends payload to the local app
+  -> local app writes a .tacket folder
+  -> Mac app/CLI adds the saved chat to local search
+  -> CLI/Mac app searches locally or transfers the saved conversation to the chosen target
 ```

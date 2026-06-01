@@ -54,10 +54,10 @@ export function renderTranscript(capture, options = {}) {
   const lines = [];
 
   if (includeEnvelope) {
-    lines.push("The following is the full raw transcript of an AI chat thread being transferred into this coding session.");
+    lines.push("The following is the full saved AI chat conversation being transferred into this coding session.");
     lines.push("Continue from it. Do not treat this as a summary.");
     lines.push("");
-    lines.push("[raw transcript begins]");
+    lines.push("[conversation begins]");
     lines.push("");
   }
 
@@ -88,7 +88,7 @@ export function renderTranscript(capture, options = {}) {
   }
 
   if (includeEnvelope) {
-    lines.push("[raw transcript ends]");
+    lines.push("[conversation ends]");
     lines.push("");
   }
 
@@ -113,8 +113,8 @@ export function splitTranscript(transcript, maxChars = 24000) {
 
   return chunks.map((chunk, index) => {
     const n = index + 1;
-    return `[raw transcript chunk ${n} of ${chunks.length}]\n\n${chunk}\n\n${
-      n === chunks.length ? "[raw transcript complete]" : "Please acknowledge receipt only."
+    return `[conversation chunk ${n} of ${chunks.length}]\n\n${chunk}\n\n${
+      n === chunks.length ? "[conversation complete]" : "Please acknowledge receipt only."
     }`;
   });
 }
@@ -205,12 +205,12 @@ function sanitizeFileSegment(value, maxLength) {
 function bundleReadme(capture) {
   return `# ${capture.title}
 
-This is a local Tacket capture.
+This is a local Tacket saved chat.
 
-- Open \`transcript.md\` to read the full raw transcript.
+- Open \`transcript.md\` to read the full saved conversation.
 - \`attachments/\` contains any files Tacket was able to save locally.
-- \`targets/\` contains ready-to-transfer transcript files for supported tools.
-- \`manifest.json\` and \`messages.jsonl\` are used by Tacket to verify and search the capture.
+- \`targets/\` contains ready-to-transfer conversation files for supported tools.
+- \`manifest.json\` and \`messages.jsonl\` are used by Tacket to verify and search the saved chat.
 
 Source: ${platformLabel(capture.source?.platform)}
 Captured: ${capture.capturedAt}

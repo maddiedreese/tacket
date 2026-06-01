@@ -20,7 +20,7 @@ for (const field of [
   "macOS",
   "Chrome",
   "Native host",
-  "Capture folder"
+  "Save folder"
 ]) {
   requireFilledTopLevelField(field);
 }
@@ -50,7 +50,7 @@ requireCheckedItems([
   "`npm run package:release` passed locally or in GitHub CI.",
   "Production extension manifest does not include `file:///*`.",
   "Native messaging connector is installed for the tested Chrome extension ID.",
-  "Capture folder is known and writable.",
+  "Save folder is known and writable.",
   "Existing test bundles are moved aside or clearly separated.",
   "ChatGPT Text user turn",
   "ChatGPT Text assistant turn",
@@ -66,14 +66,14 @@ requireCheckedItems([
   "Gemini Text model turn",
   "Gemini Code block",
   "Gemini Long enough to require scrolling",
-  "Choose Bundle shows title, platform, URL, captured date, and message count.",
+  "Choose Saved Chat shows title, platform, URL, saved date, and message count.",
   "Possible-secret warnings render without exposing secret values in app chrome.",
-  "Reveal Bundle opens Finder at the selected bundle.",
-  "Open Transcript opens `transcript.md`.",
-  "Copy Transcript copies the raw transcript.",
-  "Choose Capture Folder persists to `~/Library/Application Support/Tacket/config.json`.",
+  "Reveal in Finder opens Finder at the selected saved chat.",
+  "Open Conversation File opens `transcript.md`.",
+  "Copy Conversation copies the full saved conversation.",
+  "Choose Save Folder persists to `~/Library/Application Support/Tacket/config.json`.",
   "Reset Folder returns to `~/Documents/Tacket Captures`.",
-  "Clipboard transfer copies raw transcript.",
+  "Clipboard transfer copies the full saved conversation.",
   "Codex transfer launches Terminal and requests paste.",
   "Claude Code transfer launches Terminal and requests paste.",
   "`--dry-run` CLI transfer works for Codex.",

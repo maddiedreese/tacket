@@ -51,7 +51,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
   <key>NSAppleEventsUsageDescription</key>
-  <string>Tacket uses macOS automation to open Terminal and paste raw transcripts into the coding agent you choose.</string>
+  <string>Tacket uses macOS automation to open Terminal and paste the saved conversation into the coding agent you choose.</string>
 </dict>
 </plist>
 PLIST

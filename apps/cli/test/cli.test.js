@@ -128,7 +128,7 @@ test("library commands index, list, search, and remove missing bundles", async (
     assert.equal(index.status, 0, index.stderr);
     assert.equal(JSON.parse(index.stdout).indexed, 1);
 
-    const search = await runCli(["library-search", "raw transcript", "--db", db]);
+    const search = await runCli(["library-search", "full conversation", "--db", db]);
     assert.equal(search.status, 0, search.stderr);
     const results = JSON.parse(search.stdout);
     assert.equal(results.length, 1);

@@ -12,10 +12,10 @@ npm run package:release
 - `.tacket` JSON Schema and integrity validation against generated sample bundles
 - transcript rendering tests
 - attachment persistence tests
-- Chrome capture fixture tests for ChatGPT, Claude, and Gemini-like DOMs
+- Chrome save-flow fixture tests for ChatGPT, Claude, and Gemini-like pages
 - website release-link and privacy-copy checks
 - local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
-- first-run smoke coverage for connector install/status/remove, native-host capture, bundle validation, and Codex/Claude Code dry-run transfer in isolated temporary folders
+- first-run smoke coverage for local extension setup/status/remove, saved chat validation, and Codex/Claude Code dry-run transfer in isolated temporary folders
 
 Run only the website checks with:
 
@@ -41,11 +41,11 @@ After `npm run package:release` builds `dist/Tacket.dmg`, rehearse the direct-do
 npm run smoke:dmg-install
 ```
 
-This mounts the DMG, copies `Tacket.app` into a temporary Applications-like folder, runs the packaged Swift native host with an isolated `HOME` and capture directory, validates the captured `.tacket` bundle, then unmounts and removes all temporary files.
+This mounts the DMG, copies `Tacket.app` into a temporary Applications-like folder, runs the packaged Swift local host with an isolated `HOME` and save directory, validates the saved Tacket chat folder, then unmounts and removes all temporary files.
 
 ## Manual Browser Checks
 
-Live AI apps change their DOMs. Before a release, test capture manually against:
+Live AI apps change their pages often. Before a release, test saving manually against:
 
 - a ChatGPT thread with text, code, and an image
 - a Claude thread with text, code, and an attached or linked file
@@ -58,15 +58,15 @@ Create a local QA report before live testing:
 npm run qa:live
 ```
 
-This writes a timestamped checklist under `qa/live-capture/`. Those reports are git-ignored because they may contain local paths, extension IDs, provider notes, or other release evidence that should be reviewed before sharing. Do not paste private transcript text, screenshots with private content, API keys, tokens, or private file names into QA reports.
+This writes a timestamped checklist under `qa/live-capture/`. Those reports are git-ignored because they may contain local paths, extension IDs, provider notes, or other release evidence that should be reviewed before sharing. Do not paste private chat text, screenshots with private content, API keys, tokens, or private file names into QA reports.
 
-After filling the top-level environment fields, completing the checklist, setting `Release decision: Pass`, and adding the ChatGPT, Claude, and Gemini bundle paths, verify the report and captured bundles:
+After filling the top-level environment fields, completing the checklist, setting `Release decision: Pass`, and adding the ChatGPT, Claude, and Gemini saved chat paths, verify the report and saved chats:
 
 ```bash
 npm run qa:live:verify -- qa/live-capture/<report>.md
 ```
 
-If no report path is supplied, the verifier uses the newest markdown report in `qa/live-capture/`. The verifier fails if required checkboxes are missing or incomplete, if required environment/build fields are blank or placeholder-like, if the Chrome extension ID is not a valid 32-letter ID, if a provider bundle path is missing, if a bundle fails schema validation, if a provider bundle manifest does not match the expected source platform, if reported message/attachment/warning evidence does not match `manifest.json`, or if the report appears to contain private secret-like text.
+If no report path is supplied, the verifier uses the newest markdown report in `qa/live-capture/`. The verifier fails if required checkboxes are missing or incomplete, if required environment/build fields are blank or placeholder-like, if the Chrome extension ID is not a valid 32-letter ID, if a provider saved chat path is missing, if a saved chat fails schema validation, if a provider manifest does not match the expected source platform, if reported message/attachment/warning evidence does not match `manifest.json`, or if the report appears to contain private secret-like text.
 
 Generate a public-safe summary for the v0.1.0 live QA issue after verification passes:
 
@@ -74,8 +74,8 @@ Generate a public-safe summary for the v0.1.0 live QA issue after verification p
 npm run qa:live:summary -- qa/live-capture/<report>.md
 ```
 
-The summary omits bundle paths, local capture folders, tester names, extension IDs, and provider notes. It includes provider names, counts, pass/fail evidence fields, release decision, and follow-up issue links.
-The summary command refuses to print if its output would include a captured bundle path, capture folder, tester name, or Chrome extension ID.
+The summary omits saved chat paths, local save folders, tester names, extension IDs, and provider notes. It includes provider names, counts, pass/fail evidence fields, release decision, and follow-up issue links.
+The summary command refuses to print if its output would include a saved chat path, save folder, tester name, or Chrome extension ID.
 
 For local extension plumbing, open:
 
@@ -90,13 +90,13 @@ For each source, confirm:
 - message order is preserved
 - user and assistant roles are correct
 - code block indentation is preserved
-- images are captured or clearly marked as referenced
+- images are saved or clearly marked as referenced
 - `.tacket/manifest.json`, `messages.jsonl`, and `transcript.md` are written locally
-- the Mac app shows selected bundle metadata and can open/copy `transcript.md`
-- the Mac app can choose/reset the capture folder and the Swift native host writes to the configured folder
-- long transcripts transfer as ordered raw chunks when the chunk size is smaller than the transcript
-- transfer refuses `.tacket` bundles whose target files drift from `transcript.md`
-- obvious API-key-like text is reported as a local warning in `manifest.json` without redacting the transcript
+- the Mac app shows selected saved chat metadata and can open/copy `transcript.md`
+- the Mac app can choose/reset the save folder and the Swift local host writes to the configured folder
+- long conversations transfer as ordered chunks when the chunk size is smaller than the conversation
+- transfer refuses saved chat folders whose target files drift from `transcript.md`
+- obvious API-key-like text is reported as a local warning in `manifest.json` without redacting the saved conversation
 
 ## Transfer Checks
 
@@ -128,7 +128,7 @@ HOME="$tmp_home" node apps/cli/bin/tacket.js status-native-host
 
 The Mac app has equivalent **Check Status** and **Remove Connector** actions in the Chrome Connector panel.
 
-Native host tests also use `TACKET_CAPTURE_DIR` and `TACKET_CONFIG_FILE` to verify capture-folder overrides without touching a user's real Tacket config.
+Local host tests also use `TACKET_CAPTURE_DIR` and `TACKET_CONFIG_FILE` to verify save-folder overrides without touching a user's real Tacket config.
 
 After the Chrome Web Store extension is approved, verify the published extension ID without touching the real Chrome native messaging setup:
 

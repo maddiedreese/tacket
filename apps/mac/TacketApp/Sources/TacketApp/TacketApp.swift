@@ -139,7 +139,7 @@ final class TacketModel: ObservableObject {
     @Published var libraryViewMode: LibraryViewMode = .gallery
     @Published var libraryItems: [LibraryItem] = []
     @Published var selectedLibraryItem: LibraryItem?
-    @Published var libraryStatus = "Index your capture folder to search saved raw transcripts."
+    @Published var libraryStatus = "Add your saved chats to the Library to search them."
 
     let supportedSources = ["ChatGPT", "Claude", "Gemini"]
 
@@ -229,7 +229,7 @@ final class TacketModel: ObservableObject {
 
     func chooseCaptureDirectory() {
         let panel = NSOpenPanel()
-        panel.title = "Choose capture folder"
+        panel.title = "Choose save folder"
         panel.prompt = "Choose"
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -239,21 +239,21 @@ final class TacketModel: ObservableObject {
         if panel.runModal() == .OK, let url = panel.url {
             captureDirectory = url
             persistConfig()
-            status = "Capture folder updated."
-            commandOutput = "Tacket captures will be written to:\n\(url.path)"
+            status = "Save folder updated."
+            commandOutput = "Tacket will save conversations to:\n\(url.path)"
         }
     }
 
     func resetCaptureDirectory() {
         captureDirectory = Self.defaultCaptureDirectory()
         persistConfig()
-        status = "Capture folder reset."
-        commandOutput = "Tacket captures will be written to:\n\(captureDirectory.path)"
+        status = "Save folder reset."
+        commandOutput = "Tacket will save conversations to:\n\(captureDirectory.path)"
     }
 
     func chooseBundle() {
         let panel = NSOpenPanel()
-        panel.title = "Choose a .tacket bundle"
+        panel.title = "Choose a saved Tacket chat"
         panel.prompt = "Choose"
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -263,13 +263,13 @@ final class TacketModel: ObservableObject {
         if panel.runModal() == .OK {
             selectedBundle = panel.url
             loadSelectedBundleInfo()
-            status = "Selected \(panel.url?.lastPathComponent ?? "bundle")."
+            status = "Selected \(panel.url?.lastPathComponent ?? "saved chat")."
         }
     }
 
     func revealSelectedBundle() {
         guard let selectedBundle else {
-            status = "Choose a .tacket bundle first."
+            status = "Choose a saved chat first."
             return
         }
         NSWorkspace.shared.activateFileViewerSelecting([selectedBundle])
@@ -277,7 +277,7 @@ final class TacketModel: ObservableObject {
 
     func openSelectedTranscript() {
         guard let selectedBundle else {
-            status = "Choose a .tacket bundle first."
+            status = "Choose a saved chat first."
             return
         }
         NSWorkspace.shared.open(selectedBundle.appendingPathComponent("transcript.md"))
@@ -285,15 +285,15 @@ final class TacketModel: ObservableObject {
 
     func copySelectedTranscript() {
         guard let selectedBundle else {
-            status = "Choose a .tacket bundle first."
+            status = "Choose a saved chat first."
             return
         }
         do {
             let transcript = try String(contentsOf: selectedBundle.appendingPathComponent("transcript.md"), encoding: .utf8)
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(transcript, forType: .string)
-            status = "Copied raw transcript."
-            commandOutput = "Copied unchunked transcript from \(selectedBundle.lastPathComponent)."
+            status = "Copied conversation."
+            commandOutput = "Copied the full saved conversation from \(selectedBundle.lastPathComponent)."
         } catch {
             status = "Copy failed."
             commandOutput = error.localizedDescription
@@ -412,14 +412,14 @@ final class TacketModel: ObservableObject {
 
     func transferSelectedBundle() {
         guard let selectedBundle else {
-            status = "Choose a .tacket bundle first."
+            status = "Choose a saved chat first."
             return
         }
 
         do {
             try validateBundleForTransfer(selectedBundle)
         } catch {
-            status = "Invalid bundle."
+            status = "Saved chat is missing required files."
             commandOutput = error.localizedDescription
             return
         }
@@ -433,7 +433,7 @@ final class TacketModel: ObservableObject {
         }
 
         isRunning = true
-        status = "Transferring raw transcript..."
+        status = "Transferring conversation..."
         commandOutput = ""
 
         Task {
@@ -447,7 +447,7 @@ final class TacketModel: ObservableObject {
                 let output: String
                 switch target {
                 case .clipboard:
-                    output = "Copied \(chunks.count) raw transcript chunk(s) to clipboard."
+                    output = "Copied \(chunks.count) conversation chunk(s) to clipboard."
                 case .codex:
                     output = await launchTerminal(command: "codex", title: "Tacket Codex Transfer", chunkCount: chunks.count)
                 case .claudeCode:
@@ -496,20 +496,20 @@ final class TacketModel: ObservableObject {
             librarySearchText = ""
             libraryItems = try queryLibrary(search: "")
             selectedLibraryItem = libraryItems.first
-            libraryStatus = "Indexed \(result.indexed) of \(result.found) .tacket bundle(s)."
-            status = "Library indexed."
-            commandOutput = "Library database:\n\(libraryDatabaseURL.path)\n\nIndexed folder:\n\(captureDirectory.path)"
+            libraryStatus = "Added \(result.indexed) of \(result.found) saved chat(s)."
+            status = "Library updated."
+            commandOutput = "Added saved chats from:\n\(captureDirectory.path)"
         } catch {
-            libraryStatus = "Indexing failed."
-            status = "Library indexing failed."
+            libraryStatus = "Could not add saved chats."
+            status = "Library update failed."
             commandOutput = error.localizedDescription
         }
     }
 
     func chooseFolderAndIndexLibrary() {
         let panel = NSOpenPanel()
-        panel.title = "Choose a folder of .tacket bundles"
-        panel.prompt = "Index"
+        panel.title = "Choose a folder of saved Tacket chats"
+        panel.prompt = "Add"
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
@@ -521,12 +521,12 @@ final class TacketModel: ObservableObject {
                 librarySearchText = ""
                 libraryItems = try queryLibrary(search: "")
                 selectedLibraryItem = libraryItems.first
-                libraryStatus = "Indexed \(result.indexed) of \(result.found) .tacket bundle(s)."
-                status = "Library indexed."
-                commandOutput = "Indexed folder:\n\(url.path)"
+                libraryStatus = "Added \(result.indexed) of \(result.found) saved chat(s)."
+                status = "Library updated."
+                commandOutput = "Added saved chats from:\n\(url.path)"
             } catch {
-                libraryStatus = "Indexing failed."
-                status = "Library indexing failed."
+                libraryStatus = "Could not add saved chats."
+                status = "Library update failed."
                 commandOutput = error.localizedDescription
             }
         }
@@ -543,7 +543,7 @@ final class TacketModel: ObservableObject {
             }
             refreshLibrary()
             status = "Library cleaned."
-            commandOutput = "Removed \(removed) missing indexed bundle(s)."
+            commandOutput = "Removed \(removed) missing saved chat(s)."
         } catch {
             status = "Library cleanup failed."
             commandOutput = error.localizedDescription
@@ -572,8 +572,8 @@ final class TacketModel: ObservableObject {
             )
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(transcript, forType: .string)
-            status = "Copied raw transcript."
-            commandOutput = "Copied transcript from \(item.title)."
+            status = "Copied conversation."
+            commandOutput = "Copied the full saved conversation from \(item.title)."
         } catch {
             status = "Copy failed."
             commandOutput = error.localizedDescription
@@ -1128,8 +1128,8 @@ final class TacketModel: ObservableObject {
 
         return chunks.enumerated().map { index, chunk in
             let number = index + 1
-            let footer = number == chunks.count ? "[raw transcript complete]" : "Please acknowledge receipt only."
-            return "[raw transcript chunk \(number) of \(chunks.count)]\n\n\(chunk)\n\n\(footer)"
+            let footer = number == chunks.count ? "[conversation complete]" : "Please acknowledge receipt only."
+            return "[conversation chunk \(number) of \(chunks.count)]\n\n\(chunk)\n\n\(footer)"
         }
     }
 
@@ -1158,14 +1158,14 @@ final class TacketModel: ObservableObject {
             let completed = await waitForExit(process, timeoutNanoseconds: 10_000_000_000)
             guard completed else {
                 process.terminate()
-                return "Copied \(chunkCount) raw transcript chunk(s). Terminal automation timed out."
+                return "Copied \(chunkCount) conversation chunk(s). Terminal automation timed out."
             }
             if process.terminationStatus == 0 {
-                return "Copied \(chunkCount) raw transcript chunk(s), launched \(command), and requested paste into Terminal."
+                return "Copied \(chunkCount) conversation chunk(s), launched \(command), and requested paste into Terminal."
             }
-            return "Copied \(chunkCount) raw transcript chunk(s). Terminal automation exited with \(process.terminationStatus)."
+            return "Copied \(chunkCount) conversation chunk(s). Terminal automation exited with \(process.terminationStatus)."
         } catch {
-            return "Copied \(chunkCount) raw transcript chunk(s). Terminal automation failed: \(error.localizedDescription)"
+            return "Copied \(chunkCount) conversation chunk(s). Terminal automation failed: \(error.localizedDescription)"
         }
     }
 
@@ -1196,7 +1196,7 @@ enum TacketAppError: LocalizedError {
         case .nativeHostMissing:
             return "TacketNativeHost was not found. Build the Mac package or run `swift build` in apps/mac/TacketApp."
         case .invalidBundle(let message):
-            return "Invalid .tacket bundle: \(message)"
+            return "Saved chat is missing required files: \(message)"
         case .libraryDatabase(let message):
             return "Library database error: \(message)"
         }
@@ -1358,9 +1358,9 @@ struct SidebarView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 SidebarSection(title: "Flow") {
-                    WorkflowStep(number: "1", title: "Capture", detail: "Save a supported chat.")
+                    WorkflowStep(number: "1", title: "Save", detail: "Save a supported chat.")
                     WorkflowStep(number: "2", title: "Find", detail: "Browse or narrow saved tackets.")
-                    WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the thread.")
+                    WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the saved chat.")
                 }
 
                 SidebarSection(title: "Library") {
@@ -1422,19 +1422,19 @@ struct MainPanelView: View {
                 StatusBanner(status: model.status)
 
                 SectionCard(
-                    eyebrow: "Captures",
-                    title: "Local thread bundles",
-                    detail: "Tacket saves captures as folders you can inspect, copy, and transfer without an account or backend."
+                    eyebrow: "Saved chats",
+                    title: "Saved chats",
+                    detail: "Choose where Tacket stores conversations saved from ChatGPT, Claude, and Gemini."
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
-                        PathField(label: "Capture folder", value: model.captureDirectory.path)
+                        PathField(label: "Save folder", value: model.captureDirectory.path)
 
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 10) {
                                 Button("Reveal Folder") {
                                     model.revealCaptureDirectory()
                                 }
-                                Button("Choose Capture Folder") {
+                                Button("Choose Save Folder") {
                                     model.chooseCaptureDirectory()
                                 }
                             }
@@ -1442,7 +1442,7 @@ struct MainPanelView: View {
                                 Button("Reset Folder") {
                                     model.resetCaptureDirectory()
                                 }
-                                Button("Choose Bundle") {
+                                Button("Choose Saved Chat") {
                                     model.chooseBundle()
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -1450,9 +1450,9 @@ struct MainPanelView: View {
                         }
 
                         if let bundle = model.selectedBundle {
-                            PathField(label: "Selected bundle", value: bundle.path)
+                            PathField(label: "Selected saved chat", value: bundle.path)
                         } else {
-                            EmptyStateText("No bundle selected yet.")
+                            EmptyStateText("No saved chat selected yet.")
                         }
 
                         if let info = model.selectedBundleInfo {
@@ -1463,8 +1463,8 @@ struct MainPanelView: View {
 
                 SectionCard(
                     eyebrow: "Transfer",
-                    title: "Send the raw transcript",
-                    detail: "Choose a destination. Tacket keeps the transcript raw and preserves the full thread content it captured."
+                    title: "Send a saved conversation",
+                    detail: "Choose where to send the full conversation. Tacket keeps message order and code blocks intact."
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
                         Picker("Target", selection: $model.selectedTarget) {
@@ -1481,7 +1481,7 @@ struct MainPanelView: View {
                                 .textFieldStyle(.roundedBorder)
                                 .font(.system(.body, design: .monospaced))
                                 .frame(width: 120)
-                            Text("Used only when a transcript is too long for one paste.")
+                            Text("Used only when a conversation is too long for one paste.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -1495,15 +1495,15 @@ struct MainPanelView: View {
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .disabled(model.isRunning)
-                                Button("Copy Transcript") {
+                                Button("Copy Conversation") {
                                     model.copySelectedTranscript()
                                 }
                             }
                             HStack(spacing: 10) {
-                                Button("Open Transcript") {
+                                Button("Open Conversation File") {
                                     model.openSelectedTranscript()
                                 }
-                                Button("Reveal Bundle") {
+                                Button("Reveal in Finder") {
                                     model.revealSelectedBundle()
                                 }
                             }
@@ -1536,7 +1536,7 @@ struct LibraryPanelView: View {
                     SectionCard(
                         eyebrow: "Library",
                         title: "All Tackets",
-                        detail: "Browse every indexed .tacket bundle. Search and filters narrow the local collection without sending anything off this Mac."
+                        detail: "Browse every saved chat in your local library. Search and filters narrow the list without sending anything off this Mac."
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
@@ -1578,7 +1578,7 @@ struct LibraryPanelView: View {
                                 Button {
                                     model.indexCaptureFolderForLibrary()
                                 } label: {
-                                    Label("Index Captures", systemImage: "tray.and.arrow.down")
+                                    Label("Add Saved Chats", systemImage: "tray.and.arrow.down")
                                 }
                                 .buttonStyle(.borderedProminent)
 
@@ -1589,7 +1589,7 @@ struct LibraryPanelView: View {
                                     Button("Refresh Library") {
                                         model.refreshLibrary()
                                     }
-                                    Button("Remove Missing Bundles") {
+                                    Button("Remove Missing Chats") {
                                         model.removeMissingLibraryBundles()
                                     }
                                 } label: {
@@ -1694,10 +1694,10 @@ struct LibraryPanelView: View {
     private var resultsDetail: String {
         let trimmed = model.librarySearchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty && !model.advancedSearchIsActive {
-            return "Every indexed bundle, newest saved first."
+            return "Every saved chat, newest first."
         }
         if trimmed.isEmpty {
-            return "Filtered indexed tackets."
+            return "Filtered saved chats."
         }
         return "Matches for “\(trimmed)”"
     }
@@ -1803,7 +1803,7 @@ struct SearchBox: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("Search threads, code, decisions, errors...", text: $text)
+            TextField("Search chats, code, decisions, errors...", text: $text)
                 .textFieldStyle(.plain)
                 .font(.tacketBody)
             if !text.isEmpty {
@@ -1836,14 +1836,14 @@ struct LibraryEmptyState: View {
             HStack(spacing: 8) {
                 Image(systemName: "doc.text.magnifyingglass")
                     .foregroundStyle(TacketColors.accent)
-                Text("No matching transcripts yet")
+                Text("No matching chats yet")
                     .font(.tacketBody.weight(.semibold))
             }
-            Text("Index your capture folder, then search for a thread title, code snippet, decision, or error message.")
+            Text("Add your saved chats to the Library, then search for a title, code snippet, decision, or error message.")
                 .font(.tacketFootnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Index Captures", action: indexAction)
+            Button("Add Saved Chats", action: indexAction)
                 .buttonStyle(.borderedProminent)
         }
         .padding(12)
@@ -1877,7 +1877,7 @@ struct LibraryDetailCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
 
-                PathField(label: "Bundle", value: item.path)
+                PathField(label: "Saved chat folder", value: item.path)
 
                 HStack(spacing: 8) {
                     Button {
@@ -1952,18 +1952,18 @@ struct SettingsPanelView: View {
 
                 SectionCard(
                     eyebrow: "Settings",
-                    title: "Capture location",
-                    detail: "Choose where Tacket saves local thread bundles before you search or transfer them."
+                    title: "Save location",
+                    detail: "Choose where Tacket saves conversations on this Mac."
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
-                        PathField(label: "Capture folder", value: model.captureDirectory.path)
+                        PathField(label: "Save folder", value: model.captureDirectory.path)
 
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 10) {
                                 Button("Reveal Folder") {
                                     model.revealCaptureDirectory()
                                 }
-                                Button("Choose Capture Folder") {
+                                Button("Choose Save Folder") {
                                     model.chooseCaptureDirectory()
                                 }
                             }
@@ -1976,8 +1976,8 @@ struct SettingsPanelView: View {
 
                 SectionCard(
                     eyebrow: "Advanced",
-                    title: "Chrome connector",
-                    detail: "For local development, install or inspect the native messaging connector that lets the Chrome extension save captures on this Mac."
+                    title: "Chrome extension connection",
+                    detail: "Connect the Chrome extension to the Tacket app so conversations can be saved locally."
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
                         ConnectorStatusView()
@@ -2002,7 +2002,7 @@ struct SettingsPanelView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Manual extension IDs are only needed for unpacked development builds. The official Chrome Web Store ID will be built into Tacket later.")
+                            Text("Manual extension IDs are only needed for development builds. The public Chrome Web Store extension will connect automatically.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -2127,7 +2127,7 @@ struct BundleSummary: View {
             }
 
             if info.warnings.isEmpty {
-                Text("No local warnings in this bundle.")
+                Text("No local warnings for this saved chat.")
                     .font(.tacketFootnote)
                     .foregroundStyle(.secondary)
             } else {

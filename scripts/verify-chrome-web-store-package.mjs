@@ -47,7 +47,7 @@ async function verifyListingCopy() {
   const listing = await readFile(path.join(storeDir, "listing.md"), "utf8");
   for (const phrase of [
     "Tacket",
-    "Capture AI chat threads for a local, searchable transcript library",
+    "Save AI chats locally and search them later.",
     "Single Purpose",
     "Permission Justification",
     "`activeTab`",
@@ -73,8 +73,8 @@ async function verifyPrivacyCopy() {
     "No backend",
     "No analytics",
     "No model calls",
-    "Captured thread content is stored locally",
-    "Chrome Native Messaging"
+    "Saved chat content is stored locally",
+    "saved conversation is sent to the local Tacket app"
   ]) {
     if (!privacy.includes(phrase)) throw new Error(`Chrome Web Store privacy copy missing: ${phrase}`);
   }
@@ -87,7 +87,7 @@ async function verifyReadme() {
     "Upload `tacket-chrome-extension.zip`",
     "Use these generated assets",
     "Review every image before upload",
-    "should not contain private transcripts"
+    "should not contain private chat text"
   ]) {
     if (!readme.includes(phrase)) throw new Error(`Chrome Web Store upload README missing: ${phrase}`);
   }

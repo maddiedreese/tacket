@@ -1,7 +1,7 @@
 {
   "name": "@tacket/cli",
   "version": "0.1.0",
-  "description": "CLI for local Tacket capture and raw transcript transfer.",
+  "description": "CLI for saving, searching, and transferring Tacket chats locally.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
