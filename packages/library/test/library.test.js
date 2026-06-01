@@ -72,6 +72,33 @@ test("removeMissingBundles drops bundles that are no longer on disk", async () =
   }
 });
 
+test("falls back to local LIKE search when SQLite FTS5 is unavailable", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-library-like-"));
+  const previous = process.env.TACKET_DISABLE_FTS5_FOR_TESTS;
+  process.env.TACKET_DISABLE_FTS5_FOR_TESTS = "1";
+  try {
+    const db = path.join(root, "library.sqlite");
+    await writeBundle({
+      title: "Fallback search",
+      source: { url: "https://gemini.google.com/app/fallback" },
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "Find the local-only repository search fallback." }]
+        }
+      ]
+    }, root);
+    await indexLibraryFolder(root, { db });
+    const results = await searchLibrary("repository search", { db });
+    assert.equal(results.length, 1);
+    assert.equal(results[0].title, "Fallback search");
+  } finally {
+    if (previous === undefined) delete process.env.TACKET_DISABLE_FTS5_FOR_TESTS;
+    else process.env.TACKET_DISABLE_FTS5_FOR_TESTS = previous;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("indexer ignores invalid .tacket-shaped folders", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "tacket-library-invalid-"));
   try {

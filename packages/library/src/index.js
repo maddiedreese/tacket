@@ -50,6 +50,28 @@ export async function searchLibrary(query, options = {}) {
   await initLibrary(dbPath);
   const trimmed = String(query ?? "").trim();
   if (!trimmed) return listLibrary(options);
+  const limit = Number(options.limit ?? 50);
+  if (!(await supportsFts5())) {
+    return queryJson(dbPath, `
+      SELECT b.id, b.path, b.title, b.platform, b.url,
+             b.captured_at AS capturedAt, b.message_count AS messageCount,
+             substr(m.text, 1, 240) AS snippet
+      FROM messages_fts m
+      JOIN bundles b ON b.id = m.bundle_id
+      WHERE lower(m.text || ' ' || m.title || ' ' || m.platform || ' ' || m.role)
+        LIKE ${sqlString(`%${trimmed.toLowerCase()}%`)}
+        AND m.rowid IN (
+          SELECT min(rowid)
+          FROM messages_fts
+          WHERE lower(text || ' ' || title || ' ' || platform || ' ' || role)
+            LIKE ${sqlString(`%${trimmed.toLowerCase()}%`)}
+          GROUP BY bundle_id
+        )
+      ORDER BY b.captured_at DESC, b.indexed_at DESC
+      LIMIT ${limit};
+    `);
+  }
+
   const ftsQuery = ftsPhrase(trimmed);
   return queryJson(dbPath, `
     SELECT b.id, b.path, b.title, b.platform, b.url,
@@ -65,7 +87,7 @@ export async function searchLibrary(query, options = {}) {
         GROUP BY bundle_id
       )
     ORDER BY rank
-    LIMIT ${Number(options.limit ?? 50)};
+    LIMIT ${limit};
   `);
 }
 
@@ -92,6 +114,7 @@ export async function removeMissingBundles(options = {}) {
 export async function initLibrary(dbPath = defaultLibraryDatabasePath()) {
   await ensureSQLite();
   await mkdir(path.dirname(dbPath), { recursive: true });
+  const fts5 = await supportsFts5();
   await execSql(dbPath, `
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS bundles (
@@ -113,6 +136,9 @@ export async function initLibrary(dbPath = defaultLibraryDatabasePath()) {
       ordinal INTEGER,
       FOREIGN KEY(bundle_id) REFERENCES bundles(id) ON DELETE CASCADE
     );
+  `);
+  if (fts5) {
+    await execSql(dbPath, `
     CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
       bundle_id UNINDEXED,
       message_id UNINDEXED,
@@ -122,6 +148,19 @@ export async function initLibrary(dbPath = defaultLibraryDatabasePath()) {
       text
     );
   `);
+  } else {
+    await execSql(dbPath, `
+      CREATE TABLE IF NOT EXISTS messages_fts (
+        bundle_id TEXT,
+        message_id TEXT,
+        title TEXT,
+        platform TEXT,
+        role TEXT,
+        text TEXT
+      );
+      CREATE INDEX IF NOT EXISTS messages_fts_bundle_id ON messages_fts(bundle_id);
+    `);
+  }
 }
 
 async function indexBundle(dbPath, bundlePath) {
@@ -250,6 +289,20 @@ async function ensureSQLite() {
       else reject(new Error(`sqlite3 is required for Tacket Library. ${Buffer.concat(stderr).toString("utf8")}`));
     });
   });
+}
+
+let fts5Support;
+
+async function supportsFts5() {
+  if (process.env.TACKET_DISABLE_FTS5_FOR_TESTS === "1") return false;
+  if (fts5Support !== undefined) return fts5Support;
+  try {
+    await execSql(":memory:", "CREATE VIRTUAL TABLE t USING fts5(x);");
+    fts5Support = true;
+  } catch {
+    fts5Support = false;
+  }
+  return fts5Support;
 }
 
 function execSql(dbPath, sql) {
