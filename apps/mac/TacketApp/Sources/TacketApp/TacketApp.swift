@@ -1287,22 +1287,29 @@ struct ContentView: View {
             HeaderView()
             Divider()
             HStack(alignment: .top, spacing: 0) {
-                SidebarView(selectedSection: $selectedSection)
+                VStack(spacing: 0) {
+                    SidebarView(selectedSection: $selectedSection)
+                    Divider()
+                    SidebarFooterView(selectedSection: $selectedSection)
+                        .frame(height: 44)
+                }
                     .frame(width: 220)
                 Divider()
-                switch selectedSection {
-                case .library:
-                    LibraryPanelView()
-                case .transfer:
-                    MainPanelView()
-                case .settings:
-                    SettingsPanelView()
+                VStack(spacing: 0) {
+                    switch selectedSection {
+                    case .library:
+                        LibraryPanelView()
+                    case .transfer:
+                        MainPanelView()
+                    case .settings:
+                        SettingsPanelView()
+                    }
+                    Divider()
+                    ContentFooterView()
+                        .frame(height: 14)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            Divider()
-            FooterView(selectedSection: $selectedSection)
-                .frame(height: 44)
         }
         .background(TacketColors.window)
         .tint(TacketColors.accent)
@@ -1382,29 +1389,27 @@ struct SidebarView: View {
     }
 }
 
-struct FooterView: View {
+struct SidebarFooterView: View {
     @Binding var selectedSection: AppSection
 
     var body: some View {
-        HStack(spacing: 0) {
-            HStack {
-                SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
-                    .onTapGesture {
-                        selectedSection = .settings
-                    }
-            }
-            .padding(.horizontal, 16)
-            .frame(minWidth: 220, idealWidth: 220, maxWidth: 220, maxHeight: .infinity)
-            .background(TacketColors.sidebar)
-
-            Divider()
-
-            HStack {
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(TacketColors.content)
+        HStack {
+            SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
+                .onTapGesture {
+                    selectedSection = .settings
+                }
         }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(TacketColors.sidebar)
+    }
+}
+
+struct ContentFooterView: View {
+    var body: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(TacketColors.window)
     }
 }
 
