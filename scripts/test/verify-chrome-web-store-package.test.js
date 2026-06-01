@@ -56,7 +56,7 @@ async function fixtureProject(temp) {
   await writePng(path.join(storeDir, "small-promo-440x280.png"), 440, 280);
   await writePng(path.join(storeDir, "screenshots/01-capture-popup-1280x800.png"), 1280, 800);
   await writePng(path.join(storeDir, "screenshots/02-local-bundle-1280x800.png"), 1280, 800);
-  await writePng(path.join(storeDir, "screenshots/03-transfer-targets-1280x800.png"), 1280, 800);
+  await writePng(path.join(storeDir, "screenshots/03-local-library-1280x800.png"), 1280, 800);
   await writeFile(path.join(storeDir, "listing.md"), listingCopy());
   await writeFile(path.join(storeDir, "privacy.md"), privacyCopy());
   await writeFile(path.join(storeDir, "README.md"), readmeCopy());

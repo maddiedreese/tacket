@@ -25,11 +25,11 @@ const scenes = [
     mockup: bundleMockup()
   },
   {
-    name: "03-transfer-targets-1280x800.png",
-    eyebrow: "Search and transfer",
-    title: "Find the conversation, then send it where it belongs.",
-    body: "Tacket searches saved chat text locally and can copy or send the full conversation to Codex or Claude Code.",
-    mockup: transferMockup()
+    name: "03-local-library-1280x800.png",
+    eyebrow: "Local library",
+    title: "Search every saved chat from one private place.",
+    body: "Tacket keeps your saved conversations in a searchable local library, then lets you open, copy, reveal, or transfer the full text.",
+    mockup: libraryMockup()
   }
 ];
 
@@ -300,30 +300,47 @@ function bundleMockup() {
   </div>`;
 }
 
-function transferMockup() {
+function libraryMockup() {
   return `<div class="window app-window">
     <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="bar grow"></div></div>
     <div class="app">
       <aside>
+        <b>Flow</b>
+        <span>Save new chats</span>
         <b>Library</b>
-        <span>All Tackets</span><span>Search</span><span>Advanced</span>
-        <b>Targets</b>
-        <span>Clipboard</span><span>Codex</span><span>Claude Code</span>
+        <span class="active">All Tackets</span>
+        <span>Search</span>
+        <span>Advanced</span>
       </aside>
       <section>
-        <div class="panel">
-          <h2>Selected saved chat</h2>
-          <div class="bar long"></div>
-          <div class="bar medium"></div>
-          <div class="warning">local warning: possible token</div>
+        <div class="search-row">
+          <div class="search-field">Search saved chats</div>
+          <div class="button">Add Saved Chats</div>
         </div>
-        <div class="panel">
-          <h2>Transfer full conversation</h2>
-          <div class="row">
-            <div class="button">Codex</div>
-            <div class="button muted-button">Claude Code</div>
+        <div class="library-grid">
+          <div class="tacket-card selected">
+            <strong>Planning Tacket v1</strong>
+            <span>ChatGPT · 18 messages</span>
+            <div class="snippet"></div>
+            <div class="snippet short"></div>
           </div>
-          <div class="bar progress"></div>
+          <div class="tacket-card">
+            <strong>Claude QA notes</strong>
+            <span>Claude · 12 messages</span>
+            <div class="snippet"></div>
+            <div class="snippet short"></div>
+          </div>
+          <div class="tacket-card">
+            <strong>Gemini research</strong>
+            <span>Gemini · 9 messages</span>
+            <div class="snippet"></div>
+            <div class="snippet short"></div>
+          </div>
+        </div>
+        <div class="action-row">
+          <div class="button">Copy Full Text</div>
+          <div class="button muted-button">Open</div>
+          <div class="button muted-button">Reveal</div>
         </div>
       </section>
     </div>
@@ -357,7 +374,18 @@ function sceneCss() {
     aside { display: flex; flex-direction: column; gap: 14px; padding: 28px; border-right: 1px solid var(--line); background: #fbfaf7; }
     aside b { margin-top: 12px; color: var(--muted); text-transform: uppercase; font-size: 13px; }
     aside span { font-size: 17px; }
+    aside .active { color: var(--accent); font-weight: 800; }
     .app section { padding: 28px; }
+    .search-row { display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-bottom: 22px; }
+    .search-field { display: flex; align-items: center; min-height: 46px; padding: 0 16px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 17px; }
+    .library-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .tacket-card { min-height: 132px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .tacket-card.selected { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+    .tacket-card strong { display: block; margin-bottom: 8px; font-size: 18px; }
+    .tacket-card span { display: block; margin-bottom: 16px; color: var(--muted); font-size: 15px; }
+    .snippet { width: 92%; height: 10px; margin-bottom: 10px; border-radius: 999px; background: #ece8df; }
+    .snippet.short { width: 64%; }
+    .action-row { display: flex; gap: 12px; margin-top: 22px; }
     .panel { margin-bottom: 22px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; }
     .long { width: 92%; }
     .medium { width: 68%; margin-top: 14px; }

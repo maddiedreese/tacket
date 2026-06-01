@@ -67,7 +67,7 @@ Prepare Chrome Web Store screenshots showing:
 - extension popup before saving
 - successful save result with a local folder path
 - Tacket Mac app local connection setup
-- Tacket Mac app transfer target selector
+- Tacket Mac app local library search
 - Tacket Mac app selected saved chat review with local warnings
 - local Tacket chat files in Finder
 

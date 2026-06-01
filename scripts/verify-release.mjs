@@ -26,7 +26,7 @@ await assertPngDimensions(path.join(root, "store-assets/chrome-web-store/small-p
 for (const screenshot of [
   "01-capture-popup-1280x800.png",
   "02-local-bundle-1280x800.png",
-  "03-transfer-targets-1280x800.png"
+  "03-local-library-1280x800.png"
 ]) {
   await assertPngDimensions(path.join(root, "store-assets/chrome-web-store/screenshots", screenshot), 1280, 800);
 }

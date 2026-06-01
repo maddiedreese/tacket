@@ -34,8 +34,8 @@ const assets = [
     height: 800
   },
   {
-    source: path.join(screenshotDir, "03-transfer-targets-1280x800.png"),
-    target: "screenshots/03-transfer-targets-1280x800.png",
+    source: path.join(screenshotDir, "03-local-library-1280x800.png"),
+    target: "screenshots/03-local-library-1280x800.png",
     width: 1280,
     height: 800
   }
@@ -73,7 +73,7 @@ Use these generated assets:
 - \`small-promo-440x280.png\`
 - \`screenshots/01-capture-popup-1280x800.png\`
 - \`screenshots/02-local-bundle-1280x800.png\`
-- \`screenshots/03-transfer-targets-1280x800.png\`
+- \`screenshots/03-local-library-1280x800.png\`
 
 Use the generated listing and privacy copy while filling out the store form:
 

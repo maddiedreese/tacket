@@ -116,7 +116,7 @@ JSON
     printf 'Upload \`tacket-chrome-extension.zip\`\\nReview every image before upload\\n' > "$dir/chrome-web-store/README.md"
     printf 'screenshot\\n' > "$dir/chrome-web-store/screenshots/01-capture-popup-1280x800.png"
     printf 'screenshot\\n' > "$dir/chrome-web-store/screenshots/02-local-bundle-1280x800.png"
-    printf 'screenshot\\n' > "$dir/chrome-web-store/screenshots/03-transfer-targets-1280x800.png"
+    printf 'screenshot\\n' > "$dir/chrome-web-store/screenshots/03-local-library-1280x800.png"
     ;;
   *)
     echo "unexpected gh invocation: $args" >&2

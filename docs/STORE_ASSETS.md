@@ -46,7 +46,7 @@ Prepare screenshots from synthetic data that show:
 - successful save result with a local folder path
 - Tacket Mac app local connection setup
 - Tacket Mac app selected saved chat review with local warning display
-- Tacket Mac app local library search and transfer target selector
+- Tacket Mac app local library search
 - local Tacket chat files in Finder
 
 ## Capture Rules

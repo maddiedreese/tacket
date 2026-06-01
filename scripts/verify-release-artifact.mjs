@@ -22,7 +22,7 @@ const expectedStoreFiles = [
   "README.md",
   "screenshots/01-capture-popup-1280x800.png",
   "screenshots/02-local-bundle-1280x800.png",
-  "screenshots/03-transfer-targets-1280x800.png"
+  "screenshots/03-local-library-1280x800.png"
 ];
 
 const runInfo = runId ? await releaseRun(runId) : await latestReleaseRun();

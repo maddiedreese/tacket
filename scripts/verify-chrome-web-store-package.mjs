@@ -20,7 +20,7 @@ for (const file of [
   "README.md",
   "screenshots/01-capture-popup-1280x800.png",
   "screenshots/02-local-bundle-1280x800.png",
-  "screenshots/03-transfer-targets-1280x800.png"
+  "screenshots/03-local-library-1280x800.png"
 ]) {
   await assertFile(path.join(storeDir, file));
 }
@@ -30,7 +30,7 @@ await assertPngDimensions(path.join(storeDir, "small-promo-440x280.png"), 440, 2
 for (const screenshot of [
   "01-capture-popup-1280x800.png",
   "02-local-bundle-1280x800.png",
-  "03-transfer-targets-1280x800.png"
+  "03-local-library-1280x800.png"
 ]) {
   await assertPngDimensions(path.join(storeDir, "screenshots", screenshot), 1280, 800);
 }
