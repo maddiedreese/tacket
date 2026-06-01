@@ -6,7 +6,7 @@ Use the Chrome extension on ChatGPT, Claude, or Gemini to save the conversation 
 
 Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
 
-The Chrome extension may be installed through the Chrome Web Store, but saved chat text still goes only to the Tacket app on your Mac. Tacket does not send your conversations to me or to a Tacket server.
+Tacket has two local pieces: a Chrome extension that reads the conversation after you click save, and a Mac app that stores, searches, and transfers it. The extension sends the saved chat directly to the Tacket app on your Mac. It is not sent to me or to a Tacket server.
 
 ## What It Does
 
