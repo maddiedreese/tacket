@@ -209,6 +209,10 @@ final class TacketModel: ObservableObject {
     }
 
     private var configDirectoryURL: URL {
+        Self.appSupportDirectoryURL
+    }
+
+    private nonisolated static var appSupportDirectoryURL: URL {
         FileManager.default
             .homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/Tacket", isDirectory: true)
@@ -219,7 +223,11 @@ final class TacketModel: ObservableObject {
     }
 
     private var libraryDatabaseURL: URL {
-        configDirectoryURL.appendingPathComponent("library.sqlite")
+        Self.libraryDatabaseFileURL
+    }
+
+    private nonisolated static var libraryDatabaseFileURL: URL {
+        appSupportDirectoryURL.appendingPathComponent("library.sqlite")
     }
 
     func revealCaptureDirectory() {
@@ -466,7 +474,7 @@ final class TacketModel: ObservableObject {
 
     func refreshLibrary() {
         do {
-            try ensureLibraryDatabase()
+            try Self.ensureLibraryDatabase()
             libraryItems = try queryLibrary(search: librarySearchText)
             selectedLibraryItem = selectedLibraryItem.flatMap { selected in
                 libraryItems.first(where: { $0.id == selected.id })
@@ -491,19 +499,7 @@ final class TacketModel: ObservableObject {
     }
 
     func indexCaptureFolderForLibrary() {
-        do {
-            let result = try indexLibraryFolder(captureDirectory)
-            librarySearchText = ""
-            libraryItems = try queryLibrary(search: "")
-            selectedLibraryItem = libraryItems.first
-            libraryStatus = "Added \(result.indexed) of \(result.found) saved chat(s)."
-            status = "Library updated."
-            commandOutput = "Added saved chats from:\n\(captureDirectory.path)"
-        } catch {
-            libraryStatus = "Could not add saved chats."
-            status = "Library update failed."
-            commandOutput = error.localizedDescription
-        }
+        chooseFolderAndIndexLibrary()
     }
 
     func chooseFolderAndIndexLibrary() {
@@ -516,8 +512,21 @@ final class TacketModel: ObservableObject {
         panel.directoryURL = captureDirectory
 
         if panel.runModal() == .OK, let url = panel.url {
+            startIndexingLibraryFolder(url)
+        }
+    }
+
+    private func startIndexingLibraryFolder(_ url: URL) {
+        isRunning = true
+        status = "Adding saved chats..."
+        libraryStatus = "Scanning \(url.lastPathComponent)..."
+        commandOutput = ""
+
+        Task {
             do {
-                let result = try indexLibraryFolder(url)
+                let result = try await Task.detached {
+                    try Self.indexLibraryFolder(url)
+                }.value
                 librarySearchText = ""
                 libraryItems = try queryLibrary(search: "")
                 selectedLibraryItem = libraryItems.first
@@ -529,16 +538,17 @@ final class TacketModel: ObservableObject {
                 status = "Library update failed."
                 commandOutput = error.localizedDescription
             }
+            isRunning = false
         }
     }
 
     func removeMissingLibraryBundles() {
         do {
-            try ensureLibraryDatabase()
+            try Self.ensureLibraryDatabase()
             let items = try queryLibrary(search: "")
             var removed = 0
             for item in items where !FileManager.default.fileExists(atPath: item.path) {
-                try removeLibraryBundle(id: item.id)
+                try Self.removeLibraryBundle(id: item.id)
                 removed += 1
             }
             refreshLibrary()
@@ -632,19 +642,19 @@ final class TacketModel: ObservableObject {
         }
     }
 
-    private func indexLibraryFolder(_ folder: URL) throws -> (found: Int, indexed: Int) {
-        try ensureLibraryDatabase()
-        let bundles = try findTacketBundles(in: folder)
+    private nonisolated static func indexLibraryFolder(_ folder: URL) throws -> (found: Int, indexed: Int) {
+        try Self.ensureLibraryDatabase()
+        let bundles = try Self.findTacketBundles(in: folder)
         var indexed = 0
         for bundle in bundles {
-            if try indexLibraryBundle(bundle) {
+            if try Self.indexLibraryBundle(bundle) {
                 indexed += 1
             }
         }
         return (bundles.count, indexed)
     }
 
-    private func findTacketBundles(in folder: URL) throws -> [URL] {
+    private nonisolated static func findTacketBundles(in folder: URL) throws -> [URL] {
         guard let enumerator = FileManager.default.enumerator(
             at: folder,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -666,7 +676,7 @@ final class TacketModel: ObservableObject {
         return bundles.sorted { $0.path < $1.path }
     }
 
-    private func indexLibraryBundle(_ bundleURL: URL) throws -> Bool {
+    private nonisolated static func indexLibraryBundle(_ bundleURL: URL) throws -> Bool {
         let manifestURL = bundleURL.appendingPathComponent("manifest.json")
         let messagesURL = bundleURL.appendingPathComponent("messages.jsonl")
         let transcriptURL = bundleURL.appendingPathComponent("transcript.md")
@@ -674,10 +684,10 @@ final class TacketModel: ObservableObject {
         let manifest = try JSONSerialization.jsonObject(with: manifestData) as? [String: Any] ?? [:]
         let source = manifest["source"] as? [String: Any] ?? [:]
         let transcript = try String(contentsOf: transcriptURL, encoding: .utf8)
-        let transcriptHash = sha256(transcript)
-        let bundleId = manifest["id"] as? String ?? stableLibraryId(bundleURL.path)
+        let transcriptHash = Self.sha256(transcript)
+        let bundleId = manifest["id"] as? String ?? Self.stableLibraryId(bundleURL.path)
 
-        if let existing = try queryLibraryHash(path: bundleURL.path), existing == transcriptHash {
+        if let existing = try Self.queryLibraryHash(path: bundleURL.path), existing == transcriptHash {
             return false
         }
 
@@ -705,55 +715,55 @@ final class TacketModel: ObservableObject {
         let messageCount = manifest["messageCount"] as? Int ?? messages.count
         let indexedAt = ISO8601DateFormatter().string(from: Date())
 
-        try withLibraryDatabase { db in
-            try sqliteExec(db, "BEGIN;")
-            try sqliteExec(db, "DELETE FROM messages_fts WHERE bundle_id = \(sqliteQuote(bundleId));")
-            try sqliteExec(db, "DELETE FROM messages WHERE bundle_id = \(sqliteQuote(bundleId));")
-            try sqliteExec(db, "DELETE FROM bundles WHERE path = \(sqliteQuote(bundleURL.path)) OR id = \(sqliteQuote(bundleId));")
-            try sqliteExec(db, """
+        try Self.withLibraryDatabase { db in
+            try Self.sqliteExec(db, "BEGIN;")
+            try Self.sqliteExec(db, "DELETE FROM messages_fts WHERE bundle_id = \(Self.sqliteQuote(bundleId));")
+            try Self.sqliteExec(db, "DELETE FROM messages WHERE bundle_id = \(Self.sqliteQuote(bundleId));")
+            try Self.sqliteExec(db, "DELETE FROM bundles WHERE path = \(Self.sqliteQuote(bundleURL.path)) OR id = \(Self.sqliteQuote(bundleId));")
+            try Self.sqliteExec(db, """
                 INSERT INTO bundles (id, path, title, platform, url, captured_at, message_count, indexed_at, transcript_hash)
                 VALUES (
-                  \(sqliteQuote(bundleId)),
-                  \(sqliteQuote(bundleURL.path)),
-                  \(sqliteQuote(title)),
-                  \(sqliteQuote(platform)),
-                  \(sqliteQuote(url)),
-                  \(sqliteQuote(capturedAt)),
+                  \(Self.sqliteQuote(bundleId)),
+                  \(Self.sqliteQuote(bundleURL.path)),
+                  \(Self.sqliteQuote(title)),
+                  \(Self.sqliteQuote(platform)),
+                  \(Self.sqliteQuote(url)),
+                  \(Self.sqliteQuote(capturedAt)),
                   \(messageCount),
-                  \(sqliteQuote(indexedAt)),
-                  \(sqliteQuote(transcriptHash))
+                  \(Self.sqliteQuote(indexedAt)),
+                  \(Self.sqliteQuote(transcriptHash))
                 );
                 """)
             for message in messages {
-                try sqliteExec(db, """
+                try Self.sqliteExec(db, """
                     INSERT INTO messages (id, bundle_id, role, text, ordinal)
                     VALUES (
-                      \(sqliteQuote(message.id)),
-                      \(sqliteQuote(bundleId)),
-                      \(sqliteQuote(message.role)),
-                      \(sqliteQuote(message.text)),
+                      \(Self.sqliteQuote(message.id)),
+                      \(Self.sqliteQuote(bundleId)),
+                      \(Self.sqliteQuote(message.role)),
+                      \(Self.sqliteQuote(message.text)),
                       \(message.ordinal)
                     );
                     INSERT INTO messages_fts (bundle_id, message_id, title, platform, role, text)
                     VALUES (
-                      \(sqliteQuote(bundleId)),
-                      \(sqliteQuote(message.id)),
-                      \(sqliteQuote(title)),
-                      \(sqliteQuote(platform)),
-                      \(sqliteQuote(message.role)),
-                      \(sqliteQuote(message.text))
+                      \(Self.sqliteQuote(bundleId)),
+                      \(Self.sqliteQuote(message.id)),
+                      \(Self.sqliteQuote(title)),
+                      \(Self.sqliteQuote(platform)),
+                      \(Self.sqliteQuote(message.role)),
+                      \(Self.sqliteQuote(message.text))
                     );
                     """)
             }
-            try sqliteExec(db, "COMMIT;")
+            try Self.sqliteExec(db, "COMMIT;")
         }
         return true
     }
 
-    private func ensureLibraryDatabase() throws {
-        try FileManager.default.createDirectory(at: configDirectoryURL, withIntermediateDirectories: true)
-        try withLibraryDatabase { db in
-            try sqliteExec(db, """
+    private nonisolated static func ensureLibraryDatabase() throws {
+        try FileManager.default.createDirectory(at: Self.appSupportDirectoryURL, withIntermediateDirectories: true)
+        try Self.withLibraryDatabase { db in
+            try Self.sqliteExec(db, """
                 PRAGMA journal_mode = WAL;
                 CREATE TABLE IF NOT EXISTS bundles (
                   id TEXT PRIMARY KEY,
@@ -775,8 +785,8 @@ final class TacketModel: ObservableObject {
                   FOREIGN KEY(bundle_id) REFERENCES bundles(id) ON DELETE CASCADE
                 );
                 """)
-            if supportsFTS5(db) {
-                try sqliteExec(db, """
+            if Self.supportsFTS5(db) {
+                try Self.sqliteExec(db, """
                     CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
                       bundle_id UNINDEXED,
                       message_id UNINDEXED,
@@ -787,7 +797,7 @@ final class TacketModel: ObservableObject {
                     );
                     """)
             } else {
-                try sqliteExec(db, """
+                try Self.sqliteExec(db, """
                     CREATE TABLE IF NOT EXISTS messages_fts (
                       bundle_id TEXT,
                       message_id TEXT,
@@ -803,11 +813,11 @@ final class TacketModel: ObservableObject {
     }
 
     private func queryLibrary(search: String) throws -> [LibraryItem] {
-        try ensureLibraryDatabase()
+        try Self.ensureLibraryDatabase()
         let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasFilters = librarySourceFilter != .all || libraryRoleFilter != .all || librarySearchScope != .everywhere
         if trimmed.isEmpty && !hasFilters {
-            return try queryLibraryItems("""
+            return try Self.queryLibraryItems("""
                 SELECT id, path, title, platform, url, captured_at, message_count, indexed_at, '' AS snippet
                 FROM bundles
                 ORDER BY captured_at DESC, indexed_at DESC
@@ -819,18 +829,18 @@ final class TacketModel: ObservableObject {
            librarySourceFilter == .all,
            libraryRoleFilter == .all,
            !trimmed.isEmpty,
-           try libraryUsesFTS5() {
+           try Self.libraryUsesFTS5() {
             let query = "\"\(trimmed.replacingOccurrences(of: "\"", with: "\"\""))\""
-            return try queryLibraryItems("""
+            return try Self.queryLibraryItems("""
                 SELECT b.id, b.path, b.title, b.platform, b.url, b.captured_at, b.message_count, b.indexed_at,
                        snippet(messages_fts, 5, '[', ']', ' ... ', 18) AS snippet
                 FROM messages_fts
                 JOIN bundles b ON b.id = messages_fts.bundle_id
-                WHERE messages_fts MATCH \(sqliteQuote(query))
+                WHERE messages_fts MATCH \(Self.sqliteQuote(query))
                   AND messages_fts.rowid IN (
                     SELECT min(rowid)
                     FROM messages_fts
-                    WHERE messages_fts MATCH \(sqliteQuote(query))
+                    WHERE messages_fts MATCH \(Self.sqliteQuote(query))
                     GROUP BY bundle_id
                   )
                 ORDER BY rank
@@ -841,7 +851,7 @@ final class TacketModel: ObservableObject {
         let conditions = librarySearchConditions(for: trimmed)
         let whereClause = conditions.isEmpty ? "1 = 1" : conditions.joined(separator: "\n              AND ")
         let snippetExpression = librarySearchScope == .title ? "b.title" : "m.text"
-        return try queryLibraryItems("""
+        return try Self.queryLibraryItems("""
             SELECT b.id, b.path, b.title, b.platform, b.url, b.captured_at, b.message_count, b.indexed_at,
                    substr(\(snippetExpression), 1, 240) AS snippet
             FROM messages_fts m
@@ -866,14 +876,14 @@ final class TacketModel: ObservableObject {
             let expression = librarySearchExpression()
             switch libraryMatchMode {
             case .phrase:
-                conditions.append("\(expression) LIKE \(sqliteQuote(sqliteLikePattern(trimmed))) ESCAPE '\\'")
+                conditions.append("\(expression) LIKE \(Self.sqliteQuote(Self.sqliteLikePattern(trimmed))) ESCAPE '\\'")
             case .allTerms:
                 for term in librarySearchTerms(trimmed) {
-                    conditions.append("\(expression) LIKE \(sqliteQuote(sqliteLikePattern(term))) ESCAPE '\\'")
+                    conditions.append("\(expression) LIKE \(Self.sqliteQuote(Self.sqliteLikePattern(term))) ESCAPE '\\'")
                 }
             case .anyTerm:
                 let parts = librarySearchTerms(trimmed).map {
-                    "\(expression) LIKE \(sqliteQuote(sqliteLikePattern($0))) ESCAPE '\\'"
+                    "\(expression) LIKE \(Self.sqliteQuote(Self.sqliteLikePattern($0))) ESCAPE '\\'"
                 }
                 if !parts.isEmpty {
                     conditions.append("(\(parts.joined(separator: " OR ")))")
@@ -882,11 +892,11 @@ final class TacketModel: ObservableObject {
         }
 
         if librarySourceFilter != .all {
-            conditions.append("lower(b.platform) = \(sqliteQuote(librarySourceFilter.rawValue))")
+            conditions.append("lower(b.platform) = \(Self.sqliteQuote(librarySourceFilter.rawValue))")
         }
 
         if libraryRoleFilter != .all {
-            conditions.append("lower(m.role) = \(sqliteQuote(libraryRoleFilter.rawValue))")
+            conditions.append("lower(m.role) = \(Self.sqliteQuote(libraryRoleFilter.rawValue))")
         }
 
         return conditions
@@ -910,74 +920,74 @@ final class TacketModel: ObservableObject {
             .filter { !$0.isEmpty }
     }
 
-    private func queryLibraryItems(_ sql: String) throws -> [LibraryItem] {
-        try withLibraryDatabase { db in
+    private nonisolated static func queryLibraryItems(_ sql: String) throws -> [LibraryItem] {
+        try Self.withLibraryDatabase { db in
             var statement: OpaquePointer?
             guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-                throw TacketAppError.libraryDatabase(sqliteError(db))
+                throw TacketAppError.libraryDatabase(Self.sqliteError(db))
             }
             defer { sqlite3_finalize(statement) }
             var items: [LibraryItem] = []
             while sqlite3_step(statement) == SQLITE_ROW {
                 items.append(LibraryItem(
-                    id: sqliteColumnText(statement, 0),
-                    path: sqliteColumnText(statement, 1),
-                    title: sqliteColumnText(statement, 2),
-                    platform: sqliteColumnText(statement, 3),
-                    url: sqliteColumnText(statement, 4),
-                    capturedAt: sqliteColumnText(statement, 5),
+                    id: Self.sqliteColumnText(statement, 0),
+                    path: Self.sqliteColumnText(statement, 1),
+                    title: Self.sqliteColumnText(statement, 2),
+                    platform: Self.sqliteColumnText(statement, 3),
+                    url: Self.sqliteColumnText(statement, 4),
+                    capturedAt: Self.sqliteColumnText(statement, 5),
                     messageCount: Int(sqlite3_column_int(statement, 6)),
-                    indexedAt: sqliteColumnText(statement, 7),
-                    snippet: sqliteColumnText(statement, 8)
+                    indexedAt: Self.sqliteColumnText(statement, 7),
+                    snippet: Self.sqliteColumnText(statement, 8)
                 ))
             }
             return items
         }
     }
 
-    private func queryLibraryHash(path: String) throws -> String? {
-        try withLibraryDatabase { db in
-            let sql = "SELECT transcript_hash FROM bundles WHERE path = \(sqliteQuote(path)) LIMIT 1;"
+    private nonisolated static func queryLibraryHash(path: String) throws -> String? {
+        try Self.withLibraryDatabase { db in
+            let sql = "SELECT transcript_hash FROM bundles WHERE path = \(Self.sqliteQuote(path)) LIMIT 1;"
             var statement: OpaquePointer?
             guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-                throw TacketAppError.libraryDatabase(sqliteError(db))
+                throw TacketAppError.libraryDatabase(Self.sqliteError(db))
             }
             defer { sqlite3_finalize(statement) }
             if sqlite3_step(statement) == SQLITE_ROW {
-                return sqliteColumnText(statement, 0)
+                return Self.sqliteColumnText(statement, 0)
             }
             return nil
         }
     }
 
-    private func removeLibraryBundle(id: String) throws {
-        try withLibraryDatabase { db in
-            try sqliteExec(db, "DELETE FROM messages_fts WHERE bundle_id = \(sqliteQuote(id));")
-            try sqliteExec(db, "DELETE FROM messages WHERE bundle_id = \(sqliteQuote(id));")
-            try sqliteExec(db, "DELETE FROM bundles WHERE id = \(sqliteQuote(id));")
+    private nonisolated static func removeLibraryBundle(id: String) throws {
+        try Self.withLibraryDatabase { db in
+            try Self.sqliteExec(db, "DELETE FROM messages_fts WHERE bundle_id = \(Self.sqliteQuote(id));")
+            try Self.sqliteExec(db, "DELETE FROM messages WHERE bundle_id = \(Self.sqliteQuote(id));")
+            try Self.sqliteExec(db, "DELETE FROM bundles WHERE id = \(Self.sqliteQuote(id));")
         }
     }
 
-    private func withLibraryDatabase<T>(_ body: (OpaquePointer?) throws -> T) throws -> T {
+    private nonisolated static func withLibraryDatabase<T>(_ body: (OpaquePointer?) throws -> T) throws -> T {
         var db: OpaquePointer?
-        guard sqlite3_open(libraryDatabaseURL.path, &db) == SQLITE_OK else {
+        guard sqlite3_open(Self.libraryDatabaseFileURL.path, &db) == SQLITE_OK else {
             defer { sqlite3_close(db) }
-            throw TacketAppError.libraryDatabase(sqliteError(db))
+            throw TacketAppError.libraryDatabase(Self.sqliteError(db))
         }
         defer { sqlite3_close(db) }
         return try body(db)
     }
 
-    private func sqliteExec(_ db: OpaquePointer?, _ sql: String) throws {
+    private nonisolated static func sqliteExec(_ db: OpaquePointer?, _ sql: String) throws {
         var error: UnsafeMutablePointer<CChar>?
         if sqlite3_exec(db, sql, nil, nil, &error) != SQLITE_OK {
-            let message = error.map { String(cString: $0) } ?? sqliteError(db)
+            let message = error.map { String(cString: $0) } ?? Self.sqliteError(db)
             sqlite3_free(error)
             throw TacketAppError.libraryDatabase(message)
         }
     }
 
-    private static func messageText(from json: [String: Any]) -> String {
+    private nonisolated static func messageText(from json: [String: Any]) -> String {
         let parts = json["content"] as? [[String: Any]] ?? []
         return parts
             .filter { ($0["type"] as? String) == "text" || ($0["type"] as? String) == "code" }
@@ -986,20 +996,20 @@ final class TacketModel: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func sha256(_ value: String) -> String {
+    private nonisolated static func sha256(_ value: String) -> String {
         let digest = SHA256.hash(data: Data(value.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 
-    private func stableLibraryId(_ value: String) -> String {
-        String(sha256(value).prefix(16))
+    private nonisolated static func stableLibraryId(_ value: String) -> String {
+        String(Self.sha256(value).prefix(16))
     }
 
-    private func sqliteQuote(_ value: String) -> String {
+    private nonisolated static func sqliteQuote(_ value: String) -> String {
         "'\(value.replacingOccurrences(of: "'", with: "''"))'"
     }
 
-    private func sqliteLikePattern(_ value: String) -> String {
+    private nonisolated static func sqliteLikePattern(_ value: String) -> String {
         let escaped = value
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "%", with: "\\%")
@@ -1007,35 +1017,35 @@ final class TacketModel: ObservableObject {
         return "%\(escaped)%"
     }
 
-    private func supportsFTS5(_ db: OpaquePointer?) -> Bool {
+    private nonisolated static func supportsFTS5(_ db: OpaquePointer?) -> Bool {
         do {
-            try sqliteExec(db, "CREATE VIRTUAL TABLE temp.tacket_fts_probe USING fts5(value);")
-            try sqliteExec(db, "DROP TABLE temp.tacket_fts_probe;")
+            try Self.sqliteExec(db, "CREATE VIRTUAL TABLE temp.tacket_fts_probe USING fts5(value);")
+            try Self.sqliteExec(db, "DROP TABLE temp.tacket_fts_probe;")
             return true
         } catch {
             return false
         }
     }
 
-    private func libraryUsesFTS5() throws -> Bool {
-        try withLibraryDatabase { db in
+    private nonisolated static func libraryUsesFTS5() throws -> Bool {
+        try Self.withLibraryDatabase { db in
             let sql = "SELECT sql FROM sqlite_master WHERE name = 'messages_fts' LIMIT 1;"
             var statement: OpaquePointer?
             guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
-                throw TacketAppError.libraryDatabase(sqliteError(db))
+                throw TacketAppError.libraryDatabase(Self.sqliteError(db))
             }
             defer { sqlite3_finalize(statement) }
             guard sqlite3_step(statement) == SQLITE_ROW else { return false }
-            return sqliteColumnText(statement, 0).lowercased().contains("using fts5")
+            return Self.sqliteColumnText(statement, 0).lowercased().contains("using fts5")
         }
     }
 
-    private func sqliteError(_ db: OpaquePointer?) -> String {
+    private nonisolated static func sqliteError(_ db: OpaquePointer?) -> String {
         guard let message = sqlite3_errmsg(db) else { return "Unknown SQLite error." }
         return String(cString: message)
     }
 
-    private func sqliteColumnText(_ statement: OpaquePointer?, _ index: Int32) -> String {
+    private nonisolated static func sqliteColumnText(_ statement: OpaquePointer?, _ index: Int32) -> String {
         guard let text = sqlite3_column_text(statement, index) else { return "" }
         return String(cString: text)
     }
@@ -1073,7 +1083,7 @@ final class TacketModel: ObservableObject {
 
     private func persistConfig() {
         do {
-            try FileManager.default.createDirectory(at: configDirectoryURL, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: Self.appSupportDirectoryURL, withIntermediateDirectories: true)
             let config: [String: Any] = ["captureDirectory": captureDirectory.path]
             let data = try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys])
             try data.write(to: configURL)
@@ -1299,8 +1309,6 @@ struct ContentView: View {
                     switch selectedSection {
                     case .library:
                         LibraryPanelView()
-                    case .transfer:
-                        MainPanelView()
                     case .settings:
                         SettingsPanelView()
                     }
@@ -1318,7 +1326,6 @@ struct ContentView: View {
 
 enum AppSection {
     case library
-    case transfer
     case settings
 }
 
@@ -1334,7 +1341,7 @@ struct HeaderView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Tacket")
                     .font(.tacketTitle)
-                Text("Save, search, and transfer raw AI transcripts locally.")
+                Text("Save, search, and transfer AI chats locally.")
                     .font(.tacketBody)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1351,7 +1358,6 @@ struct HeaderView: View {
 }
 
 struct SidebarView: View {
-    @EnvironmentObject private var model: TacketModel
     @Binding var selectedSection: AppSection
 
     var body: some View {
@@ -1368,16 +1374,6 @@ struct SidebarView: View {
                         .onTapGesture {
                             selectedSection = .library
                         }
-                }
-
-                SidebarSection(title: "Transfer targets") {
-                    ForEach(TacketModel.TransferTarget.allCases) { target in
-                        TargetRow(target: target, isSelected: model.selectedTarget == target)
-                            .onTapGesture {
-                                selectedSection = .transfer
-                                model.selectedTarget = target
-                            }
-                    }
                 }
             }
             .padding(16)
@@ -2269,36 +2265,6 @@ struct SourceButton: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
-    }
-}
-
-struct TargetRow: View {
-    let target: TacketModel.TransferTarget
-    let isSelected: Bool
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: targetIcon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(isSelected ? TacketColors.accent : .secondary)
-                .frame(width: 16)
-            Text(target.label)
-                .font(.tacketBody)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(isSelected ? TacketColors.selected : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .contentShape(Rectangle())
-    }
-
-    private var targetIcon: String {
-        switch target {
-        case .clipboard: return "doc.on.clipboard"
-        case .codex: return "terminal"
-        case .claudeCode: return "chevron.left.forwardslash.chevron.right"
-        }
     }
 }
 
