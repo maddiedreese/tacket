@@ -15,6 +15,7 @@ for (const file of [
   "tacket-chrome-extension.zip",
   "icon-128.png",
   "small-promo-440x280.png",
+  "marquee-promo-1400x560.png",
   "listing.md",
   "privacy.md",
   "README.md",
@@ -27,6 +28,7 @@ for (const file of [
 
 await assertPngDimensions(path.join(storeDir, "icon-128.png"), 128, 128);
 await assertPngDimensions(path.join(storeDir, "small-promo-440x280.png"), 440, 280);
+await assertPngDimensions(path.join(storeDir, "marquee-promo-1400x560.png"), 1400, 560);
 for (const screenshot of [
   "01-capture-popup-1280x800.png",
   "02-local-bundle-1280x800.png",

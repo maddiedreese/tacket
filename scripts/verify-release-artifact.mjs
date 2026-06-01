@@ -17,6 +17,7 @@ const expectedStoreFiles = [
   "tacket-chrome-extension.zip",
   "icon-128.png",
   "small-promo-440x280.png",
+  "marquee-promo-1400x560.png",
   "listing.md",
   "privacy.md",
   "README.md",

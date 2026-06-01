@@ -21,6 +21,7 @@ for (const size of [16, 32, 48, 128]) {
 await writeFile(path.join(websiteDir, "icon-180.png"), await renderPng(180));
 await writeFile(path.join(websiteDir, "favicon.png"), await renderPng(32));
 await writeFile(path.join(storeAssetsDir, "small-promo-440x280.png"), await renderPromoPng(440, 280));
+await writeFile(path.join(storeAssetsDir, "marquee-promo-1400x560.png"), await renderMarqueePng(1400, 560));
 
 const iconsetSizes = [
   ["icon_16x16.png", 16],
@@ -48,28 +49,60 @@ async function renderPng(size) {
 async function renderPromoPng(width, height) {
   const pixels = Buffer.alloc(width * height * 4);
   const bg = [0xf8, 0xf7, 0xf4, 0xff];
-  const accent = [0x24, 0x5f, 0x73, 0xff];
+  const accent = [0x07, 0x5a, 0x91, 0xff];
   const ink = [0x15, 0x15, 0x15, 0xff];
   const muted = [0x5f, 0x63, 0x68, 0xff];
   const line = [0xdd, 0xd8, 0xce, 0xff];
-  const tack = [0xd9, 0xb4, 0x5b, 0xff];
+  const tack = [0xff, 0xd0, 0x6a, 0xff];
 
   fill(pixels, width, height, bg);
   drawRect(pixels, width, height, 0, 0, width, 12, accent);
-  drawRoundedRect(pixels, width, height, 34, 52, 174, 174, 36, [0xff, 0xff, 0xff, 0xff]);
-  drawIcon(pixels, width, height, 57, 75, 128);
+  drawIcon(pixels, width, height, 34, 58, 164);
 
-  drawRoundedRect(pixels, width, height, 236, 54, 156, 28, 8, accent);
-  drawRoundedRect(pixels, width, height, 236, 98, 116, 14, 5, ink);
-  drawRoundedRect(pixels, width, height, 236, 126, 136, 10, 5, muted);
-  drawRoundedRect(pixels, width, height, 236, 148, 122, 10, 5, muted);
+  drawRoundedRect(pixels, width, height, 232, 56, 156, 28, 8, accent);
+  drawRoundedRect(pixels, width, height, 232, 106, 128, 14, 5, ink);
+  drawRoundedRect(pixels, width, height, 232, 136, 150, 10, 5, muted);
+  drawRoundedRect(pixels, width, height, 232, 160, 116, 10, 5, muted);
 
-  drawRoundedRect(pixels, width, height, 236, 184, 56, 20, 6, tack);
-  drawRoundedRect(pixels, width, height, 304, 184, 86, 20, 6, line);
-  drawRoundedRect(pixels, width, height, 236, 224, 154, 2, 1, line);
+  drawRoundedRect(pixels, width, height, 232, 204, 62, 20, 6, tack);
+  drawRoundedRect(pixels, width, height, 308, 204, 78, 20, 6, line);
+  drawRoundedRect(pixels, width, height, 232, 242, 156, 2, 1, line);
 
-  drawRoundedRect(pixels, width, height, 32, 238, 376, 10, 5, line);
-  drawRoundedRect(pixels, width, height, 32, 238, 250, 10, 5, accent);
+  return pngFromPixels(width, height, pixels);
+}
+
+async function renderMarqueePng(width, height) {
+  const pixels = Buffer.alloc(width * height * 4);
+  const bg = [0xf8, 0xf7, 0xf4, 0xff];
+  const accent = [0x07, 0x5a, 0x91, 0xff];
+  const ink = [0x15, 0x15, 0x15, 0xff];
+  const muted = [0x5f, 0x63, 0x68, 0xff];
+  const line = [0xdd, 0xd8, 0xce, 0xff];
+  const tack = [0xff, 0xd0, 0x6a, 0xff];
+  const paper = [0xfb, 0xfa, 0xf7, 0xff];
+
+  fill(pixels, width, height, bg);
+  drawRect(pixels, width, height, 0, 0, width, 28, accent);
+  drawRect(pixels, width, height, 0, height - 12, width, 12, line);
+  drawRoundedRect(pixels, width, height, 92, 88, 384, 384, 80, [0xff, 0xff, 0xff, 0xff]);
+  drawIcon(pixels, width, height, 144, 140, 280);
+
+  drawRoundedRect(pixels, width, height, 590, 118, 356, 42, 10, accent);
+  drawRoundedRect(pixels, width, height, 590, 198, 552, 24, 8, ink);
+  drawRoundedRect(pixels, width, height, 590, 250, 628, 18, 8, muted);
+  drawRoundedRect(pixels, width, height, 590, 292, 548, 18, 8, muted);
+  drawRoundedRect(pixels, width, height, 590, 334, 422, 18, 8, muted);
+
+  drawRoundedRect(pixels, width, height, 590, 408, 132, 36, 10, tack);
+  drawRoundedRect(pixels, width, height, 750, 408, 192, 36, 10, line);
+
+  drawRoundedRect(pixels, width, height, 1120, 112, 180, 128, 14, paper);
+  drawRoundedRect(pixels, width, height, 1144, 146, 132, 8, 4, line);
+  drawRoundedRect(pixels, width, height, 1144, 174, 96, 8, 4, line);
+  drawRoundedRect(pixels, width, height, 1144, 202, 118, 8, 4, line);
+  drawRoundedRect(pixels, width, height, 1080, 298, 196, 16, 8, accent);
+  drawRoundedRect(pixels, width, height, 1080, 336, 238, 12, 6, line);
+  drawRoundedRect(pixels, width, height, 1080, 366, 188, 12, 6, line);
 
   return pngFromPixels(width, height, pixels);
 }

@@ -43,6 +43,7 @@ const requiredFiles = [
   "schemas/manifest.schema.json",
   "schemas/message.schema.json",
   "store-assets/chrome-web-store/small-promo-440x280.png",
+  "store-assets/chrome-web-store/marquee-promo-1400x560.png",
   "store-assets/chrome-web-store/screenshots/01-capture-popup-1280x800.png",
   "store-assets/chrome-web-store/screenshots/02-local-bundle-1280x800.png",
   "store-assets/chrome-web-store/screenshots/03-local-library-1280x800.png",

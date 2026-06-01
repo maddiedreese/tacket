@@ -111,6 +111,7 @@ JSON
     printf 'synthetic sums\\n' > "$dir/SHA256SUMS"
     printf 'icon\\n' > "$dir/chrome-web-store/icon-128.png"
     printf 'promo\\n' > "$dir/chrome-web-store/small-promo-440x280.png"
+    printf 'marquee\\n' > "$dir/chrome-web-store/marquee-promo-1400x560.png"
     printf 'Single Purpose\\nPermission Justification\\nhttps://gemini.google.com/*\\n' > "$dir/chrome-web-store/listing.md"
     printf 'No backend\\nNo analytics\\nsaved conversation is sent to the local Tacket app\\n' > "$dir/chrome-web-store/privacy.md"
     printf 'Upload \`tacket-chrome-extension.zip\`\\nReview every image before upload\\n' > "$dir/chrome-web-store/README.md"

@@ -22,6 +22,12 @@ const assets = [
     height: 280
   },
   {
+    source: path.join(storeAssetDir, "marquee-promo-1400x560.png"),
+    target: "marquee-promo-1400x560.png",
+    width: 1400,
+    height: 560
+  },
+  {
     source: path.join(screenshotDir, "01-capture-popup-1280x800.png"),
     target: "screenshots/01-capture-popup-1280x800.png",
     width: 1280,
@@ -71,6 +77,7 @@ Use these generated assets:
 
 - \`icon-128.png\`
 - \`small-promo-440x280.png\`
+- \`marquee-promo-1400x560.png\`
 - \`screenshots/01-capture-popup-1280x800.png\`
 - \`screenshots/02-local-bundle-1280x800.png\`
 - \`screenshots/03-local-library-1280x800.png\`

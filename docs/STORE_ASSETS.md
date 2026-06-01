@@ -2,7 +2,7 @@
 
 Tacket's Chrome Web Store submission should use only synthetic or demo content. Do not use private AI chat text, private code, customer data, real tokens, personal file names, or screenshots from a private account.
 
-Chrome's current image guidance says the extension icon, a small promotional image, and at least one screenshot are mandatory. Screenshots should be either 1280 by 800 pixels or 640 by 400 pixels. Use the larger 1280 by 800 size unless the UI becomes unreadable.
+Chrome's current image guidance says the extension icon, a small promotional image, and at least one screenshot are mandatory. Tacket also prepares a marquee promotional image so the optional store art is ready. Screenshots should be either 1280 by 800 pixels or 640 by 400 pixels. Use the larger 1280 by 800 size unless the UI becomes unreadable.
 
 Source:
 
@@ -14,9 +14,10 @@ https://developer.chrome.com/docs/webstore/images
 
 - Extension icon: already generated at `apps/chrome-extension/icons/tacket-128.png`.
 - Small promotional image: generated at `store-assets/chrome-web-store/small-promo-440x280.png`.
+- Marquee promotional image: generated at `store-assets/chrome-web-store/marquee-promo-1400x560.png`.
 - Screenshots: generated under `store-assets/chrome-web-store/screenshots/`.
 
-Regenerate icons and the small promotional image with:
+Regenerate icons and promotional images with:
 
 ```bash
 npm run generate:icons
@@ -36,7 +37,7 @@ Prepare the local Chrome Web Store upload folder with:
 npm run store:prepare
 ```
 
-This writes `dist/chrome-web-store/` with the extension zip, required 128 pixel icon, small promotional image, screenshots, `listing.md`, `privacy.md`, and a short upload README. The command regenerates icons and synthetic screenshots, verifies the packaged extension zip, then copies assets.
+This writes `dist/chrome-web-store/` with the extension zip, required 128 pixel icon, promotional images, screenshots, `listing.md`, `privacy.md`, and a short upload README. The command regenerates icons and synthetic screenshots, verifies the packaged extension zip, then copies assets.
 
 ## Screenshot Set
 
@@ -64,6 +65,7 @@ Prepare screenshots from synthetic data that show:
 - [ ] Screenshots are exactly 1280 by 800 or 640 by 400 pixels.
 - [ ] Generated screenshots have been reviewed after running `npm run store:screenshots`.
 - [ ] Small promotional image is exactly 440 by 280 pixels.
+- [ ] Marquee promotional image is exactly 1400 by 560 pixels.
 - [ ] Extension icon matches the packaged 128 pixel icon.
 - [ ] The first screenshot makes Tacket's private local chat library purpose obvious.
 - [ ] The extension/local app relationship is visible in at least one screenshot.

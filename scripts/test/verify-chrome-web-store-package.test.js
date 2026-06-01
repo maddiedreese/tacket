@@ -54,6 +54,7 @@ async function fixtureProject(temp) {
   await writeFile(path.join(storeDir, "tacket-chrome-extension.zip"), "extension zip bytes\n");
   await writePng(path.join(storeDir, "icon-128.png"), 128, 128);
   await writePng(path.join(storeDir, "small-promo-440x280.png"), 440, 280);
+  await writePng(path.join(storeDir, "marquee-promo-1400x560.png"), 1400, 560);
   await writePng(path.join(storeDir, "screenshots/01-capture-popup-1280x800.png"), 1280, 800);
   await writePng(path.join(storeDir, "screenshots/02-local-bundle-1280x800.png"), 1280, 800);
   await writePng(path.join(storeDir, "screenshots/03-local-library-1280x800.png"), 1280, 800);
