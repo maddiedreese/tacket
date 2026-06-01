@@ -30,13 +30,17 @@
   }
 
   async function captureChatGpt() {
-    const nodes = uniqueElements([
-      ...document.querySelectorAll("[data-message-author-role]"),
-      ...document.querySelectorAll("[data-testid^='conversation-turn']")
-    ]);
+    const roleNodes = [...document.querySelectorAll("[data-message-author-role]")];
+    const nodes = roleNodes.length > 0
+      ? uniqueElements(roleNodes)
+      : uniqueElements([...document.querySelectorAll("[data-testid^='conversation-turn']")]);
 
     const messages = await Promise.all(nodes.map((node, index) => {
-      const role = normalizeRole(node.getAttribute("data-message-author-role") ?? guessRole(node, index));
+      const role = normalizeRole(
+        node.getAttribute("data-message-author-role") ??
+        node.querySelector("[data-message-author-role]")?.getAttribute("data-message-author-role") ??
+        guessRole(node, index)
+      );
       return messageFromNode(node, role, "chatgpt", index);
     }));
     return messages.filter(hasContent);
@@ -170,41 +174,94 @@
 
   async function extractParts(root) {
     const parts = [];
+    const textBuffer = [];
     const seenText = new Set();
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-      acceptNode(node) {
-        if (node.matches?.("button, nav, menu, svg, style, script")) return NodeFilter.FILTER_REJECT;
-        if (node.matches?.("pre, code, img, a[href], [data-testid*='attachment'], [aria-label*='attachment' i]")) {
-          return NodeFilter.FILTER_ACCEPT;
-        }
-        return NodeFilter.FILTER_SKIP;
-      }
-    });
 
-    let current;
-    while ((current = walker.nextNode())) {
-      if (current.matches("pre")) {
-        const text = current.innerText.trimEnd();
-        if (text && !seenText.has(text)) {
-          seenText.add(text);
-          parts.push({ type: "code", text, language: languageFromPre(current) });
+    const flushText = () => {
+      const text = normalizeCapturedText(textBuffer.join(""));
+      textBuffer.length = 0;
+      if (text && !seenText.has(text)) {
+        seenText.add(text);
+        parts.push({ type: "text", text });
+      }
+    };
+
+    const visit = async (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        appendText(textBuffer, node.nodeValue ?? "");
+        return;
+      }
+      if (!(node instanceof Element)) return;
+      if (shouldSkipElement(node)) return;
+
+      if (node.matches("pre")) {
+        flushText();
+        const text = codeTextFrom(node);
+        if (text && !seenText.has(`code:${text}`)) {
+          seenText.add(`code:${text}`);
+          parts.push({ type: "code", text, language: languageFromCode(node) });
         }
-      } else if (current.matches("img")) {
-        const attachment = await attachmentFromImage(current);
+        return;
+      }
+
+      if (node.matches("code")) {
+        flushText();
+        const text = codeTextFrom(node);
+        if (text && !seenText.has(`code:${text}`)) {
+          seenText.add(`code:${text}`);
+          parts.push({ type: "code", text, language: languageFromCode(node) });
+        }
+        return;
+      }
+
+      if (node.matches("img")) {
+        flushText();
+        const attachment = await attachmentFromImage(node);
         if (attachment) parts.push(attachment);
-      } else if (current.matches("a[href]") && looksLikeAttachment(current)) {
+        return;
+      }
+
+      if (node.matches("a[href]") && looksLikeAttachment(node)) {
+        flushText();
         parts.push({
           type: "attachment",
           status: "referenced",
-          name: current.textContent.trim() || "link",
-          url: current.href
+          name: node.textContent.trim() || "link",
+          url: node.href
         });
+        return;
       }
-    }
 
-    const text = textWithoutCode(root);
-    if (text) parts.unshift({ type: "text", text });
+      if (node.matches("li")) {
+        const marker = listMarkerFor(node);
+        textBuffer.push("\n");
+        if (marker) textBuffer.push(marker);
+        for (const child of node.childNodes) await visitListItemChild(child);
+        textBuffer.push("\n");
+        return;
+      }
+
+      const block = isBlockish(node);
+      if (block) textBuffer.push("\n");
+      for (const child of node.childNodes) await visit(child);
+      if (block) textBuffer.push("\n");
+    };
+
+    for (const child of root.childNodes) await visit(child);
+    flushText();
     return dedupeParts(parts);
+
+    async function visitListItemChild(child) {
+      if (
+        child instanceof Element &&
+        isBlockish(child) &&
+        !child.matches("pre, code, img, a[href], li")
+      ) {
+        for (const grandchild of child.childNodes) await visit(grandchild);
+        return;
+      }
+      await visit(child);
+    }
   }
 
   async function attachmentFromImage(image) {
@@ -255,17 +312,77 @@
     });
   }
 
-  function textWithoutCode(root) {
-    const clone = root.cloneNode(true);
-    clone.querySelectorAll("pre, code, button, nav, menu, svg, style, script").forEach((node) => node.remove());
-    return clone.innerText
+  function shouldSkipElement(node) {
+    if (node.matches("button, nav, menu, svg, style, script, noscript, textarea, input, select")) return true;
+    if (node.getAttribute("aria-hidden") === "true") return true;
+    if (node.matches("h1, h2, h3, h4, h5, h6, [role='heading']") && isUiLabel(node.textContent)) return true;
+    if (isCodeLabel(node)) return true;
+    return false;
+  }
+
+  function isUiLabel(value) {
+    const text = normalizeCapturedText(value ?? "");
+    return /^(You said:?|ChatGPT said:?|Claude responded:?|Gemini said:?|Conversation with Gemini)$/iu.test(text) ||
+      /^You said:/iu.test(text) ||
+      /^(ChatGPT|Claude|Gemini) (said|responded):/iu.test(text);
+  }
+
+  function isCodeLabel(node) {
+    const text = normalizeCapturedText(node.textContent ?? "");
+    if (!/^(JavaScript|TypeScript|Python|Swift|Shell|Bash|JSON|HTML|CSS|JS|TS)$/iu.test(text)) return false;
+    const parent = node.parentElement;
+    return parent?.querySelector("pre, code") !== null;
+  }
+
+  function isBlockish(node) {
+    return /^(ARTICLE|ASIDE|BLOCKQUOTE|DD|DIV|DL|DT|FIGCAPTION|FIGURE|FOOTER|HEADER|MAIN|OL|P|PRE|SECTION|TABLE|TBODY|TD|TH|THEAD|TR|UL|USER-QUERY|MODEL-RESPONSE)$/u.test(node.tagName) ||
+      node.getAttribute("role") === "paragraph" ||
+      node.getAttribute("role") === "listitem";
+  }
+
+  function listMarkerFor(item) {
+    const parent = item.parentElement;
+    if (parent?.matches("ol")) {
+      const start = Number.parseInt(parent.getAttribute("start") ?? "1", 10);
+      const siblings = [...parent.children].filter((child) => child.matches("li"));
+      const index = siblings.indexOf(item);
+      return `${Number.isFinite(start) ? start + index : index + 1}. `;
+    }
+    if (parent?.matches("ul")) return "- ";
+    return "";
+  }
+
+  function appendText(buffer, value) {
+    const text = value.replace(/\s+/gu, " ");
+    if (isUiLabel(text)) return;
+    if (!text.trim()) {
+      if (buffer.length > 0 && !/\s$/u.test(buffer.at(-1) ?? "")) buffer.push(" ");
+      return;
+    }
+    if (buffer.length > 0 && !/[\s([]$/u.test(buffer.at(-1) ?? "") && !/^[.,;:!?)]/u.test(text)) {
+      buffer.push(" ");
+    }
+    buffer.push(text);
+  }
+
+  function normalizeCapturedText(value) {
+    return String(value)
+      .replace(/[ \t]*\n[ \t]*/gu, "\n")
+      .replace(/[ \t]{2,}/gu, " ")
       .replace(/\n{3,}/gu, "\n\n")
-      .replace(/^\s*(Copy|Edit|Share|Retry|Like|Dislike)\s*$/gimu, "")
+      .replace(/^\s*(Copy|Edit|Share|Retry|Like|Dislike|Good response|Bad response|Redo|Download code|Copy code|Run)\s*$/gimu, "")
+      .replace(/\n{3,}/gu, "\n\n")
       .trim();
   }
 
-  function languageFromPre(pre) {
-    const className = pre.className || pre.querySelector("code")?.className || "";
+  function codeTextFrom(node) {
+    const code = node.matches("pre") ? node.querySelector("code") : node;
+    return (code?.innerText ?? code?.textContent ?? node.innerText ?? node.textContent ?? "").trimEnd();
+  }
+
+  function languageFromCode(node) {
+    const code = node.matches("pre") ? node.querySelector("code") : node;
+    const className = node.className || code?.className || "";
     const match = String(className).match(/language-([a-z0-9_+-]+)/iu);
     return match?.[1]?.toLowerCase();
   }
@@ -303,7 +420,7 @@
     return nodes.filter((node) => {
       if (!(node instanceof Element)) return false;
       if (seen.has(node)) return false;
-      if ([...seen].some((other) => other.contains(node))) return false;
+      if ([...seen].some((other) => other.contains(node) || node.contains(other))) return false;
       seen.add(node);
       return true;
     });
