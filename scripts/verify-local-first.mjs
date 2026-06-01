@@ -12,6 +12,7 @@ const runtimeFiles = [
   "apps/native-host/bin/tacket-native-host.js",
   "apps/mac/TacketApp/Sources/TacketApp/TacketApp.swift",
   "apps/mac/TacketApp/Sources/TacketNativeHost/main.swift",
+  "packages/library/src/index.js",
   "packages/thread-format/src/index.js"
 ];
 const allowedHosts = new Set([

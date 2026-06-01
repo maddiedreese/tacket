@@ -32,10 +32,21 @@ The production Mac app owns host registration, output folder selection, and tran
 
 Both native host implementations read that file before falling back to `~/Documents/Tacket Captures/`. `TACKET_CAPTURE_DIR` can override the capture folder in tests, and `TACKET_CONFIG_FILE` can point at an isolated config file for smoke tests.
 
+## Local Library
+
+Tacket treats `.tacket` bundles as the source of truth. The Mac app and CLI can index those bundles into a local SQLite database at:
+
+```text
+~/Library/Application Support/Tacket/library.sqlite
+```
+
+The library uses SQLite FTS5 over raw message text and bundle metadata. It is explicit: users index the capture folder or another chosen folder. Tacket does not silently scan app session stores, summarize transcripts, create embeddings, use model/API calls, or sync library data to a backend.
+
 ## CLI and Mac App
 
 The Mac app owns the direct-download user workflow:
 
+- index and search saved `.tacket` transcript bundles
 - install the Chrome native messaging manifest
 - reveal the local capture folder
 - choose `.tacket` bundles
@@ -45,6 +56,7 @@ The Mac app owns the direct-download user workflow:
 The CLI remains useful for development and scripted checks:
 
 - render raw `transcript.md`
+- index/search/list local `.tacket` bundles
 - copy raw transcript to the clipboard
 - launch Codex or Claude Code in Terminal
 - paste the transcript using macOS automation when requested
@@ -57,5 +69,6 @@ AI chat page
   -> content script extracts messages/assets
   -> extension sends payload to native host
   -> native host writes .tacket bundle
-  -> CLI/Mac app transfers raw transcript to coding target
+  -> Mac app/CLI indexes raw transcript locally
+  -> CLI/Mac app searches or transfers raw transcript to coding target
 ```

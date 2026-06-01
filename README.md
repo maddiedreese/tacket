@@ -2,7 +2,7 @@
 
 Tacket moves complete AI chat threads into coding agents without turning them into summaries.
 
-It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gemini. Click the extension on a supported chat page, save the full thread as a local `.tacket` bundle, then transfer the raw transcript into Codex or Claude Code.
+It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gemini. Click the extension on a supported chat page, save the full thread as a local `.tacket` bundle, search your saved transcript library, then transfer the raw transcript into Codex or Claude Code.
 
 Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
 
@@ -12,6 +12,7 @@ Tacket is pre-release. Signed direct-download builds are coming with the first p
 
 - Captures supported AI chats only after you click the extension.
 - Saves readable local bundles in `~/Documents/Tacket Captures`.
+- Indexes saved `.tacket` bundles into a local SQLite search library.
 - Preserves the raw transcript as Markdown and structured JSONL.
 - Transfers to Clipboard, Codex, or Claude Code.
 - Uses no backend, no analytics, no telemetry, and no model/API calls.
@@ -46,8 +47,9 @@ node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension
 1. Open a ChatGPT, Claude, or Gemini thread in Chrome.
 2. Click the Tacket extension.
 3. Choose **Capture This Thread**.
-4. Open Tacket and select the saved bundle.
-5. Transfer it to Clipboard, Codex, or Claude Code.
+4. Open Tacket and choose **Index Capture Folder** in Library.
+5. Search or select the saved thread.
+6. Transfer it to Clipboard, Codex, or Claude Code.
 
 The first automated transfer may trigger a macOS permission prompt. Tacket uses that permission only to open Terminal and paste the transcript after you choose a transfer target.
 
@@ -67,6 +69,16 @@ example.tacket/
 ```
 
 You can inspect the files yourself. The transcript is plain Markdown.
+
+## Local Library
+
+Tacket can index `.tacket` bundles into:
+
+```text
+~/Library/Application Support/Tacket/library.sqlite
+```
+
+The library uses local SQLite full-text search. It does not summarize transcripts, generate embeddings, call a model, sync to a server, or send indexed text anywhere.
 
 ## Privacy
 

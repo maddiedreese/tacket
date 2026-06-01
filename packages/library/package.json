@@ -1,0 +1,13 @@
+{
+  "name": "@tacket/library",
+  "version": "0.1.0",
+  "description": "Local SQLite/FTS index for searchable .tacket transcript bundles.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@tacket/thread-format": "0.1.0"
+  }
+}

@@ -11,7 +11,12 @@ let package = Package(
         .executable(name: "TacketNativeHost", targets: ["TacketNativeHost"])
     ],
     targets: [
-        .executableTarget(name: "TacketApp"),
+        .executableTarget(
+            name: "TacketApp",
+            linkerSettings: [
+                .linkedLibrary("sqlite3")
+            ]
+        ),
         .executableTarget(name: "TacketNativeHost")
     ]
 )

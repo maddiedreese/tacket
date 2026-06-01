@@ -124,16 +124,28 @@ if (!popup.includes("manifestAllowsFileUrls")) {
 }
 
 const cli = await readFile("apps/cli/bin/tacket.js", "utf8");
-for (const command of ["install-native-host", "status-native-host", "uninstall-native-host"]) {
+for (const command of ["install-native-host", "status-native-host", "uninstall-native-host", "library-index", "library-search", "library-list", "library-remove-missing"]) {
   if (!cli.includes(command)) throw new Error(`CLI missing ${command}`);
 }
 if (!cli.includes("validateChromeExtensionId")) {
   throw new Error("CLI must validate Chrome extension IDs before writing native host manifests.");
 }
 
+const libraryPackage = JSON.parse(await readFile("packages/library/package.json", "utf8"));
+if (libraryPackage.name !== "@tacket/library") {
+  throw new Error("Library package must be named @tacket/library.");
+}
+const libraryIndex = await readFile("packages/library/src/index.js", "utf8");
+for (const phrase of ["CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5", "defaultLibraryDatabasePath", "indexLibraryFolder", "searchLibrary"]) {
+  if (!libraryIndex.includes(phrase)) throw new Error(`Library index missing: ${phrase}`);
+}
+
 const macApp = await readFile("apps/mac/TacketApp/Sources/TacketApp/TacketApp.swift", "utf8");
 if (!macApp.includes("isValidChromeExtensionId")) {
   throw new Error("Mac app must validate Chrome extension IDs before writing native host manifests.");
+}
+for (const phrase of ["LibraryPanelView", "library.sqlite", "messages_fts", "indexCaptureFolderForLibrary"]) {
+  if (!macApp.includes(phrase)) throw new Error(`Mac app library UI missing: ${phrase}`);
 }
 
 const entitlements = await readFile("apps/mac/TacketApp/Tacket.entitlements", "utf8");

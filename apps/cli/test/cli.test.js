@@ -66,6 +66,37 @@ test("transfer rejects bundles with drifted target transcripts before copying", 
   }
 });
 
+test("library commands index, list, search, and remove missing bundles", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-cli-library-"));
+  try {
+    const db = path.join(root, "library.sqlite");
+    const sample = await runCli(["sample", "--out", root]);
+    assert.equal(sample.status, 0, sample.stderr);
+    const bundlePath = sample.stdout.trim();
+
+    const index = await runCli(["library-index", "--folder", root, "--db", db]);
+    assert.equal(index.status, 0, index.stderr);
+    assert.equal(JSON.parse(index.stdout).indexed, 1);
+
+    const search = await runCli(["library-search", "raw transcript", "--db", db]);
+    assert.equal(search.status, 0, search.stderr);
+    const results = JSON.parse(search.stdout);
+    assert.equal(results.length, 1);
+    assert.match(results[0].title, /Tacket sample thread/u);
+
+    const list = await runCli(["library-list", "--db", db]);
+    assert.equal(list.status, 0, list.stderr);
+    assert.equal(JSON.parse(list.stdout).length, 1);
+
+    await rm(bundlePath, { recursive: true, force: true });
+    const removed = await runCli(["library-remove-missing", "--db", db]);
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.equal(JSON.parse(removed.stdout).removed, 1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 function runCli(args, env = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cliPath, ...args], {

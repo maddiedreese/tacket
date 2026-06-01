@@ -14,9 +14,11 @@ The extension captures content only after the user clicks **Capture This Thread*
 
 Captured thread content is stored locally in `.tacket` bundles. If a user chooses to place those bundles inside a git repository, normal git hygiene applies. Future versions may add secret detection before writing to repo folders, but v1 treats files as user-controlled local artifacts.
 
+When the Library feature is used, Tacket indexes selected `.tacket` bundles into a local SQLite database at `~/Library/Application Support/Tacket/library.sqlite`. The index contains raw transcript text for local full-text search. It does not leave the machine, call a model, create embeddings, or sync anywhere.
+
 Tacket may add local-only warnings to `manifest.json` when captured text appears to contain common token formats such as API keys or private keys. These warnings do not redact, summarize, upload, or otherwise alter the raw transcript.
 
-Tacket stores app preferences locally in `~/Library/Application Support/Tacket/config.json`. This file contains settings such as the selected capture directory; it does not contain captured thread content.
+Tacket stores app preferences locally in `~/Library/Application Support/Tacket/config.json`. This file contains settings such as the selected capture directory; captured thread content remains in user-visible `.tacket` bundles and, if the user indexes them, the local SQLite library.
 
 Tacket's Chrome extension should request the narrowest practical host permissions for supported AI chat domains.
 

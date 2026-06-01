@@ -1,5 +1,7 @@
 import SwiftUI
 import AppKit
+import CryptoKit
+import SQLite3
 
 @main
 struct TacketApp: App {
@@ -47,6 +49,10 @@ final class TacketModel: ObservableObject {
     @Published var connectorStatus = "Connector status unknown."
     @Published var maxChunkCharacters = "24000"
     @Published var selectedBundleInfo: BundleInfo?
+    @Published var librarySearchText = ""
+    @Published var libraryItems: [LibraryItem] = []
+    @Published var selectedLibraryItem: LibraryItem?
+    @Published var libraryStatus = "Index your capture folder to search saved raw transcripts."
 
     let supportedSources = ["ChatGPT", "Claude", "Gemini"]
 
@@ -112,6 +118,10 @@ final class TacketModel: ObservableObject {
 
     private var configURL: URL {
         configDirectoryURL.appendingPathComponent("config.json")
+    }
+
+    private var libraryDatabaseURL: URL {
+        configDirectoryURL.appendingPathComponent("library.sqlite")
     }
 
     func revealCaptureDirectory() {
@@ -356,6 +366,119 @@ final class TacketModel: ObservableObject {
         }
     }
 
+    func refreshLibrary() {
+        do {
+            try ensureLibraryDatabase()
+            libraryItems = try queryLibrary(search: librarySearchText)
+            selectedLibraryItem = selectedLibraryItem.flatMap { selected in
+                libraryItems.first(where: { $0.id == selected.id })
+            } ?? libraryItems.first
+            libraryStatus = libraryItems.isEmpty ? "No indexed transcripts yet." : "\(libraryItems.count) indexed transcript(s)."
+        } catch {
+            libraryStatus = "Library refresh failed."
+            commandOutput = error.localizedDescription
+        }
+    }
+
+    func searchLibrary() {
+        refreshLibrary()
+    }
+
+    func indexCaptureFolderForLibrary() {
+        do {
+            let result = try indexLibraryFolder(captureDirectory)
+            librarySearchText = ""
+            libraryItems = try queryLibrary(search: "")
+            selectedLibraryItem = libraryItems.first
+            libraryStatus = "Indexed \(result.indexed) of \(result.found) .tacket bundle(s)."
+            status = "Library indexed."
+            commandOutput = "Library database:\n\(libraryDatabaseURL.path)\n\nIndexed folder:\n\(captureDirectory.path)"
+        } catch {
+            libraryStatus = "Indexing failed."
+            status = "Library indexing failed."
+            commandOutput = error.localizedDescription
+        }
+    }
+
+    func chooseFolderAndIndexLibrary() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a folder of .tacket bundles"
+        panel.prompt = "Index"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = captureDirectory
+
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                let result = try indexLibraryFolder(url)
+                librarySearchText = ""
+                libraryItems = try queryLibrary(search: "")
+                selectedLibraryItem = libraryItems.first
+                libraryStatus = "Indexed \(result.indexed) of \(result.found) .tacket bundle(s)."
+                status = "Library indexed."
+                commandOutput = "Indexed folder:\n\(url.path)"
+            } catch {
+                libraryStatus = "Indexing failed."
+                status = "Library indexing failed."
+                commandOutput = error.localizedDescription
+            }
+        }
+    }
+
+    func removeMissingLibraryBundles() {
+        do {
+            try ensureLibraryDatabase()
+            let items = try queryLibrary(search: "")
+            var removed = 0
+            for item in items where !FileManager.default.fileExists(atPath: item.path) {
+                try removeLibraryBundle(id: item.id)
+                removed += 1
+            }
+            refreshLibrary()
+            status = "Library cleaned."
+            commandOutput = "Removed \(removed) missing indexed bundle(s)."
+        } catch {
+            status = "Library cleanup failed."
+            commandOutput = error.localizedDescription
+        }
+    }
+
+    func selectLibraryItem(_ item: LibraryItem) {
+        selectedLibraryItem = item
+        selectedBundle = URL(fileURLWithPath: item.path, isDirectory: true)
+        loadSelectedBundleInfo()
+    }
+
+    func revealLibraryItem(_ item: LibraryItem) {
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.path, isDirectory: true)])
+    }
+
+    func openLibraryTranscript(_ item: LibraryItem) {
+        NSWorkspace.shared.open(URL(fileURLWithPath: item.path, isDirectory: true).appendingPathComponent("transcript.md"))
+    }
+
+    func copyLibraryTranscript(_ item: LibraryItem) {
+        do {
+            let transcript = try String(
+                contentsOf: URL(fileURLWithPath: item.path, isDirectory: true).appendingPathComponent("transcript.md"),
+                encoding: .utf8
+            )
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(transcript, forType: .string)
+            status = "Copied raw transcript."
+            commandOutput = "Copied transcript from \(item.title)."
+        } catch {
+            status = "Copy failed."
+            commandOutput = error.localizedDescription
+        }
+    }
+
+    func transferLibraryItem(_ item: LibraryItem) {
+        selectLibraryItem(item)
+        transferSelectedBundle()
+    }
+
     private func loadSelectedBundleInfo() {
         guard let selectedBundle else {
             selectedBundleInfo = nil
@@ -401,6 +524,288 @@ final class TacketModel: ObservableObject {
                 throw TacketAppError.invalidBundle("targets/\(target) must match transcript.md exactly.")
             }
         }
+    }
+
+    private func indexLibraryFolder(_ folder: URL) throws -> (found: Int, indexed: Int) {
+        try ensureLibraryDatabase()
+        let bundles = try findTacketBundles(in: folder)
+        var indexed = 0
+        for bundle in bundles {
+            if try indexLibraryBundle(bundle) {
+                indexed += 1
+            }
+        }
+        return (bundles.count, indexed)
+    }
+
+    private func findTacketBundles(in folder: URL) throws -> [URL] {
+        guard let enumerator = FileManager.default.enumerator(
+            at: folder,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+        var bundles: [URL] = []
+        for case let url as URL in enumerator {
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
+            guard values?.isDirectory == true, url.pathExtension == "tacket" else { continue }
+            if FileManager.default.fileExists(atPath: url.appendingPathComponent("manifest.json").path),
+               FileManager.default.fileExists(atPath: url.appendingPathComponent("messages.jsonl").path),
+               FileManager.default.fileExists(atPath: url.appendingPathComponent("transcript.md").path) {
+                bundles.append(url)
+                enumerator.skipDescendants()
+            }
+        }
+        return bundles.sorted { $0.path < $1.path }
+    }
+
+    private func indexLibraryBundle(_ bundleURL: URL) throws -> Bool {
+        let manifestURL = bundleURL.appendingPathComponent("manifest.json")
+        let messagesURL = bundleURL.appendingPathComponent("messages.jsonl")
+        let transcriptURL = bundleURL.appendingPathComponent("transcript.md")
+        let manifestData = try Data(contentsOf: manifestURL)
+        let manifest = try JSONSerialization.jsonObject(with: manifestData) as? [String: Any] ?? [:]
+        let source = manifest["source"] as? [String: Any] ?? [:]
+        let transcript = try String(contentsOf: transcriptURL, encoding: .utf8)
+        let transcriptHash = sha256(transcript)
+        let bundleId = manifest["id"] as? String ?? stableLibraryId(bundleURL.path)
+
+        if let existing = try queryLibraryHash(path: bundleURL.path), existing == transcriptHash {
+            return false
+        }
+
+        let messagesText = try String(contentsOf: messagesURL, encoding: .utf8)
+        let messages = messagesText
+            .split(separator: "\n")
+            .enumerated()
+            .compactMap { index, line -> LibraryMessage? in
+                guard let data = String(line).data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    return nil
+                }
+                return LibraryMessage(
+                    id: "\(bundleId):\(json["id"] as? String ?? String(index + 1))",
+                    role: json["role"] as? String ?? "unknown",
+                    text: Self.messageText(from: json),
+                    ordinal: index
+                )
+            }
+
+        let title = manifest["title"] as? String ?? bundleURL.deletingPathExtension().lastPathComponent
+        let platform = source["platform"] as? String ?? "unknown"
+        let url = source["url"] as? String ?? ""
+        let capturedAt = manifest["capturedAt"] as? String ?? ""
+        let messageCount = manifest["messageCount"] as? Int ?? messages.count
+        let indexedAt = ISO8601DateFormatter().string(from: Date())
+
+        try withLibraryDatabase { db in
+            try sqliteExec(db, "BEGIN;")
+            try sqliteExec(db, "DELETE FROM messages_fts WHERE bundle_id = \(sqliteQuote(bundleId));")
+            try sqliteExec(db, "DELETE FROM messages WHERE bundle_id = \(sqliteQuote(bundleId));")
+            try sqliteExec(db, "DELETE FROM bundles WHERE path = \(sqliteQuote(bundleURL.path)) OR id = \(sqliteQuote(bundleId));")
+            try sqliteExec(db, """
+                INSERT INTO bundles (id, path, title, platform, url, captured_at, message_count, indexed_at, transcript_hash)
+                VALUES (
+                  \(sqliteQuote(bundleId)),
+                  \(sqliteQuote(bundleURL.path)),
+                  \(sqliteQuote(title)),
+                  \(sqliteQuote(platform)),
+                  \(sqliteQuote(url)),
+                  \(sqliteQuote(capturedAt)),
+                  \(messageCount),
+                  \(sqliteQuote(indexedAt)),
+                  \(sqliteQuote(transcriptHash))
+                );
+                """)
+            for message in messages {
+                try sqliteExec(db, """
+                    INSERT INTO messages (id, bundle_id, role, text, ordinal)
+                    VALUES (
+                      \(sqliteQuote(message.id)),
+                      \(sqliteQuote(bundleId)),
+                      \(sqliteQuote(message.role)),
+                      \(sqliteQuote(message.text)),
+                      \(message.ordinal)
+                    );
+                    INSERT INTO messages_fts (bundle_id, message_id, title, platform, role, text)
+                    VALUES (
+                      \(sqliteQuote(bundleId)),
+                      \(sqliteQuote(message.id)),
+                      \(sqliteQuote(title)),
+                      \(sqliteQuote(platform)),
+                      \(sqliteQuote(message.role)),
+                      \(sqliteQuote(message.text))
+                    );
+                    """)
+            }
+            try sqliteExec(db, "COMMIT;")
+        }
+        return true
+    }
+
+    private func ensureLibraryDatabase() throws {
+        try FileManager.default.createDirectory(at: configDirectoryURL, withIntermediateDirectories: true)
+        try withLibraryDatabase { db in
+            try sqliteExec(db, """
+                PRAGMA journal_mode = WAL;
+                CREATE TABLE IF NOT EXISTS bundles (
+                  id TEXT PRIMARY KEY,
+                  path TEXT NOT NULL UNIQUE,
+                  title TEXT,
+                  platform TEXT,
+                  url TEXT,
+                  captured_at TEXT,
+                  message_count INTEGER,
+                  indexed_at TEXT,
+                  transcript_hash TEXT
+                );
+                CREATE TABLE IF NOT EXISTS messages (
+                  id TEXT PRIMARY KEY,
+                  bundle_id TEXT NOT NULL,
+                  role TEXT,
+                  text TEXT,
+                  ordinal INTEGER,
+                  FOREIGN KEY(bundle_id) REFERENCES bundles(id) ON DELETE CASCADE
+                );
+                CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                  bundle_id UNINDEXED,
+                  message_id UNINDEXED,
+                  title,
+                  platform,
+                  role,
+                  text
+                );
+                """)
+        }
+    }
+
+    private func queryLibrary(search: String) throws -> [LibraryItem] {
+        try ensureLibraryDatabase()
+        let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return try queryLibraryItems("""
+                SELECT id, path, title, platform, url, captured_at, message_count, indexed_at, '' AS snippet
+                FROM bundles
+                ORDER BY captured_at DESC, indexed_at DESC
+                LIMIT 100;
+                """)
+        }
+        let query = "\"\(trimmed.replacingOccurrences(of: "\"", with: "\"\""))\""
+        return try queryLibraryItems("""
+            SELECT b.id, b.path, b.title, b.platform, b.url, b.captured_at, b.message_count, b.indexed_at,
+                   snippet(messages_fts, 5, '[', ']', ' ... ', 18) AS snippet
+            FROM messages_fts
+            JOIN bundles b ON b.id = messages_fts.bundle_id
+            WHERE messages_fts MATCH \(sqliteQuote(query))
+              AND messages_fts.rowid IN (
+                SELECT min(rowid)
+                FROM messages_fts
+                WHERE messages_fts MATCH \(sqliteQuote(query))
+                GROUP BY bundle_id
+              )
+            ORDER BY rank
+            LIMIT 100;
+            """)
+    }
+
+    private func queryLibraryItems(_ sql: String) throws -> [LibraryItem] {
+        try withLibraryDatabase { db in
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                throw TacketAppError.libraryDatabase(sqliteError(db))
+            }
+            defer { sqlite3_finalize(statement) }
+            var items: [LibraryItem] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                items.append(LibraryItem(
+                    id: sqliteColumnText(statement, 0),
+                    path: sqliteColumnText(statement, 1),
+                    title: sqliteColumnText(statement, 2),
+                    platform: sqliteColumnText(statement, 3),
+                    url: sqliteColumnText(statement, 4),
+                    capturedAt: sqliteColumnText(statement, 5),
+                    messageCount: Int(sqlite3_column_int(statement, 6)),
+                    indexedAt: sqliteColumnText(statement, 7),
+                    snippet: sqliteColumnText(statement, 8)
+                ))
+            }
+            return items
+        }
+    }
+
+    private func queryLibraryHash(path: String) throws -> String? {
+        try withLibraryDatabase { db in
+            let sql = "SELECT transcript_hash FROM bundles WHERE path = \(sqliteQuote(path)) LIMIT 1;"
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                throw TacketAppError.libraryDatabase(sqliteError(db))
+            }
+            defer { sqlite3_finalize(statement) }
+            if sqlite3_step(statement) == SQLITE_ROW {
+                return sqliteColumnText(statement, 0)
+            }
+            return nil
+        }
+    }
+
+    private func removeLibraryBundle(id: String) throws {
+        try withLibraryDatabase { db in
+            try sqliteExec(db, "DELETE FROM messages_fts WHERE bundle_id = \(sqliteQuote(id));")
+            try sqliteExec(db, "DELETE FROM messages WHERE bundle_id = \(sqliteQuote(id));")
+            try sqliteExec(db, "DELETE FROM bundles WHERE id = \(sqliteQuote(id));")
+        }
+    }
+
+    private func withLibraryDatabase<T>(_ body: (OpaquePointer?) throws -> T) throws -> T {
+        var db: OpaquePointer?
+        guard sqlite3_open(libraryDatabaseURL.path, &db) == SQLITE_OK else {
+            defer { sqlite3_close(db) }
+            throw TacketAppError.libraryDatabase(sqliteError(db))
+        }
+        defer { sqlite3_close(db) }
+        return try body(db)
+    }
+
+    private func sqliteExec(_ db: OpaquePointer?, _ sql: String) throws {
+        var error: UnsafeMutablePointer<CChar>?
+        if sqlite3_exec(db, sql, nil, nil, &error) != SQLITE_OK {
+            let message = error.map { String(cString: $0) } ?? sqliteError(db)
+            sqlite3_free(error)
+            throw TacketAppError.libraryDatabase(message)
+        }
+    }
+
+    private static func messageText(from json: [String: Any]) -> String {
+        let parts = json["content"] as? [[String: Any]] ?? []
+        return parts
+            .filter { ($0["type"] as? String) == "text" || ($0["type"] as? String) == "code" }
+            .map { $0["text"] as? String ?? "" }
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func sha256(_ value: String) -> String {
+        let digest = SHA256.hash(data: Data(value.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func stableLibraryId(_ value: String) -> String {
+        String(sha256(value).prefix(16))
+    }
+
+    private func sqliteQuote(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "''"))'"
+    }
+
+    private func sqliteError(_ db: OpaquePointer?) -> String {
+        guard let message = sqlite3_errmsg(db) else { return "Unknown SQLite error." }
+        return String(cString: message)
+    }
+
+    private func sqliteColumnText(_ statement: OpaquePointer?, _ index: Int32) -> String {
+        guard let text = sqlite3_column_text(statement, index) else { return "" }
+        return String(cString: text)
     }
 
     private func installNativeMessagingHost(extensionId: String) throws -> URL {
@@ -552,6 +957,7 @@ final class TacketModel: ObservableObject {
 enum TacketAppError: LocalizedError {
     case nativeHostMissing
     case invalidBundle(String)
+    case libraryDatabase(String)
 
     var errorDescription: String? {
         switch self {
@@ -559,8 +965,29 @@ enum TacketAppError: LocalizedError {
             return "TacketNativeHost was not found. Build the Mac package or run `swift build` in apps/mac/TacketApp."
         case .invalidBundle(let message):
             return "Invalid .tacket bundle: \(message)"
+        case .libraryDatabase(let message):
+            return "Library database error: \(message)"
         }
     }
+}
+
+struct LibraryItem: Identifiable, Equatable {
+    let id: String
+    let path: String
+    let title: String
+    let platform: String
+    let url: String
+    let capturedAt: String
+    let messageCount: Int
+    let indexedAt: String
+    let snippet: String
+}
+
+struct LibraryMessage {
+    let id: String
+    let role: String
+    let text: String
+    let ordinal: Int
 }
 
 struct BundleInfo {
@@ -581,7 +1008,7 @@ struct BundleWarning: Identifiable {
 
 struct ContentView: View {
     @EnvironmentObject private var model: TacketModel
-    @State private var selectedSection: AppSection = .transfer
+    @State private var selectedSection: AppSection = .library
 
     var body: some View {
         VStack(spacing: 0) {
@@ -592,6 +1019,8 @@ struct ContentView: View {
                     .frame(width: 250)
                 Divider()
                 switch selectedSection {
+                case .library:
+                    LibraryPanelView()
                 case .transfer:
                     MainPanelView()
                 case .settings:
@@ -605,6 +1034,7 @@ struct ContentView: View {
 }
 
 enum AppSection {
+    case library
     case transfer
     case settings
 }
@@ -647,6 +1077,13 @@ struct SidebarView: View {
                 WorkflowStep(number: "1", title: "Capture", detail: "Open a supported chat and capture the thread.")
                 WorkflowStep(number: "2", title: "Review", detail: "Pick the saved .tacket bundle on this Mac.")
                 WorkflowStep(number: "3", title: "Transfer", detail: "Copy or paste the raw transcript into a coding session.")
+            }
+
+            SidebarSection(title: "Library") {
+                SidebarNavRow(title: "Search transcripts", isSelected: selectedSection == .library)
+                    .onTapGesture {
+                        selectedSection = .library
+                    }
             }
 
             SidebarSection(title: "Sources") {
@@ -783,6 +1220,140 @@ struct MainPanelView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(TacketColors.content)
+    }
+}
+
+struct LibraryPanelView: View {
+    @EnvironmentObject private var model: TacketModel
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                StatusBanner(status: model.status)
+
+                SectionCard(
+                    eyebrow: "Library",
+                    title: "Search raw transcripts",
+                    detail: "Index local .tacket bundles and search across saved ChatGPT, Claude, Gemini, Codex, and Claude Code handoffs without sending anything off this Mac."
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        TextField("Search transcripts", text: $model.librarySearchText)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.tacketBody)
+                            .onSubmit {
+                                model.searchLibrary()
+                            }
+                            .onChange(of: model.librarySearchText) { _ in
+                                model.searchLibrary()
+                            }
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 10) {
+                                Button("Index Capture Folder") {
+                                    model.indexCaptureFolderForLibrary()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                Button("Add Folder") {
+                                    model.chooseFolderAndIndexLibrary()
+                                }
+                            }
+                            HStack(spacing: 10) {
+                                Button("Refresh") {
+                                    model.refreshLibrary()
+                                }
+                                Button("Remove Missing") {
+                                    model.removeMissingLibraryBundles()
+                                }
+                            }
+                        }
+
+                        Text(model.libraryStatus)
+                            .font(.tacketFootnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                SectionCard(
+                    eyebrow: "Results",
+                    title: "\(model.libraryItems.count) transcript\(model.libraryItems.count == 1 ? "" : "s")",
+                    detail: "Select a saved thread to inspect its raw match, copy it, reveal it, or transfer it into your selected target."
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if model.libraryItems.isEmpty {
+                            EmptyStateText("No indexed transcripts match this search.")
+                        } else {
+                            ForEach(model.libraryItems) { item in
+                                LibraryResultRow(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
+                                    .onTapGesture {
+                                        model.selectLibraryItem(item)
+                                    }
+                            }
+                        }
+                    }
+                }
+
+                if let item = model.selectedLibraryItem {
+                    SectionCard(
+                        eyebrow: "Selected",
+                        title: item.title,
+                        detail: "\(item.platform) · \(item.messageCount) messages · \(item.capturedAt)"
+                    ) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            if !item.snippet.isEmpty {
+                                Text(cleanSnippet(item.snippet))
+                                    .font(.tacketBody)
+                                    .foregroundStyle(.primary)
+                                    .textSelection(.enabled)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(TacketColors.recessed)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+
+                            PathField(label: "Bundle", value: item.path)
+
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(spacing: 10) {
+                                    Button("Transfer") {
+                                        model.transferLibraryItem(item)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(model.isRunning)
+                                    Button("Copy Transcript") {
+                                        model.copyLibraryTranscript(item)
+                                    }
+                                }
+                                HStack(spacing: 10) {
+                                    Button("Open Transcript") {
+                                        model.openLibraryTranscript(item)
+                                    }
+                                    Button("Reveal Bundle") {
+                                        model.revealLibraryItem(item)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                OutputPanel()
+            }
+            .padding(24)
+            .frame(maxWidth: 850, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(TacketColors.content)
+        .onAppear {
+            model.refreshLibrary()
+        }
+    }
+
+    private func cleanSnippet(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "[", with: "")
+            .replacingOccurrences(of: "]", with: "")
     }
 }
 
@@ -1000,7 +1571,7 @@ struct OutputPanel: View {
                 .font(.tacketLabel)
                 .foregroundStyle(.secondary)
             ScrollView {
-                Text(model.commandOutput.isEmpty ? "Actions and connector details will appear here." : model.commandOutput)
+                Text(model.commandOutput.isEmpty ? "Library activity and action details will appear here." : model.commandOutput)
                     .font(.tacketMono)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1128,6 +1699,43 @@ struct TargetRow: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(isSelected ? TacketColors.selected : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .contentShape(Rectangle())
+    }
+}
+
+struct LibraryResultRow: View {
+    let item: LibraryItem
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Circle()
+                    .fill(isSelected ? TacketColors.accent : TacketColors.border)
+                    .frame(width: 8, height: 8)
+                Text(item.title)
+                    .font(.tacketBody.weight(.semibold))
+                    .lineLimit(2)
+                Spacer(minLength: 0)
+                Text(item.platform)
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+            }
+            Text("\(item.messageCount) messages · \(item.capturedAt)")
+                .font(.tacketFootnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            if !item.snippet.isEmpty {
+                Text(item.snippet.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: ""))
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isSelected ? TacketColors.selected : TacketColors.recessed)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
     }

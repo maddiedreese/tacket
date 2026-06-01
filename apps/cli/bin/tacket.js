@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { indexLibraryFolder, listLibrary, removeMissingBundles, searchLibrary } from "@tacket/library";
 import { readTranscript, splitTranscript, writeBundle } from "@tacket/thread-format";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -13,6 +14,10 @@ const commands = {
   "install-native-host": installNativeHost,
   "status-native-host": statusNativeHost,
   "uninstall-native-host": uninstallNativeHost,
+  "library-index": libraryIndex,
+  "library-search": librarySearch,
+  "library-list": libraryList,
+  "library-remove-missing": libraryRemoveMissing,
   sample,
   transfer,
   help
@@ -79,6 +84,30 @@ async function uninstallNativeHost() {
   const manifestPath = nativeHostManifestPath();
   await rm(manifestPath, { force: true });
   console.log(`Removed Chrome native messaging host manifest: ${manifestPath}`);
+}
+
+async function libraryIndex(options) {
+  const folder = options.folder ?? options._[0];
+  if (!folder) throw new Error("Usage: tacket library-index --folder <path> [--db <library.sqlite>]");
+  const result = await indexLibraryFolder(folder, { db: options.db });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function librarySearch(options) {
+  const query = options._.join(" ").trim();
+  if (!query) throw new Error("Usage: tacket library-search <query> [--db <library.sqlite>] [--limit <n>]");
+  const result = await searchLibrary(query, { db: options.db, limit: options.limit });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function libraryList(options) {
+  const result = await listLibrary({ db: options.db });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function libraryRemoveMissing(options) {
+  const result = await removeMissingBundles({ db: options.db });
+  console.log(JSON.stringify(result, null, 2));
 }
 
 async function sample(options) {
@@ -155,6 +184,10 @@ Usage:
   tacket install-native-host --extension-id <chrome-extension-id>
   tacket status-native-host
   tacket uninstall-native-host
+  tacket library-index --folder ~/Documents/Tacket\\ Captures
+  tacket library-search "stripe webhook"
+  tacket library-list
+  tacket library-remove-missing
   tacket sample --out /tmp/tacket-demo
   tacket transfer <bundle.tacket> --to clipboard
   tacket transfer <bundle.tacket> --to codex
