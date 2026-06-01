@@ -6,6 +6,8 @@ It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gem
 
 Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
 
+The Chrome extension may be installed through the Chrome Web Store, but captured chat text still goes only to the local Tacket app through Chrome Native Messaging. Tacket does not send your transcripts to me or to a Tacket server.
+
 ## What It Does
 
 - Captures supported AI chats only after you click the extension.

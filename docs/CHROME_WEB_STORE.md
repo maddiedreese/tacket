@@ -21,6 +21,7 @@ Tacket is local-first:
 - no analytics, telemetry, backend account, or model/API calls
 - no background chat collection
 - local manifest warnings for possible secrets, without redaction or upload
+- Chrome Web Store distribution does not mean Tacket transcript content is sent to the developer or a Tacket server
 
 The extension works with the Tacket Mac app. Install the app, add the Chrome extension, click capture on a supported thread, then search or transfer the raw transcript from your local library.
 
@@ -55,7 +56,7 @@ These permissions allow the extension to read the current thread when the user r
 
 ## Privacy Practices
 
-Tacket does not collect, sell, transmit, or remotely process user data. Captured data remains local unless the user chooses to share or commit the generated files.
+Tacket does not collect, sell, transmit, or remotely process user data. Captured data remains local unless the user chooses to share or commit the generated files. Google may process normal Chrome Web Store installation and distribution metadata, but Tacket does not send captured transcript content to the developer or to a Tacket backend.
 
 ## Screenshot Checklist
 

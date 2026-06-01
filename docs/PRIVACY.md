@@ -12,6 +12,8 @@ Tacket is local-only and local-first by design. It saves raw AI transcripts as l
 
 The extension captures content only after the user clicks **Capture This Thread** on a supported AI chat page. The popup checks the active tab host and refuses capture outside ChatGPT, Claude, and Gemini. Captured thread content is sent to the local Tacket app through Chrome Native Messaging, not to a backend service.
 
+The recommended extension install path is the Chrome Web Store. That means Google handles extension distribution and may have normal store/install metadata. It does not change Tacket's capture path: transcript content is sent to the local Tacket app, not to the developer or a Tacket server.
+
 Captured thread content is stored locally in `.tacket` bundles. If a user chooses to place those bundles inside a git repository, normal git hygiene applies. Tacket treats files as user-controlled local artifacts.
 
 When the Library feature is used, Tacket indexes selected `.tacket` bundles into a local SQLite database at `~/Library/Application Support/Tacket/library.sqlite`. The index contains raw transcript text for local full-text search. It does not leave the machine, call a model, create embeddings, or sync anywhere.
