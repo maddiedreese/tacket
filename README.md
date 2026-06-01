@@ -58,7 +58,8 @@ The first automated transfer may trigger a macOS permission prompt. Tacket uses 
 Each capture is saved as a folder ending in `.tacket`:
 
 ```text
-example.tacket/
+2026-06-01 10.51 - ChatGPT - Planning the app.tacket/
+  README.md
   manifest.json
   messages.jsonl
   transcript.md
@@ -68,7 +69,7 @@ example.tacket/
     claude-code.md
 ```
 
-You can inspect the files yourself. The transcript is plain Markdown.
+You can inspect the files yourself. The folder name includes the capture date, source app, and thread title. If Tacket saves the same thread name twice, it adds a Finder-style suffix like `(2)`. The transcript is plain Markdown.
 
 ## Local Library
 

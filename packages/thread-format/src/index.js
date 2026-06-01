@@ -22,7 +22,7 @@ export function normalizeCapture(input) {
     normalizeMessage(message, index, platform, sourceUrl)
   );
   const id = input?.id ?? stableId(`${sourceUrl}:${now}:${normalizedMessages.length}`);
-  const title = sanitizeTitle(input?.title ?? titleFromUrl(sourceUrl) ?? "Untitled Thread");
+  const title = captureTitle(input?.title, sourceUrl, normalizedMessages);
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -121,8 +121,8 @@ export function splitTranscript(transcript, maxChars = 24000) {
 
 export async function writeBundle(input, outputRoot) {
   const capture = normalizeCapture(input);
-  const bundleName = `${slugify(capture.title)}-${capture.id.slice(0, 8)}.tacket`;
-  const bundlePath = path.join(outputRoot, bundleName);
+  await mkdir(outputRoot, { recursive: true });
+  const bundlePath = await reserveBundlePath(outputRoot, capture);
   const attachmentsPath = path.join(bundlePath, "attachments");
   const targetsPath = path.join(bundlePath, "targets");
   await mkdir(attachmentsPath, { recursive: true });
@@ -137,6 +137,7 @@ export async function writeBundle(input, outputRoot) {
   await writeFile(path.join(bundlePath, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   await writeFile(path.join(bundlePath, "messages.jsonl"), jsonl);
   await writeFile(path.join(bundlePath, "transcript.md"), transcript);
+  await writeFile(path.join(bundlePath, "README.md"), bundleReadme(bundle));
   await writeFile(path.join(targetsPath, "codex.md"), transcript);
   await writeFile(path.join(targetsPath, "claude-code.md"), transcript);
 
@@ -145,6 +146,75 @@ export async function writeBundle(input, outputRoot) {
     manifest,
     transcriptPath: path.join(bundlePath, "transcript.md")
   };
+}
+
+async function reserveBundlePath(outputRoot, capture) {
+  const baseName = bundleBaseName(capture);
+  for (let index = 1; index < 1000; index += 1) {
+    const suffix = index === 1 ? "" : ` (${index})`;
+    const candidate = path.join(outputRoot, `${baseName}${suffix}.tacket`);
+    try {
+      await mkdir(candidate);
+      return candidate;
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+    }
+  }
+  throw new Error("Could not create a unique .tacket bundle folder.");
+}
+
+function bundleBaseName(capture) {
+  return [
+    formatCapturedAtForFileName(capture.capturedAt),
+    platformLabel(capture.source?.platform),
+    sanitizeFileSegment(capture.title, 80)
+  ].filter(Boolean).join(" - ");
+}
+
+function formatCapturedAtForFileName(value) {
+  const date = new Date(value);
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const year = safeDate.getFullYear();
+  const month = String(safeDate.getMonth() + 1).padStart(2, "0");
+  const day = String(safeDate.getDate()).padStart(2, "0");
+  const hour = String(safeDate.getHours()).padStart(2, "0");
+  const minute = String(safeDate.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hour}.${minute}`;
+}
+
+function platformLabel(platform) {
+  if (platform === "chatgpt") return "ChatGPT";
+  if (platform === "claude") return "Claude";
+  if (platform === "gemini") return "Gemini";
+  return "AI Chat";
+}
+
+function sanitizeFileSegment(value, maxLength) {
+  const cleaned = String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .replace(/[. ]+$/gu, "")
+    .slice(0, maxLength)
+    .trim();
+  return cleaned || "Untitled Thread";
+}
+
+function bundleReadme(capture) {
+  return `# ${capture.title}
+
+This is a local Tacket capture.
+
+- Open \`transcript.md\` to read the full raw transcript.
+- \`attachments/\` contains any files Tacket was able to save locally.
+- \`targets/\` contains ready-to-transfer transcript files for coding agents.
+- \`manifest.json\` and \`messages.jsonl\` are used by Tacket to verify and search the capture.
+
+Source: ${platformLabel(capture.source?.platform)}
+Captured: ${capture.capturedAt}
+`;
 }
 
 export async function readBundle(bundlePath) {
@@ -367,6 +437,33 @@ function slugify(value) {
 
 function sanitizeTitle(value) {
   return String(value).replace(/\s+/gu, " ").trim().slice(0, 160) || "Untitled Thread";
+}
+
+function captureTitle(inputTitle, sourceUrl, messages) {
+  const title = sanitizeTitle(inputTitle ?? titleFromUrl(sourceUrl) ?? "");
+  if (!isGenericTitle(title)) return title;
+  return titleFromMessages(messages) ?? title;
+}
+
+function isGenericTitle(title) {
+  return /^(ChatGPT|Claude|Gemini|New chat|Temporary Chat|Conversation with Gemini|Untitled Thread)$/iu.test(title);
+}
+
+function titleFromMessages(messages) {
+  const text = messages
+    .find((message) => message.role === "user")
+    ?.content
+    ?.find((part) => part.type === "text")
+    ?.text;
+  if (!text) return null;
+  const firstLine = text
+    .replace(/\s+/gu, " ")
+    .split(/\b(?:please|reply|respond|include|do not)\b/iu)[0]
+    .trim()
+    .replace(/[.:;,!?-]+$/gu, "")
+    .trim();
+  const candidate = firstLine || text.replace(/\s+/gu, " ").trim();
+  return sanitizeTitle(candidate).slice(0, 80).trim() || null;
 }
 
 function stableId(value) {

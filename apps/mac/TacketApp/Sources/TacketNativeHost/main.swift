@@ -60,7 +60,12 @@ struct BundleWriter {
         let normalized = normalize(capture: rawCapture)
         let title = normalized.title
         let id = normalized.id
-        let bundleURL = outputRoot.appendingPathComponent("\(slug(title))-\(String(id.prefix(8))).tacket", isDirectory: true)
+        try FileManager.default.createDirectory(at: outputRoot, withIntermediateDirectories: true)
+        let bundleURL = try reserveBundleURL(
+            title: title,
+            platform: normalized.source["platform"] as? String,
+            capturedAt: normalized.capturedAt
+        )
         let attachmentsURL = bundleURL.appendingPathComponent("attachments", isDirectory: true)
         let targetsURL = bundleURL.appendingPathComponent("targets", isDirectory: true)
 
@@ -83,6 +88,8 @@ struct BundleWriter {
         )
 
         try jsonData(manifest, pretty: true).write(to: bundleURL.appendingPathComponent("manifest.json"))
+        try readme(title: title, source: normalized.source, capturedAt: normalized.capturedAt)
+            .write(to: bundleURL.appendingPathComponent("README.md"), atomically: true, encoding: .utf8)
         try messages
             .map { String(data: try jsonData($0, pretty: false), encoding: .utf8) ?? "{}" }
             .joined(separator: "\n")
@@ -113,11 +120,11 @@ struct BundleWriter {
         let url = source["url"] as? String ?? ""
         let platform = source["platform"] as? String ?? detectPlatform(url: url)
         let normalizedSource: [String: Any] = ["platform": platform, "url": url]
-        let title = sanitizeTitle(capture["title"] as? String ?? platform)
         let capturedAt = capture["capturedAt"] as? String ?? ISO8601DateFormatter().string(from: Date())
         let messages = (capture["messages"] as? [[String: Any]] ?? []).enumerated().map { index, message in
             normalize(message: message, index: index, source: normalizedSource)
         }
+        let title = captureTitle(capture["title"] as? String, messages: messages, fallback: platform)
         let id = capture["id"] as? String ?? UUID().uuidString.lowercased()
         return (id, title, normalizedSource, capturedAt, messages)
     }
@@ -274,6 +281,117 @@ struct BundleWriter {
         let collapsed = value.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return collapsed.isEmpty ? "Untitled Thread" : String(collapsed.prefix(160))
+    }
+
+    private func captureTitle(_ value: String?, messages: [[String: Any]], fallback: String) -> String {
+        let title = sanitizeTitle(value ?? fallback)
+        if !isGenericTitle(title) { return title }
+        return titleFromMessages(messages) ?? title
+    }
+
+    private func isGenericTitle(_ title: String) -> Bool {
+        let generic = [
+            "chatgpt",
+            "claude",
+            "gemini",
+            "new chat",
+            "temporary chat",
+            "conversation with gemini",
+            "untitled thread"
+        ]
+        return generic.contains(title.lowercased())
+    }
+
+    private func titleFromMessages(_ messages: [[String: Any]]) -> String? {
+        guard let userMessage = messages.first(where: { ($0["role"] as? String) == "user" }),
+              let content = userMessage["content"] as? [[String: Any]],
+              let part = content.first(where: { ($0["type"] as? String) == "text" }),
+              let text = part["text"] as? String else {
+            return nil
+        }
+        let collapsed = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        let pattern = "\\b(please|reply|respond|include|do not)\\b"
+        let firstRange = collapsed.range(of: pattern, options: [.regularExpression, .caseInsensitive])
+        let prefix = firstRange.map { String(collapsed[..<$0.lowerBound]) } ?? collapsed
+        let trimmed = prefix
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ".:;,!?-"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidate = trimmed.isEmpty ? collapsed.trimmingCharacters(in: .whitespacesAndNewlines) : trimmed
+        let title = sanitizeTitle(candidate)
+        return title.isEmpty ? nil : String(title.prefix(80)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func reserveBundleURL(title: String, platform: String?, capturedAt: String) throws -> URL {
+        let baseName = [
+            fileDate(capturedAt),
+            platformLabel(platform),
+            fileSegment(title, maxLength: 80)
+        ].joined(separator: " - ")
+
+        for index in 1..<1000 {
+            let suffix = index == 1 ? "" : " (\(index))"
+            let candidate = outputRoot.appendingPathComponent("\(baseName)\(suffix).tacket", isDirectory: true)
+            if !FileManager.default.fileExists(atPath: candidate.path) {
+                try FileManager.default.createDirectory(at: candidate, withIntermediateDirectories: false)
+                return candidate
+            }
+        }
+
+        throw NativeHostError.invalidCapture("Could not create a unique .tacket bundle folder.")
+    }
+
+    private func fileDate(_ value: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let fallbackFormatter = ISO8601DateFormatter()
+        fallbackFormatter.formatOptions = [.withInternetDateTime]
+        let date = formatter.date(from: value) ?? fallbackFormatter.date(from: value) ?? Date()
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        return String(
+            format: "%04d-%02d-%02d %02d.%02d",
+            components.year ?? 0,
+            components.month ?? 1,
+            components.day ?? 1,
+            components.hour ?? 0,
+            components.minute ?? 0
+        )
+    }
+
+    private func platformLabel(_ platform: String?) -> String {
+        if platform == "chatgpt" { return "ChatGPT" }
+        if platform == "claude" { return "Claude" }
+        if platform == "gemini" { return "Gemini" }
+        return "AI Chat"
+    }
+
+    private func fileSegment(_ value: String, maxLength: Int) -> String {
+        let folded = value.folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
+        let invalid = CharacterSet(charactersIn: #"<>:"/\|?*"#)
+            .union(.controlCharacters)
+        let pieces = folded
+            .components(separatedBy: invalid)
+            .joined(separator: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+        return pieces.isEmpty ? "Untitled Thread" : String(pieces.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func readme(title: String, source: [String: Any], capturedAt: String) -> String {
+        """
+        # \(title)
+
+        This is a local Tacket capture.
+
+        - Open `transcript.md` to read the full raw transcript.
+        - `attachments/` contains any files Tacket was able to save locally.
+        - `targets/` contains ready-to-transfer transcript files for coding agents.
+        - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the capture.
+
+        Source: \(platformLabel(source["platform"] as? String))
+        Captured: \(capturedAt)
+        """
     }
 
     private func slug(_ value: String) -> String {

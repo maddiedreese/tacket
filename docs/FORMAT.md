@@ -3,13 +3,18 @@
 A `.tacket` bundle is a directory containing raw thread data and renderings.
 
 ```text
-capture-name.tacket/
+2026-06-01 10.51 - ChatGPT - Planning the app.tacket/
+  README.md
   manifest.json
   messages.jsonl
   transcript.md
   attachments/
   targets/
 ```
+
+Bundle folder names are meant for Finder first: capture date and time, source platform, then thread title. When a name already exists, Tacket appends a Finder-style suffix such as `(2)`.
+
+`README.md` is a short human-readable guide to the bundle. The source of truth remains `manifest.json`, `messages.jsonl`, and `transcript.md`.
 
 ## `manifest.json`
 

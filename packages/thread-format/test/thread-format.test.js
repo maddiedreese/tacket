@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -65,9 +65,74 @@ test("writes and reads a .tacket bundle", async () => {
     );
     const manifest = await readBundle(result.bundlePath);
     const transcript = await readFile(result.transcriptPath, "utf8");
+    const readme = await readFile(path.join(result.bundlePath, "README.md"), "utf8");
+    assert.match(path.basename(result.bundlePath), /^\d{4}-\d{2}-\d{2} \d{2}\.\d{2} - Gemini - Gemini planning\.tacket$/u);
     assert.equal(manifest.source.platform, "gemini");
     assert.equal(manifest.messageCount, 1);
     assert.match(transcript, /Build the raw transfer/);
+    assert.match(readme, /Open `transcript\.md`/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("uses Finder-style suffixes for duplicate readable bundle names", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-name-test-"));
+  try {
+    const capture = {
+      title: "Same planning thread",
+      capturedAt: "2026-06-01T10:05:00",
+      source: { url: "https://chatgpt.com/c/same" },
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "Keep these easy to find." }]
+        }
+      ]
+    };
+    const first = await writeBundle(capture, root);
+    const second = await writeBundle(capture, root);
+    const names = (await readdir(root)).sort();
+
+    assert.equal(path.basename(first.bundlePath), "2026-06-01 10.05 - ChatGPT - Same planning thread.tacket");
+    assert.equal(path.basename(second.bundlePath), "2026-06-01 10.05 - ChatGPT - Same planning thread (2).tacket");
+    assert.deepEqual(names, [
+      "2026-06-01 10.05 - ChatGPT - Same planning thread (2).tacket",
+      "2026-06-01 10.05 - ChatGPT - Same planning thread.tacket"
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("uses the first user message when provider titles are generic", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "tacket-generic-title-test-"));
+  try {
+    const result = await writeBundle(
+      {
+        title: "ChatGPT",
+        capturedAt: "2026-06-01T11:00:00",
+        source: { url: "https://chatgpt.com/?temporary-chat=true" },
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Synthetic Tacket filesystem QA for ChatGPT. Reply with one sentence." }]
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Done." }]
+          }
+        ]
+      },
+      root
+    );
+
+    assert.equal(
+      path.basename(result.bundlePath),
+      "2026-06-01 11.00 - ChatGPT - Synthetic Tacket filesystem QA for ChatGPT.tacket"
+    );
+    const manifest = await readBundle(result.bundlePath);
+    assert.equal(manifest.title, "Synthetic Tacket filesystem QA for ChatGPT");
   } finally {
     await rm(root, { recursive: true, force: true });
   }
