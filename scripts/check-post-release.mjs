@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
-import { readFile, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -10,56 +11,68 @@ const release = JSON.parse(await readFile(path.join(root, "release.json"), "utf8
 const options = parseArgs(process.argv.slice(2));
 const tag = options.tag ?? `v${release.version}`;
 const checks = [];
+const artifactDir = options.dir
+  ? path.resolve(options.dir)
+  : await mkdtemp(path.join(os.tmpdir(), "tacket-post-release-"));
 
-await check("Website verifies", async () => {
-  await run("npm", ["run", "website:verify"]);
-});
+try {
+  await check("Website verifies", async () => {
+    await run("npm", ["run", "website:verify"]);
+  });
 
-await check("Release downloads verify", async () => {
-  const args = ["run", "release:verify-download", "--"];
-  if (options.dir) args.push("--dir", path.resolve(options.dir));
-  else args.push("--tag", tag);
-  await run("npm", args);
-});
+  await check("Release downloads verify", async () => {
+    if (!options.dir) await downloadReleaseArtifacts(artifactDir);
+    await run("npm", ["run", "release:verify-download", "--", "--dir", artifactDir]);
+  });
 
-await check("GitHub Release is published with required assets", async () => {
-  if (options.dir) {
-    return skip("GitHub Release is published with required assets", "local --dir mode");
-  }
-  const releaseInfo = await ghJson([
-    "release",
-    "view",
-    tag,
-    "--repo",
-    repo,
-    "--json",
-    "tagName,isDraft,isPrerelease,url,assets"
-  ]);
-  assert(releaseInfo.tagName === tag, `expected tag ${tag}, found ${releaseInfo.tagName}`);
-  assert(releaseInfo.isDraft === false, "release must not be a draft");
-  assert(releaseInfo.isPrerelease === false, "release must not be marked prerelease");
-  const assets = new Set((releaseInfo.assets ?? []).map((asset) => asset.name));
-  for (const asset of ["Tacket.dmg", "tacket-chrome-extension.zip", "SHA256SUMS"]) {
-    assert(assets.has(asset), `GitHub Release missing asset ${asset}`);
-  }
-});
+  await check("GitHub Release is published with required assets", async () => {
+    if (options.dir) {
+      return skip("GitHub Release is published with required assets", "local --dir mode");
+    }
+    const releaseInfo = await ghJson([
+      "release",
+      "view",
+      tag,
+      "--repo",
+      repo,
+      "--json",
+      "tagName,isDraft,isPrerelease,url,assets"
+    ]);
+    assert(releaseInfo.tagName === tag, `expected tag ${tag}, found ${releaseInfo.tagName}`);
+    assert(releaseInfo.isDraft === false, "release must not be a draft");
+    assert(releaseInfo.isPrerelease === false, "release must not be marked prerelease");
+    const assets = new Set((releaseInfo.assets ?? []).map((asset) => asset.name));
+    for (const asset of ["Tacket.dmg", "tacket-chrome-extension.zip", "SHA256SUMS"]) {
+      assert(assets.has(asset), `GitHub Release missing asset ${asset}`);
+    }
+  });
 
-await check("Gatekeeper assessment", async () => {
-  if (options["skip-gatekeeper"]) return;
-  if (options.dir) {
-    const dir = path.resolve(options.dir);
-    await assertDirectory(path.join(dir, "Tacket.app"));
-    await assertFile(path.join(dir, "Tacket.dmg"));
-    const args = ["run", "release:assess", "--", "--app", path.join(dir, "Tacket.app"), "--dmg", path.join(dir, "Tacket.dmg")];
-    if (options["dry-run-gatekeeper"]) args.push("--dry-run");
-    await run("npm", args);
-    return;
-  }
-  await run("npm", ["run", "release:assess"]);
-});
+  await check("Gatekeeper assessment", async () => {
+    if (options["skip-gatekeeper"]) return;
+    if (options.dir) {
+      await assertDirectory(path.join(artifactDir, "Tacket.app"));
+      await assertFile(path.join(artifactDir, "Tacket.dmg"));
+      const args = [
+        "run",
+        "release:assess",
+        "--",
+        "--app",
+        path.join(artifactDir, "Tacket.app"),
+        "--dmg",
+        path.join(artifactDir, "Tacket.dmg")
+      ];
+      if (options["dry-run-gatekeeper"]) args.push("--dry-run");
+      await run("npm", args);
+      return;
+    }
+    await assessDownloadedDmg(artifactDir);
+  });
 
-printSummary();
-if (checks.some((item) => item.status === "fail")) process.exit(1);
+  printSummary();
+  if (checks.some((item) => item.status === "fail")) process.exitCode = 1;
+} finally {
+  if (!options.dir) await rm(artifactDir, { recursive: true, force: true });
+}
 
 async function check(label, fn) {
   try {
@@ -105,6 +118,52 @@ function parseArgs(values) {
 
 async function ghJson(args) {
   return JSON.parse(await run("gh", args));
+}
+
+async function downloadReleaseArtifacts(dir) {
+  await run("gh", [
+    "release",
+    "download",
+    tag,
+    "--repo",
+    repo,
+    "--dir",
+    dir,
+    "--pattern",
+    "Tacket.dmg",
+    "--pattern",
+    "tacket-chrome-extension.zip",
+    "--pattern",
+    "SHA256SUMS",
+    "--clobber"
+  ]);
+}
+
+async function assessDownloadedDmg(dir) {
+  const dmgPath = path.join(dir, "Tacket.dmg");
+  await assertFile(dmgPath);
+  const mountRoot = await mkdtemp(path.join(os.tmpdir(), "tacket-post-release-mount-"));
+  const mountPoint = path.join(mountRoot, "Tacket");
+  await mkdir(mountPoint);
+  let mounted = false;
+  try {
+    await run("hdiutil", ["attach", dmgPath, "-nobrowse", "-readonly", "-mountpoint", mountPoint]);
+    mounted = true;
+    const appPath = path.join(mountPoint, "Tacket.app");
+    await assertDirectory(appPath);
+    const args = ["run", "release:assess", "--", "--app", appPath, "--dmg", dmgPath];
+    if (options["dry-run-gatekeeper"]) args.push("--dry-run");
+    await run("npm", args);
+  } finally {
+    if (mounted) {
+      try {
+        await run("hdiutil", ["detach", mountPoint]);
+      } catch {
+        await run("hdiutil", ["detach", mountPoint, "-force"]);
+      }
+    }
+    await rm(mountRoot, { recursive: true, force: true });
+  }
 }
 
 async function assertFile(file) {

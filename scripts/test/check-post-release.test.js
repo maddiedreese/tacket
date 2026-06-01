@@ -66,7 +66,8 @@ test("post-release check verifies published GitHub Release assets", async () => 
 
     const log = await readFile(logPath, "utf8");
     assert.match(log, /npm run website:verify/u);
-    assert.match(log, /npm run release:verify-download -- --tag v0\.1\.0/u);
+    assert.match(log, /gh release download v0\.1\.0 --repo maddiedreese\/tacket --dir .+ --pattern Tacket\.dmg --pattern tacket-chrome-extension\.zip --pattern SHA256SUMS --clobber/u);
+    assert.match(log, /npm run release:verify-download -- --dir .+/u);
     assert.match(log, /gh release view v0\.1\.0 --repo maddiedreese\/tacket --json tagName,isDraft,isPrerelease,url,assets/u);
   } finally {
     await rm(temp, { recursive: true, force: true });
@@ -127,6 +128,8 @@ exit 0
 set -euo pipefail
 printf 'gh %s\\n' "$*" >> "${logPath}"
 case "$*" in
+  release\\ download\\ v0.1.0\\ --repo\\ maddiedreese/tacket\\ --dir\\ *\\ --pattern\\ Tacket.dmg\\ --pattern\\ tacket-chrome-extension.zip\\ --pattern\\ SHA256SUMS\\ --clobber)
+    ;;
   "release view v0.1.0 --repo maddiedreese/tacket --json tagName,isDraft,isPrerelease,url,assets")
     cat <<'JSON'
 {"tagName":"v0.1.0","isDraft":${options.draft ? "true" : "false"},"isPrerelease":${options.prerelease ? "true" : "false"},"url":"https://github.com/maddiedreese/tacket/releases/tag/v0.1.0","assets":[${assetNames.map((name) => `{"name":"${name}"}`).join(",")}]}
