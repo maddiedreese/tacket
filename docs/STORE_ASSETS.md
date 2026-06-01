@@ -46,7 +46,7 @@ Prepare screenshots from synthetic data that show:
 - successful capture result with a local bundle path
 - Tacket Mac app connector setup
 - Tacket Mac app selected bundle review with local warning display
-- Tacket Mac app transfer target selector
+- Tacket Mac app local library search and transfer target selector
 - local `.tacket` bundle files in Finder
 
 ## Capture Rules
@@ -65,6 +65,6 @@ Prepare screenshots from synthetic data that show:
 - [ ] Generated screenshots have been reviewed after running `npm run store:screenshots`.
 - [ ] Small promotional image is exactly 440 by 280 pixels.
 - [ ] Extension icon matches the packaged 128 pixel icon.
-- [ ] The first screenshot makes Tacket's local-first raw transfer purpose obvious.
+- [ ] The first screenshot makes Tacket's local-first transcript library purpose obvious.
 - [ ] The native messaging/local app relationship is visible in at least one screenshot.
 - [ ] No screenshots imply background capture, cloud sync, analytics, or summarization.

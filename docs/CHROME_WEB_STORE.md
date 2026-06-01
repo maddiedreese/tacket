@@ -6,26 +6,27 @@ Tacket
 
 ## Short Description
 
-Capture AI chat threads locally and transfer raw transcripts to coding agents.
+Capture AI chat threads for a local, searchable transcript library.
 
 ## Detailed Description
 
-Tacket captures complete AI chat threads from supported pages and saves them locally on your Mac as inspectable `.tacket` bundles. It is built for moving planning conversations from ChatGPT, Claude, and Gemini into coding agents such as Codex and Claude Code without turning them into summaries. Long transcripts can be copied as ordered raw chunks.
+Tacket captures complete AI chat threads from supported pages and saves them locally on your Mac as inspectable `.tacket` bundles. It is built for keeping a private searchable transcript library from ChatGPT, Claude, and Gemini, then transferring exact raw conversations to Clipboard, Codex, or Claude Code when you need the full context. Long transcripts can be copied as ordered raw chunks.
 
 Tacket is local-first:
 
 - capture runs only after you click **Capture This Thread**
 - captured content is sent to the local Tacket Mac app through Chrome Native Messaging
 - bundles are written to your Mac
+- local library search stays on your Mac
 - no analytics, telemetry, backend account, or model/API calls
 - no background chat collection
 - local manifest warnings for possible secrets, without redaction or upload
 
-The extension works with the Tacket Mac app. Install the app, add the Chrome extension, click capture on a supported thread, then transfer the raw transcript into your coding agent.
+The extension works with the Tacket Mac app. Install the app, add the Chrome extension, click capture on a supported thread, then search or transfer the raw transcript from your local library.
 
 ## Single Purpose
 
-Tacket captures user-selected AI chat threads from supported providers and sends the captured thread to the local Tacket app for local storage and raw transcript transfer.
+Tacket captures user-selected AI chat threads from supported providers and sends the captured thread to the local Tacket app for local storage, local search, and raw transcript transfer.
 
 ## Permission Justification
 

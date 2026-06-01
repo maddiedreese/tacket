@@ -1,12 +1,10 @@
 # Tacket
 
-Tacket moves complete AI chat threads into coding agents without turning them into summaries.
+Tacket is a private local library for AI and agent transcripts.
 
-It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gemini. Click the extension on a supported chat page, save the full thread as a local `.tacket` bundle, search your saved transcript library, then transfer the raw transcript into Codex or Claude Code.
+It is a local-first Mac app with a Chrome extension for ChatGPT, Claude, and Gemini. Click the extension on a supported chat page, save the full thread as a local `.tacket` bundle, search the raw transcript later, then transfer the exact conversation to Clipboard, Codex, or Claude Code when you need it.
 
 Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
-
-Tacket is pre-release. Signed direct-download builds are coming with the first public release.
 
 ## What It Does
 
@@ -14,7 +12,8 @@ Tacket is pre-release. Signed direct-download builds are coming with the first p
 - Saves readable local bundles in `~/Documents/Tacket Captures`.
 - Indexes saved `.tacket` bundles into a local SQLite search library.
 - Preserves the raw transcript as Markdown and structured JSONL.
-- Transfers to Clipboard, Codex, or Claude Code.
+- Searches saved chats, code snippets, decisions, and errors without sending them anywhere.
+- Transfers exact raw transcripts to Clipboard, Codex, or Claude Code.
 - Uses no backend, no analytics, no telemetry, and no model/API calls.
 
 Tacket is not an agent harness. It does not run agents for you or reach into private app session stores.
@@ -28,7 +27,7 @@ Public releases will be the shortest path:
 3. Add the Tacket Chrome extension.
 4. Open Tacket once so it can install its local Chrome connector.
 
-Until the signed release is ready, you can try it from source:
+You can also build it from source:
 
 ```bash
 npm install

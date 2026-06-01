@@ -1,6 +1,6 @@
 # Architecture
 
-Tacket has three local components.
+Tacket has three local components that save, index, search, and transfer raw AI transcripts without a backend.
 
 ## Chrome Extension
 
@@ -24,7 +24,7 @@ Default development output:
 ~/Documents/Tacket Captures/
 ```
 
-The production Mac app owns host registration, output folder selection, and transfer target configuration. The selected capture directory is stored locally at:
+The production Mac app owns host registration, output folder selection, local library indexing/search, and transfer target configuration. The selected capture directory is stored locally at:
 
 ```text
 ~/Library/Application Support/Tacket/config.json
@@ -70,5 +70,5 @@ AI chat page
   -> extension sends payload to native host
   -> native host writes .tacket bundle
   -> Mac app/CLI indexes raw transcript locally
-  -> CLI/Mac app searches or transfers raw transcript to coding target
+  -> CLI/Mac app searches locally or transfers raw transcript to the chosen target
 ```

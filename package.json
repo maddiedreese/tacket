@@ -2,7 +2,7 @@
   "name": "tacket",
   "private": true,
   "version": "0.1.0",
-  "description": "Local-first raw AI thread transfer for coding agents.",
+  "description": "Local-first AI transcript library and raw handoff tool.",
   "license": "Apache-2.0",
   "type": "module",
   "workspaces": [

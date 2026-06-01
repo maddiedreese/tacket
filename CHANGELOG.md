@@ -12,8 +12,9 @@ Initial local-first v1.
 - Popup host guard that refuses capture outside supported chat domains.
 - Local Chrome Native Messaging bridge and packaged Swift native host.
 - `.tacket` bundle format with `manifest.json`, `messages.jsonl`, `transcript.md`, attachments, and target transcripts.
+- Local transcript library with SQLite full-text search over saved `.tacket` bundles.
 - Raw transcript transfer to clipboard, Codex, and Claude Code, with ordered chunking for long transcripts.
-- Mac app for connector setup, capture-folder selection, bundle review, transcript copy/open, and transfer.
+- Mac app for connector setup, capture-folder selection, local library search, bundle review, transcript copy/open, and transfer.
 - CLI for native-host install/status/remove, sample bundle generation, and transfer.
 - Local possible-secret warnings in bundle manifests without redacting raw transcript content.
 - JSON Schema validation for generated `.tacket` bundles.

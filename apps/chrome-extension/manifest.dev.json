@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tacket Dev",
   "version": "0.1.0",
-  "description": "Development build of Tacket with local file demo access.",
+  "description": "Development build of Tacket capture with local file demo access.",
   "action": {
     "default_title": "Tacket",
     "default_popup": "src/popup.html",

@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Tacket is local-first, so most setup issues are local connector, browser permission, or macOS permission issues.
+Tacket is local-first, so most setup issues are local connector, browser permission, local library, or macOS permission issues.
 
 ## The Extension Says Capture Failed
 
@@ -46,6 +46,18 @@ The Mac app stores the selected capture folder at:
 ```
 
 Use **Choose Capture Folder** or **Reset Folder** in the Mac app. The packaged Swift host and development Node host both read this config file. `TACKET_CAPTURE_DIR` overrides it for tests.
+
+## Library Search Finds Nothing
+
+Tacket only searches `.tacket` bundles that you have indexed. In the Mac app, open Library and click **Index Captures** to index the current capture folder, or choose another folder that contains `.tacket` bundles.
+
+The local search database is stored at:
+
+```text
+~/Library/Application Support/Tacket/library.sqlite
+```
+
+If files were moved or deleted, click **Remove Missing** and index the folder again.
 
 ## Terminal Paste Does Not Happen
 

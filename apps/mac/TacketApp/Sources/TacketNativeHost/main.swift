@@ -386,7 +386,7 @@ struct BundleWriter {
 
         - Open `transcript.md` to read the full raw transcript.
         - `attachments/` contains any files Tacket was able to save locally.
-        - `targets/` contains ready-to-transfer transcript files for coding agents.
+        - `targets/` contains ready-to-transfer transcript files for supported tools.
         - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the capture.
 
         Source: \(platformLabel(source["platform"] as? String))

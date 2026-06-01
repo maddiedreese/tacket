@@ -21,13 +21,14 @@
 
     <main class="document">
       <h1>Privacy Policy</h1>
-      <p>Last updated: May 31, 2026</p>
+      <p>Last updated: June 1, 2026</p>
 
       <h2>Local-only by design</h2>
       <p>
         Tacket captures AI chat threads only when you explicitly click Capture This Thread.
-        Captured data is sent to the local Tacket app through Chrome Native Messaging and
-        written to local files on your Mac.
+        Captured data is sent to the local Tacket app through Chrome Native Messaging,
+        written to local files on your Mac, and indexed locally only when you choose to
+        add it to your Tacket library.
       </p>
 
       <h2>What Tacket does not collect</h2>
@@ -52,6 +53,12 @@
         Captured `.tacket` bundles may contain private conversation text, code, images,
         and attachment references. You control where those files are stored and whether
         they are committed to git or shared with other tools.
+      </p>
+
+      <h2>Local search</h2>
+      <p>
+        Tacket's library search uses a SQLite database on your Mac. It does not create
+        embeddings, call a model, sync to a server, or send indexed transcript text to me.
       </p>
 
       <h2>Contact</h2>

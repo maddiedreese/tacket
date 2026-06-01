@@ -11,10 +11,10 @@ struct TacketApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 840, minHeight: 620)
+                .frame(minWidth: 780, minHeight: 560)
         }
         .windowStyle(.titleBar)
-        .defaultSize(width: 1040, height: 760)
+        .defaultSize(width: 940, height: 640)
     }
 }
 
@@ -1074,6 +1074,22 @@ struct BundleWarning: Identifiable {
     let messageIds: [String]
 }
 
+private func friendlyDate(_ value: String) -> String {
+    let fractional = ISO8601DateFormatter()
+    fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let plain = ISO8601DateFormatter()
+    plain.formatOptions = [.withInternetDateTime]
+
+    guard let date = fractional.date(from: value) ?? plain.date(from: value) else {
+        return value
+    }
+
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .short
+    return formatter.string(from: date)
+}
+
 struct ContentView: View {
     @EnvironmentObject private var model: TacketModel
     @State private var selectedSection: AppSection = .library
@@ -1084,7 +1100,7 @@ struct ContentView: View {
             Divider()
             HStack(alignment: .top, spacing: 0) {
                 SidebarView(selectedSection: $selectedSection)
-                    .frame(width: 250)
+                    .frame(width: 220)
                 Divider()
                 switch selectedSection {
                 case .library:
@@ -1095,6 +1111,7 @@ struct ContentView: View {
                     SettingsPanelView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .background(TacketColors.window)
         .tint(TacketColors.accent)
@@ -1111,27 +1128,27 @@ struct HeaderView: View {
     @EnvironmentObject private var model: TacketModel
 
     var body: some View {
-        HStack(alignment: .center, spacing: 18) {
+        HStack(alignment: .center, spacing: 14) {
             AppMark()
-                .frame(width: 46, height: 46)
+                .frame(width: 44, height: 44)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("Tacket")
                     .font(.tacketTitle)
-                Text("Move one raw AI chat thread into the coding tool you want next.")
+                Text("Save, search, and transfer raw AI transcripts locally.")
                     .font(.tacketBody)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer(minLength: 16)
+            Spacer(minLength: 12)
 
             HeaderButton(title: "Captures", action: model.revealCaptureDirectory)
             HeaderButton(title: "Docs", action: model.openDocs)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 18)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 }
 
@@ -1140,44 +1157,45 @@ struct SidebarView: View {
     @Binding var selectedSection: AppSection
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            SidebarSection(title: "How it works") {
-                WorkflowStep(number: "1", title: "Capture", detail: "Open a supported chat and capture the thread.")
-                WorkflowStep(number: "2", title: "Review", detail: "Pick the saved .tacket bundle on this Mac.")
-                WorkflowStep(number: "3", title: "Transfer", detail: "Copy or paste the raw transcript into a coding session.")
-            }
-
-            SidebarSection(title: "Library") {
-                SidebarNavRow(title: "Search transcripts", isSelected: selectedSection == .library)
-                    .onTapGesture {
-                        selectedSection = .library
-                    }
-            }
-
-            SidebarSection(title: "Sources") {
-                SourceButton(title: "ChatGPT", action: model.openChatGPT)
-                SourceButton(title: "Claude", action: model.openClaude)
-                SourceButton(title: "Gemini", action: model.openGemini)
-            }
-
-            SidebarSection(title: "Targets") {
-                ForEach(TacketModel.TransferTarget.allCases) { target in
-                    TargetRow(target: target, isSelected: model.selectedTarget == target)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                SidebarSection(title: "Library") {
+                    SidebarNavRow(title: "Search transcripts", systemImage: "magnifyingglass", isSelected: selectedSection == .library)
                         .onTapGesture {
-                            selectedSection = .transfer
-                            model.selectedTarget = target
+                            selectedSection = .library
                         }
                 }
-            }
 
-            SidebarNavRow(title: "Settings", isSelected: selectedSection == .settings)
-                .onTapGesture {
-                    selectedSection = .settings
+                SidebarSection(title: "Sources") {
+                    SourceButton(title: "ChatGPT", action: model.openChatGPT)
+                    SourceButton(title: "Claude", action: model.openClaude)
+                    SourceButton(title: "Gemini", action: model.openGemini)
                 }
 
-            Spacer(minLength: 0)
+                SidebarSection(title: "Transfer targets") {
+                    ForEach(TacketModel.TransferTarget.allCases) { target in
+                        TargetRow(target: target, isSelected: model.selectedTarget == target)
+                            .onTapGesture {
+                                selectedSection = .transfer
+                                model.selectedTarget = target
+                            }
+                    }
+                }
+
+                SidebarSection(title: "Flow") {
+                    WorkflowStep(number: "1", title: "Capture", detail: "Save a supported chat.")
+                    WorkflowStep(number: "2", title: "Find", detail: "Search saved raw transcripts.")
+                    WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the thread.")
+                }
+
+                SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
+                    .onTapGesture {
+                        selectedSection = .settings
+                    }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(20)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(TacketColors.sidebar)
     }
@@ -1295,126 +1313,233 @@ struct LibraryPanelView: View {
     @EnvironmentObject private var model: TacketModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                StatusBanner(status: model.status)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    StatusBanner(status: model.status)
 
-                SectionCard(
-                    eyebrow: "Library",
-                    title: "Search raw transcripts",
-                    detail: "Index local .tacket bundles and search across saved ChatGPT, Claude, Gemini, Codex, and Claude Code handoffs without sending anything off this Mac."
-                ) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        TextField("Search transcripts", text: $model.librarySearchText)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.tacketBody)
-                            .onSubmit {
-                                model.searchLibrary()
-                            }
-                            .onChange(of: model.librarySearchText) { _ in
-                                model.searchLibrary()
-                            }
+                    SectionCard(
+                        eyebrow: "Library",
+                        title: "Find saved threads",
+                        detail: "Search raw local transcripts from Tacket captures and imported bundles. Nothing leaves this Mac."
+                    ) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SearchBox(text: $model.librarySearchText)
+                                .onSubmit {
+                                    model.searchLibrary()
+                                }
+                                .onChange(of: model.librarySearchText) { _ in
+                                    model.searchLibrary()
+                                }
 
-                        VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 10) {
-                                Button("Index Capture Folder") {
+                                Button {
                                     model.indexCaptureFolderForLibrary()
+                                } label: {
+                                    Label("Index Captures", systemImage: "tray.and.arrow.down")
                                 }
                                 .buttonStyle(.borderedProminent)
-                                Button("Add Folder") {
-                                    model.chooseFolderAndIndexLibrary()
-                                }
-                            }
-                            HStack(spacing: 10) {
-                                Button("Refresh") {
-                                    model.refreshLibrary()
-                                }
-                                Button("Remove Missing") {
-                                    model.removeMissingLibraryBundles()
-                                }
-                            }
-                        }
 
-                        Text(model.libraryStatus)
-                            .font(.tacketFootnote)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                SectionCard(
-                    eyebrow: "Results",
-                    title: "\(model.libraryItems.count) transcript\(model.libraryItems.count == 1 ? "" : "s")",
-                    detail: "Select a saved thread to inspect its raw match, copy it, reveal it, or transfer it into your selected target."
-                ) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        if model.libraryItems.isEmpty {
-                            EmptyStateText("No indexed transcripts match this search.")
-                        } else {
-                            ForEach(model.libraryItems) { item in
-                                LibraryResultRow(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
-                                    .onTapGesture {
-                                        model.selectLibraryItem(item)
+                                Menu {
+                                    Button("Add Another Folder") {
+                                        model.chooseFolderAndIndexLibrary()
                                     }
+                                    Button("Refresh Library") {
+                                        model.refreshLibrary()
+                                    }
+                                    Button("Remove Missing Bundles") {
+                                        model.removeMissingLibraryBundles()
+                                    }
+                                } label: {
+                                    Label("More", systemImage: "ellipsis.circle")
+                                }
+                            }
+
+                            HStack(spacing: 8) {
+                                MetadataPill(text: "\(model.libraryItems.count) shown")
+                                Text(model.libraryStatus)
+                                    .font(.tacketFootnote)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     }
+
+                    libraryContent(isWide: geometry.size.width >= 780)
+
+                    OutputPanel()
                 }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .background(TacketColors.content)
+            .onAppear {
+                model.refreshLibrary()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func libraryContent(isWide: Bool) -> some View {
+        if isWide {
+            HStack(alignment: .top, spacing: 14) {
+                resultsCard
+                    .frame(minWidth: 300, maxWidth: .infinity)
 
                 if let item = model.selectedLibraryItem {
-                    SectionCard(
-                        eyebrow: "Selected",
-                        title: item.title,
-                        detail: "\(item.platform) · \(item.messageCount) messages · \(item.capturedAt)"
-                    ) {
-                        VStack(alignment: .leading, spacing: 14) {
-                            if !item.snippet.isEmpty {
-                                Text(cleanSnippet(item.snippet))
-                                    .font(.tacketBody)
-                                    .foregroundStyle(.primary)
-                                    .textSelection(.enabled)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(TacketColors.recessed)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
+                    LibraryDetailCard(item: item)
+                        .frame(minWidth: 280, maxWidth: .infinity)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        } else {
+            VStack(alignment: .leading, spacing: 14) {
+                resultsCard
 
-                            PathField(label: "Bundle", value: item.path)
+                if let item = model.selectedLibraryItem {
+                    LibraryDetailCard(item: item)
+                }
+            }
+        }
+    }
 
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack(spacing: 10) {
-                                    Button("Transfer") {
-                                        model.transferLibraryItem(item)
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(model.isRunning)
-                                    Button("Copy Transcript") {
-                                        model.copyLibraryTranscript(item)
-                                    }
-                                }
-                                HStack(spacing: 10) {
-                                    Button("Open Transcript") {
-                                        model.openLibraryTranscript(item)
-                                    }
-                                    Button("Reveal Bundle") {
-                                        model.revealLibraryItem(item)
-                                    }
-                                }
+    private var resultsCard: some View {
+        SectionCard(
+            eyebrow: "Results",
+            title: "\(model.libraryItems.count) transcript\(model.libraryItems.count == 1 ? "" : "s")",
+            detail: model.librarySearchText.isEmpty ? "Recent indexed captures." : "Matches for “\(model.librarySearchText)”"
+        ) {
+            VStack(alignment: .leading, spacing: 8) {
+                if model.libraryItems.isEmpty {
+                    LibraryEmptyState {
+                        model.indexCaptureFolderForLibrary()
+                    }
+                } else {
+                    ForEach(model.libraryItems) { item in
+                        LibraryResultRow(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
+                            .onTapGesture {
+                                model.selectLibraryItem(item)
                             }
-                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct SearchBox: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search threads, code, decisions, errors...", text: $text)
+                .textFieldStyle(.plain)
+                .font(.tacketBody)
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(TacketColors.recessed)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(TacketColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct LibraryEmptyState: View {
+    let indexAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .foregroundStyle(TacketColors.accent)
+                Text("No matching transcripts yet")
+                    .font(.tacketBody.weight(.semibold))
+            }
+            Text("Index your capture folder, then search for a thread title, code snippet, decision, or error message.")
+                .font(.tacketFootnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Index Captures", action: indexAction)
+                .buttonStyle(.borderedProminent)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(TacketColors.recessed)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct LibraryDetailCard: View {
+    @EnvironmentObject private var model: TacketModel
+    let item: LibraryItem
+
+    var body: some View {
+        SectionCard(
+            eyebrow: "Selected",
+            title: item.title,
+            detail: "\(item.platform.capitalized) · \(item.messageCount) messages · \(friendlyDate(item.capturedAt))"
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                if !item.snippet.isEmpty {
+                    Text(cleanSnippet(item.snippet))
+                        .font(.tacketBody)
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                        .lineLimit(7)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(TacketColors.recessed)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                PathField(label: "Bundle", value: item.path)
+
+                HStack(spacing: 8) {
+                    Button {
+                        model.transferLibraryItem(item)
+                    } label: {
+                        Label("Transfer", systemImage: "arrow.right.doc.on.clipboard")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isRunning)
+
+                    Button {
+                        model.copyLibraryTranscript(item)
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
                     }
                 }
 
-                OutputPanel()
+                HStack(spacing: 8) {
+                    Button {
+                        model.openLibraryTranscript(item)
+                    } label: {
+                        Label("Open", systemImage: "doc.text")
+                    }
+                    Button {
+                        model.revealLibraryItem(item)
+                    } label: {
+                        Label("Reveal", systemImage: "folder")
+                    }
+                }
             }
-            .padding(24)
-            .frame(maxWidth: 850, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-        .background(TacketColors.content)
-        .onAppear {
-            model.refreshLibrary()
         }
     }
 
@@ -1422,6 +1547,20 @@ struct LibraryPanelView: View {
         value
             .replacingOccurrences(of: "[", with: "")
             .replacingOccurrences(of: "]", with: "")
+    }
+}
+
+struct MetadataPill: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.tacketFootnote.weight(.semibold))
+            .foregroundStyle(TacketColors.accent)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(TacketColors.selected)
+            .clipShape(Capsule())
     }
 }
 
@@ -1436,7 +1575,7 @@ struct SettingsPanelView: View {
                 SectionCard(
                     eyebrow: "Settings",
                     title: "Capture location",
-                    detail: "Choose where Tacket saves local thread bundles before you transfer them."
+                    detail: "Choose where Tacket saves local thread bundles before you search or transfer them."
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
                         PathField(label: "Capture folder", value: model.captureDirectory.path)
@@ -1757,9 +1896,10 @@ struct TargetRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(isSelected ? TacketColors.accent : TacketColors.border)
-                .frame(width: 8, height: 8)
+            Image(systemName: targetIcon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isSelected ? TacketColors.accent : .secondary)
+                .frame(width: 16)
             Text(target.label)
                 .font(.tacketBody)
             Spacer(minLength: 0)
@@ -1770,6 +1910,14 @@ struct TargetRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
     }
+
+    private var targetIcon: String {
+        switch target {
+        case .clipboard: return "doc.on.clipboard"
+        case .codex: return "terminal"
+        case .claudeCode: return "chevron.left.forwardslash.chevron.right"
+        }
+    }
 }
 
 struct LibraryResultRow: View {
@@ -1779,9 +1927,10 @@ struct LibraryResultRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Circle()
-                    .fill(isSelected ? TacketColors.accent : TacketColors.border)
-                    .frame(width: 8, height: 8)
+                Image(systemName: "doc.text")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(isSelected ? TacketColors.accent : .secondary)
+                    .frame(width: 16)
                 Text(item.title)
                     .font(.tacketBody.weight(.semibold))
                     .lineLimit(2)
@@ -1790,7 +1939,7 @@ struct LibraryResultRow: View {
                     .font(.tacketFootnote)
                     .foregroundStyle(.secondary)
             }
-            Text("\(item.messageCount) messages · \(item.capturedAt)")
+            Text("\(item.messageCount) messages · \(friendlyDate(item.capturedAt))")
                 .font(.tacketFootnote)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -1811,13 +1960,15 @@ struct LibraryResultRow: View {
 
 struct SidebarNavRow: View {
     let title: String
+    let systemImage: String
     let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(isSelected ? TacketColors.accent : TacketColors.border)
-                .frame(width: 8, height: 8)
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isSelected ? TacketColors.accent : .secondary)
+                .frame(width: 16)
             Text(title)
                 .font(.tacketBody)
             Spacer(minLength: 0)
@@ -1883,32 +2034,74 @@ struct HeaderButton: View {
 
 struct AppMark: View {
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(TacketColors.accent)
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color.white)
-                .frame(width: 24, height: 16)
-                .offset(x: 3, y: 2)
-            VStack(spacing: 3) {
-                Capsule().fill(TacketColors.paperLine).frame(width: 13, height: 2)
-                Capsule().fill(TacketColors.paperLine).frame(width: 17, height: 2)
-                Capsule().fill(TacketColors.paperLine).frame(width: 14, height: 2)
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            let scale = side / 512
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 108 * scale)
+                    .fill(TacketColors.accent)
+                    .frame(width: side, height: side)
+
+                Group {
+                    Path { path in
+                        path.move(to: CGPoint(x: 321 * scale, y: 329 * scale))
+                        path.addLine(to: CGPoint(x: 335 * scale, y: 315 * scale))
+                        path.addLine(to: CGPoint(x: 411 * scale, y: 405 * scale))
+                        path.closeSubpath()
+                    }
+                    .fill(TacketColors.pin)
+
+                    Path { path in
+                        path.move(to: CGPoint(x: 328 * scale, y: 322 * scale))
+                        path.addLine(to: CGPoint(x: 335 * scale, y: 315 * scale))
+                        path.addLine(to: CGPoint(x: 411 * scale, y: 405 * scale))
+                        path.closeSubpath()
+                    }
+                    .fill(TacketColors.pinDark)
+
+                    RoundedRectangle(cornerRadius: 24 * scale)
+                        .fill(Color(red: 0.98, green: 0.98, blue: 0.97))
+                        .frame(width: 262 * scale, height: 154 * scale)
+                        .offset(x: (273 - 256) * scale, y: (256 - 256) * scale)
+
+                    VStack(spacing: 30 * scale) {
+                        Capsule().fill(TacketColors.paperLine).frame(width: 174 * scale, height: 8 * scale)
+                        Capsule().fill(TacketColors.paperLine).frame(width: 174 * scale, height: 8 * scale)
+                        Capsule().fill(TacketColors.paperLine).frame(width: 174 * scale, height: 8 * scale)
+                    }
+                    .offset(x: (273 - 256) * scale, y: (279 - 256) * scale)
+
+                    Path { path in
+                        path.move(to: CGPoint(x: 213 * scale, y: 223 * scale))
+                        path.addLine(to: CGPoint(x: 223 * scale, y: 213 * scale))
+                        path.addLine(to: CGPoint(x: 259 * scale, y: 251 * scale))
+                        path.addLine(to: CGPoint(x: 249 * scale, y: 261 * scale))
+                        path.closeSubpath()
+                    }
+                    .fill(TacketColors.pin)
+
+                    Path { path in
+                        path.move(to: CGPoint(x: 223 * scale, y: 213 * scale))
+                        path.addLine(to: CGPoint(x: 259 * scale, y: 251 * scale))
+                        path.addLine(to: CGPoint(x: 254 * scale, y: 256 * scale))
+                        path.closeSubpath()
+                    }
+                    .fill(TacketColors.pinDark)
+
+                    Circle()
+                        .fill(TacketColors.pin)
+                        .frame(width: 136 * scale, height: 136 * scale)
+                        .offset(x: (169 - 256) * scale, y: (175 - 256) * scale)
+
+                    Circle()
+                        .fill(Color.white.opacity(0.45))
+                        .frame(width: 24 * scale, height: 24 * scale)
+                        .offset(x: (139 - 256) * scale, y: (145 - 256) * scale)
+                }
+                .offset(x: -19 * scale, y: -15 * scale)
             }
-            .offset(x: 5, y: 2)
-            Capsule()
-                .fill(TacketColors.pin)
-                .frame(width: 6, height: 29)
-                .rotationEffect(.degrees(-39))
-                .offset(x: -2, y: 7)
-            Circle()
-                .fill(TacketColors.pin)
-                .frame(width: 18, height: 18)
-                .offset(x: -8, y: -7)
-            Circle()
-                .fill(Color.white.opacity(0.45))
-                .frame(width: 5, height: 5)
-                .offset(x: -12, y: -11)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
     }
 }
@@ -1917,6 +2110,7 @@ enum TacketColors {
     static let accent = Color(red: 0.04, green: 0.36, blue: 0.56)
     static let selected = Color(red: 0.04, green: 0.36, blue: 0.56).opacity(0.12)
     static let pin = Color(red: 0.96, green: 0.74, blue: 0.34)
+    static let pinDark = Color(red: 1.00, green: 0.75, blue: 0.28)
     static let paperLine = Color(red: 0.78, green: 0.79, blue: 0.78)
     static let success = Color(red: 0.12, green: 0.50, blue: 0.34)
     static let warning = Color(red: 0.78, green: 0.48, blue: 0.12)

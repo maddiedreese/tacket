@@ -9,12 +9,12 @@ npm install
 npm run verify
 ```
 
-The project intentionally keeps capture and transfer local-first. Contributions should preserve these rules:
+The project intentionally keeps capture, library search, and transfer local-first. Contributions should preserve these rules:
 
 - no backend requirement
 - no analytics
 - no background capture
-- no summarization in v1 transfer paths
+- no forced summarization in library, search, or transfer paths
 - capture only after user action
 - raw transcripts remain inspectable local files
 

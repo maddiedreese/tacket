@@ -113,7 +113,7 @@ async function fakeExecutable(binDir, name, source) {
 
 function listingCopy() {
   return `Tacket
-Capture AI chat threads locally
+Capture AI chat threads for a local, searchable transcript library
 Single Purpose
 Permission Justification
 \`activeTab\`

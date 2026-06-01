@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Tacket v1 is local-first and does not summarize raw transfer payloads. Please avoid including private transcript content in public feature requests.
+        Tacket v1 is local-first and does not summarize raw transcript library, search, or transfer payloads. Please avoid including private transcript content in public feature requests.
   - type: textarea
     id: problem
     attributes:
@@ -19,6 +19,7 @@ body:
     attributes:
       label: Area
       options:
+        - Local transcript library/search
         - Chat-to-coding transfer
         - Coding-to-coding transfer
         - Chrome capture
@@ -43,4 +44,4 @@ body:
       options:
         - label: This can work without a backend.
         - label: This can work without analytics or telemetry.
-        - label: This preserves raw transcript transfer without forced summarization.
+        - label: This preserves raw transcript storage, search, and transfer without forced summarization.

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tacket",
   "version": "0.1.0",
-  "description": "Capture full AI chat threads locally and transfer raw transcripts to coding agents.",
+  "description": "Capture full AI chat threads for your local Tacket transcript library.",
   "action": {
     "default_title": "Tacket",
     "default_popup": "src/popup.html",

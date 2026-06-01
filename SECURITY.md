@@ -18,9 +18,9 @@ Useful reports include:
 
 - the affected Tacket version or commit
 - macOS and Chrome versions
-- whether the issue affects capture, native messaging, local bundle writing, transfer automation, or release packaging
+- whether the issue affects capture, native messaging, local bundle writing, library indexing/search, transfer automation, or release packaging
 - a minimal reproduction that does not include real private chat content or credentials
 
 ## Local Data Expectations
 
-Tacket should not upload captured chat content, telemetry, analytics, crash reports, or model/API requests. `.tacket` bundles are local files controlled by the user and may contain sensitive data. Security fixes should preserve the v1 guarantee that raw transfer paths do not summarize, redact, or remotely process transcript content.
+Tacket should not upload captured chat content, telemetry, analytics, crash reports, or model/API requests. `.tacket` bundles and the local library database are files controlled by the user and may contain sensitive data. Security fixes should preserve the v1 guarantee that library, search, and raw transfer paths do not summarize, redact, or remotely process transcript content.

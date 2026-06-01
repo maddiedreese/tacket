@@ -47,7 +47,7 @@ async function verifyListingCopy() {
   const listing = await readFile(path.join(storeDir, "listing.md"), "utf8");
   for (const phrase of [
     "Tacket",
-    "Capture AI chat threads locally",
+    "Capture AI chat threads for a local, searchable transcript library",
     "Single Purpose",
     "Permission Justification",
     "`activeTab`",

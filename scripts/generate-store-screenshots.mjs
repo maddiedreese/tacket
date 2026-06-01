@@ -13,8 +13,8 @@ const scenes = [
   {
     name: "01-capture-popup-1280x800.png",
     eyebrow: "User-click capture",
-    title: "Capture a supported AI thread only when you ask.",
-    body: "Tacket reads ChatGPT, Claude, and Gemini pages after the extension button is clicked.",
+    title: "Save a supported AI thread only when you ask.",
+    body: "Tacket adds ChatGPT, Claude, and Gemini conversations to your local transcript library after you click capture.",
     mockup: popupMockup()
   },
   {
@@ -26,9 +26,9 @@ const scenes = [
   },
   {
     name: "03-transfer-targets-1280x800.png",
-    eyebrow: "Transfer",
-    title: "Move complete context into Codex or Claude Code.",
-    body: "Tacket copies ordered raw transcript chunks and can launch Terminal for the target coding agent.",
+    eyebrow: "Search and transfer",
+    title: "Find the raw context, then send it where it belongs.",
+    body: "Tacket searches local transcript text and can copy or launch ordered raw chunks for Codex or Claude Code.",
     mockup: transferMockup()
   }
 ];
