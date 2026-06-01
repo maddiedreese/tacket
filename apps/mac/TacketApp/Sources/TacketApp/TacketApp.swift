@@ -581,21 +581,32 @@ struct BundleWarning: Identifiable {
 
 struct ContentView: View {
     @EnvironmentObject private var model: TacketModel
+    @State private var selectedSection: AppSection = .transfer
 
     var body: some View {
         VStack(spacing: 0) {
             HeaderView()
             Divider()
             HStack(alignment: .top, spacing: 0) {
-                SidebarView()
+                SidebarView(selectedSection: $selectedSection)
                     .frame(width: 250)
                 Divider()
-                MainPanelView()
+                switch selectedSection {
+                case .transfer:
+                    MainPanelView()
+                case .settings:
+                    SettingsPanelView()
+                }
             }
         }
         .background(TacketColors.window)
         .tint(TacketColors.accent)
     }
+}
+
+enum AppSection {
+    case transfer
+    case settings
 }
 
 struct HeaderView: View {
@@ -619,7 +630,6 @@ struct HeaderView: View {
             Spacer(minLength: 16)
 
             HeaderButton(title: "Captures", action: model.revealCaptureDirectory)
-            HeaderButton(title: "Chrome", action: model.openChromeExtensions)
             HeaderButton(title: "Docs", action: model.openDocs)
         }
         .padding(.horizontal, 24)
@@ -629,6 +639,7 @@ struct HeaderView: View {
 
 struct SidebarView: View {
     @EnvironmentObject private var model: TacketModel
+    @Binding var selectedSection: AppSection
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -648,10 +659,16 @@ struct SidebarView: View {
                 ForEach(TacketModel.TransferTarget.allCases) { target in
                     TargetRow(target: target, isSelected: model.selectedTarget == target)
                         .onTapGesture {
+                            selectedSection = .transfer
                             model.selectedTarget = target
                         }
                 }
             }
+
+            SidebarNavRow(title: "Settings", isSelected: selectedSection == .settings)
+                .onTapGesture {
+                    selectedSection = .settings
+                }
 
             Spacer(minLength: 0)
         }
@@ -663,67 +680,11 @@ struct SidebarView: View {
 
 struct MainPanelView: View {
     @EnvironmentObject private var model: TacketModel
-    @State private var showsAdvancedConnector = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 StatusBanner(status: model.status)
-
-                SectionCard(
-                    eyebrow: "Setup",
-                    title: "Chrome connector",
-                    detail: "The browser extension captures the page. The local connector writes the raw thread bundle on this Mac."
-                ) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        ConnectorStatusView()
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 10) {
-                                Button("Open Chrome Extensions") {
-                                    model.openChromeExtensions()
-                                }
-                                Button("Reveal Extension Folder") {
-                                    model.openExtensionFolder()
-                                }
-                            }
-                            HStack(spacing: 10) {
-                                Button("Copy Folder Path") {
-                                    model.copyExtensionFolderPath()
-                                }
-                                Button("Check Connector") {
-                                    model.refreshConnectorStatus()
-                                }
-                            }
-                        }
-
-                        DisclosureGroup("Advanced: local development extension", isExpanded: $showsAdvancedConnector) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Use this while Tacket is running from source or before the official Chrome Web Store extension ID is built into the app.")
-                                    .font(.tacketFootnote)
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-
-                                HStack(spacing: 10) {
-                                    TextField("Chrome extension ID", text: $model.extensionId)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(.body, design: .monospaced))
-                                    Button("Install Connector") {
-                                        model.installConnector()
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(model.isRunning)
-                                }
-
-                                Button("Remove Connector") {
-                                    model.uninstallConnector()
-                                }
-                            }
-                            .padding(.top, 10)
-                        }
-                        .font(.tacketBody)
-                    }
-                }
 
                 SectionCard(
                     eyebrow: "Captures",
@@ -812,6 +773,103 @@ struct MainPanelView: View {
                                 }
                             }
                         }
+                    }
+                }
+
+                OutputPanel()
+            }
+            .padding(24)
+            .frame(maxWidth: 850, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(TacketColors.content)
+    }
+}
+
+struct SettingsPanelView: View {
+    @EnvironmentObject private var model: TacketModel
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                StatusBanner(status: model.status)
+
+                SectionCard(
+                    eyebrow: "Settings",
+                    title: "Capture location",
+                    detail: "Choose where Tacket saves local thread bundles before you transfer them."
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        PathField(label: "Capture folder", value: model.captureDirectory.path)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 10) {
+                                Button("Reveal Folder") {
+                                    model.revealCaptureDirectory()
+                                }
+                                Button("Choose Capture Folder") {
+                                    model.chooseCaptureDirectory()
+                                }
+                            }
+                            Button("Reset Folder") {
+                                model.resetCaptureDirectory()
+                            }
+                        }
+                    }
+                }
+
+                SectionCard(
+                    eyebrow: "Advanced",
+                    title: "Chrome connector",
+                    detail: "For local development, install or inspect the native messaging connector that lets the Chrome extension save captures on this Mac."
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ConnectorStatusView()
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 10) {
+                                Button("Open Chrome Extensions") {
+                                    model.openChromeExtensions()
+                                }
+                                Button("Reveal Extension Folder") {
+                                    model.openExtensionFolder()
+                                }
+                            }
+                            HStack(spacing: 10) {
+                                Button("Copy Folder Path") {
+                                    model.copyExtensionFolderPath()
+                                }
+                                Button("Check Connector") {
+                                    model.refreshConnectorStatus()
+                                }
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Manual extension IDs are only needed for unpacked development builds. The official Chrome Web Store ID will be built into Tacket later.")
+                                .font(.tacketFootnote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            HStack(spacing: 10) {
+                                TextField("Chrome extension ID", text: $model.extensionId)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.system(.body, design: .monospaced))
+                                Button("Install Connector") {
+                                    model.installConnector()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(model.isRunning)
+                            }
+
+                            Button("Remove Connector") {
+                                model.uninstallConnector()
+                            }
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(TacketColors.recessed)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
 
@@ -1064,6 +1122,27 @@ struct TargetRow: View {
                 .fill(isSelected ? TacketColors.accent : TacketColors.border)
                 .frame(width: 8, height: 8)
             Text(target.label)
+                .font(.tacketBody)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(isSelected ? TacketColors.selected : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .contentShape(Rectangle())
+    }
+}
+
+struct SidebarNavRow: View {
+    let title: String
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(isSelected ? TacketColors.accent : TacketColors.border)
+                .frame(width: 8, height: 8)
+            Text(title)
                 .font(.tacketBody)
             Spacer(minLength: 0)
         }
