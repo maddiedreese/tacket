@@ -12,6 +12,8 @@ Tacket v1 is direct-download and local-only.
 - Test unpacked Chrome extension saving on ChatGPT, Claude, and Gemini.
 - Test Mac app import for recent local Codex App, Claude App, and Claude Code sessions.
 - Test Mac app desktop capture on ChatGPT, Claude, and Codex desktop apps.
+- Test optional menu bar Quick Capture for the frontmost supported desktop chat app.
+- Test Library pagination, search, advanced filters, and selected saved chat actions.
 - Test local Chrome app connection installation with the current draft Chrome Web Store extension ID when available.
 - Test local connection status and removal from the Mac app.
 - Test saved chat output in `~/Documents/Tacket Captures`.

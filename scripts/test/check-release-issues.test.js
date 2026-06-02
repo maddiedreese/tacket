@@ -116,7 +116,9 @@ Checklist:
 - [ ] Confirm \`.tacket\` bundles validate with \`npm run qa:live:verify -- qa/live-capture/<report>.md\`.
 - [ ] Test exact local import for Codex App, Claude App, and Claude Code from the Mac app.
 - [ ] Test desktop capture for ChatGPT, Claude, and Codex desktop apps from the Mac app.
+- [ ] Test optional menu bar Quick Capture for the frontmost supported desktop chat app.
 - [ ] Confirm desktop capture clearly prompts when Accessibility or Screen Recording permission is missing.
+- [ ] Confirm Library pagination, search, advanced filters, and selected saved chat actions work in the Mac app.
 - [ ] Confirm Mac app bundle review can open/copy transcript and display warnings.
 - [ ] Confirm transfer to Clipboard, Codex, and Claude Code.
 - [ ] Generate a public-safe issue summary with \`npm run qa:live:summary -- qa/live-capture/<report>.md\`.

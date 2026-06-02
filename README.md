@@ -1,12 +1,12 @@
 # Tacket
 
-Tacket is a private library for saving and searching your AI chats on your Mac.
+Tacket is a private local library for saving, searching, and reusing AI chats on your Mac.
 
-Use the Chrome extension on ChatGPT, Claude, or Gemini in the browser to save full raw chat transcripts. Use the Mac app to import exact local transcripts from Codex App, Claude App, and Claude Code, or to preview and save a local capture of the current open ChatGPT, Claude, or Codex desktop app chat. Tacket stores saved chats on your Mac, makes them searchable, and lets you copy or send saved conversations to Codex, Claude Code, or your clipboard when you need the context again.
+Use the Chrome extension on ChatGPT, Claude, or Gemini in the browser to save full raw chat transcripts. Use the Mac app to import exact local transcripts from Codex App, Claude App, and Claude Code, or to preview and save a local capture of the current open ChatGPT, Claude, or Codex desktop app chat. Tacket stores saved chats on your Mac, paginates and searches the local library, and lets you copy or send saved conversations to Codex, Claude Code, or your clipboard when you need the context again.
 
 Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
 
-Tacket has two local pieces: a Chrome extension for exact browser chat transcripts and a Mac app for storing, searching, exact local transcript import, desktop app capture previews, and transfer. Browser saves go directly from the extension to the Tacket app on your Mac. Exact imports read local Codex App, Claude App, and Claude Code session data only after you click import. Desktop app capture scrolls the current app window, uses local macOS Accessibility or on-device OCR to read visible chat text, and shows a preview before saving. Saved chat text is not sent to me or to a Tacket server.
+Tacket has two local pieces: a Chrome extension for exact browser chat transcripts and a Mac app for storing, searching, exact local transcript import, desktop app capture previews, menu bar Quick Capture, and transfer. Browser saves go directly from the extension to the Tacket app on your Mac. Exact imports read local Codex App, Claude App, and Claude Code session data only after you click import. Desktop app capture scrolls the current app window, uses local macOS Accessibility or on-device OCR to read visible chat text, and shows a preview before saving. Saved chat text is not sent to me or to a Tacket server.
 
 ## Screenshots
 
@@ -25,7 +25,7 @@ Use search and filters to narrow saved transcripts without sending anything off 
 - Previews and saves local captures of the current open ChatGPT, Claude, and Codex desktop app chat from the Mac app.
 - Can add an optional menu bar item for quick desktop app capture.
 - Keeps saved chats as readable files on your Mac.
-- Lets you browse all saved chats in one place.
+- Lets you browse all saved chats in one paginated local library.
 - Searches saved chats, code snippets, decisions, and errors without sending them anywhere.
 - Copies or sends the full saved conversation to Clipboard, Codex, or Claude Code.
 - Uses no backend, no analytics, no telemetry, and no model/API calls.
@@ -57,10 +57,10 @@ node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension
 
 ## Use
 
-1. Open a ChatGPT, Claude, or Gemini conversation in Chrome and click the Tacket extension; import recent Codex App, Claude App, or Claude Code transcripts from the Mac app; or open a ChatGPT, Claude, or Codex desktop app chat and click its preview button in Tacket.
-2. Choose **Save Conversation** in the extension, **Import Codex App** / **Import Claude App** / **Import Claude Code** in the Mac app, or review and save the local desktop capture preview.
+1. Open a ChatGPT, Claude, or Gemini conversation in Chrome and click the Tacket extension; import recent Codex App, Claude App, or Claude Code transcripts from the Mac app; or open a ChatGPT, Claude, or Codex desktop app chat and start a desktop preview from Tacket.
+2. Choose **Save Conversation** in the extension, choose an import source from the Mac app's **Import** menu, or review and save the local desktop capture preview.
 3. Open Tacket and choose **Add Saved Chats** in Library if the saved chat is not already indexed.
-4. Search, filter, or select the saved chat.
+4. Browse pages of saved chats, search, filter, or select the saved chat.
 5. Transfer it to Clipboard, Codex, or Claude Code.
 
 Desktop app capture may trigger macOS Accessibility or Screen Recording permission prompts. Tacket uses those permissions to scroll and read the open desktop app window locally, then shows a preview with quality signals before saving. The first automated transfer may also trigger an Automation prompt so Tacket can open Terminal and paste the saved conversation after you choose a transfer target.
@@ -91,7 +91,7 @@ You can inspect these files yourself. The folder name includes the date you save
 
 Tacket builds a local search index from the chats you choose to add to the Library. The index stays on your Mac. It does not summarize conversations, generate embeddings, call a model, sync to a server, or send indexed text anywhere.
 
-Advanced search can match an exact phrase, all terms, or any term; search conversation text or titles; and filter by source or message role.
+The Library paginates saved chats so large local collections stay readable. Advanced search can match an exact phrase, all terms, or any term; search conversation text or titles; and filter by source or message role.
 
 ## Privacy
 
