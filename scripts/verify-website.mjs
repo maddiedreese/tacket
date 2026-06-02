@@ -24,12 +24,14 @@ for (const phrase of [
   "https://github.com/sponsors/maddiedreese",
   "https://twitter.com/maddiedreese",
   "./privacy.html",
-  "Private AI chat library",
+  "Local transcript library for AI chats",
+  "Save full ChatGPT, Claude, and Gemini threads on your Mac.",
   "No summary step",
   "Free forever",
-  "Open source forever",
-  "never see what you save",
-  "no accounts, no analytics",
+  "Open source",
+  "I do not see your chats",
+  "No account. No backend.",
+  "Plain files you can inspect.",
   "Made by"
 ]) {
   if (!index.includes(phrase)) throw new Error(`website/index.html missing: ${phrase}`);
@@ -45,8 +47,12 @@ for (const phrase of [
   if (!privacy.includes(phrase)) throw new Error(`website/privacy.html missing: ${phrase}`);
 }
 
-for (const selector of [".hero-mark", ".statement", ".button.primary", ".maker", ".sponsor"]) {
+for (const selector of [".intro", ".download-box", ".facts", ".flow-list", ".artifact", ".notes", ".button.primary"]) {
   if (!css.includes(selector)) throw new Error(`website/styles.css missing: ${selector}`);
+}
+
+for (const staleSelector of [".hero-mark", ".statement", ".steps", ".maker", ".sponsor"]) {
+  if (css.includes(staleSelector)) throw new Error(`website/styles.css still includes stale selector: ${staleSelector}`);
 }
 
 if (css.includes("Inter")) {

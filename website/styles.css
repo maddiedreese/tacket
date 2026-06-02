@@ -29,9 +29,18 @@ a {
   color: inherit;
 }
 
+p,
+h1,
+h2,
+li,
+a,
+code {
+  overflow-wrap: break-word;
+}
+
 header {
   border-bottom: 1px solid var(--line);
-  background: rgba(248, 247, 244, 0.96);
+  background: var(--bg);
 }
 
 nav,
@@ -44,12 +53,14 @@ nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 64px;
+  min-height: 58px;
 }
 
 nav div {
   display: flex;
-  gap: 18px;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .brand {
@@ -66,15 +77,21 @@ nav div {
   border-radius: 6px;
 }
 
-.hero {
+.intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  gap: 54px;
-  align-items: center;
-  padding: 82px 0 54px;
+  grid-template-columns: minmax(0, 1fr) 286px;
+  gap: 52px;
+  align-items: start;
+  padding: 74px 0 46px;
+  border-bottom: 1px solid var(--line);
 }
 
-.hero-copy {
+.intro > *,
+.facts > *,
+.flow > *,
+.artifact > *,
+.notes > *,
+.flow-list li > * {
   min-width: 0;
 }
 
@@ -85,31 +102,25 @@ nav div {
 }
 
 h1 {
-  max-width: 760px;
+  max-width: 820px;
   margin: 0;
-  font-size: 58px;
-  line-height: 1.04;
+  font-size: 40px;
+  line-height: 1.12;
   overflow-wrap: break-word;
 }
 
 .lede {
-  max-width: 680px;
-  margin: 24px 0 0;
+  max-width: 760px;
+  margin: 22px 0 0;
   color: var(--muted);
-  font-size: 18px;
+  font-size: 17px;
   overflow-wrap: break-word;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 28px;
 }
 
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 42px;
   padding: 0 16px;
   border: 1px solid var(--line);
@@ -125,97 +136,137 @@ h1 {
   background: var(--accent);
 }
 
-.button.sponsor {
-  border-color: var(--gold-strong);
-  background: var(--gold);
-}
-
-.hero-mark {
-  display: grid;
-  place-items: center;
-}
-
-.hero-mark img {
-  width: 180px;
-  height: 180px;
-  border-radius: 38px;
-}
-
-.statement {
-  border-block: 1px solid var(--line);
-  padding: 30px 0;
-}
-
-.statement p {
-  max-width: 860px;
-  margin: 0;
-  color: var(--accent-dark);
-  font-size: 24px;
-  line-height: 1.35;
+.text-link {
+  color: var(--accent);
   font-weight: 700;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
-.steps {
+.download-box {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  padding-top: 2px;
+}
+
+.download-box img {
+  width: 86px;
+  height: 86px;
+  border-radius: 19px;
+}
+
+.download-box p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.download-box .button {
+  width: 100%;
+}
+
+.facts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  padding: 52px 0 42px;
+  gap: 22px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.steps article {
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--panel);
-  padding: 18px;
+.facts p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
 }
 
-.steps span {
-  display: inline-grid;
-  width: 28px;
-  height: 28px;
-  margin-bottom: 16px;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--accent-dark);
-  background: var(--gold);
+.facts strong {
+  color: var(--ink);
+}
+
+.flow,
+.artifact,
+.notes {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 48px;
+  padding: 44px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.section-heading h2,
+.artifact h2 {
+  max-width: 300px;
+}
+
+.flow-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.flow-list li {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.flow-list span {
+  color: var(--accent);
   font-weight: 800;
 }
 
 h2 {
   margin: 0 0 8px;
-  font-size: 22px;
+  font-size: 20px;
+  line-height: 1.2;
 }
 
-article p {
+.flow-list p,
+.artifact p,
+.notes p {
   margin: 0;
   color: var(--muted);
 }
 
-section {
-  padding-bottom: 56px;
+code {
+  color: var(--accent-dark);
+  font: inherit;
 }
 
-.details {
+.artifact pre {
+  margin: 0;
+  padding: 20px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent-dark);
+  background: var(--paper);
+  font: inherit;
+  line-height: 1.7;
+}
+
+.notes {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 42px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
 }
 
-.details p,
-.maker p {
-  margin: 0;
-  color: var(--muted);
-}
-
-.maker {
+footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 18px;
-  padding-top: 4px;
+  padding: 22px 0 42px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
-.maker a:not(.button) {
+footer a,
+.facts a {
   color: var(--accent);
   font-weight: 700;
 }
@@ -237,44 +288,50 @@ section {
 @media (max-width: 900px) {
   nav,
   main {
-    width: calc(100vw - 36px);
-    max-width: calc(100vw - 36px);
+    width: auto;
+    max-width: none;
+    margin-inline: 18px;
   }
 
-  .hero {
+  .intro,
+  .flow,
+  .artifact,
+  .notes {
     grid-template-columns: 1fr;
-    gap: 32px;
-    padding-top: 54px;
+    gap: 24px;
   }
 
-  .hero-copy,
+  .intro {
+    padding-top: 46px;
+  }
+
+  .download-box {
+    max-width: 300px;
+  }
+
   h1,
-  .lede,
-  .statement p {
+  .lede {
     width: 100%;
     max-width: 100%;
   }
 
   h1 {
-    font-size: 34px;
+    font-size: 24px;
+    line-height: 1.18;
   }
 
   .lede {
-    font-size: 17px;
+    font-size: 15px;
   }
 
-  .statement p {
-    font-size: 20px;
-  }
-
-  .steps,
-  .details {
+  .facts {
     grid-template-columns: 1fr;
   }
 
-  .maker {
+  footer {
     align-items: flex-start;
     flex-direction: column;
+    gap: 8px;
   }
 
   nav {
@@ -282,5 +339,19 @@ section {
     flex-direction: column;
     gap: 8px;
     padding: 14px 0;
+  }
+
+  nav div {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+}
+
+@media (max-width: 520px) {
+  nav,
+  main {
+    width: min(354px, calc(100% - 36px));
+    margin-left: 18px;
+    margin-right: auto;
   }
 }
