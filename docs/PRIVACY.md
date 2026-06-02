@@ -16,6 +16,8 @@ The Mac app can import recent local Codex App, Claude App, and Claude Code trans
 
 The Mac app can also capture the current open ChatGPT, Claude, and Codex desktop app chat. Desktop capture scrolls the app window locally, reads text exposed through macOS Accessibility, and falls back to on-device OCR when needed. It shows the captured text in a local preview before saving. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
 
+The optional menu bar Quick Capture feature is only a faster user-triggered way to start the same desktop capture preview. It does not watch the frontmost app continuously, capture in the background, or save without review.
+
 The recommended extension install path is the Chrome Web Store. That means Google handles extension distribution and may have normal store/install metadata. It does not change Tacket's save path: chat content is sent to the local Tacket app, not to the developer or a Tacket server.
 
 Saved chat content is stored locally in user-controlled folders. If a user chooses to place those folders inside a git repository, normal git hygiene applies.

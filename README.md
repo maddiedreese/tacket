@@ -23,6 +23,7 @@ Use search and filters to narrow saved transcripts without sending anything off 
 - Saves browser conversations only after you click the extension.
 - Imports recent local Codex App, Claude App, and Claude Code transcripts only after you click import.
 - Previews and saves local captures of the current open ChatGPT, Claude, and Codex desktop app chat from the Mac app.
+- Can add an optional menu bar item for quick desktop app capture.
 - Keeps saved chats as readable files on your Mac.
 - Lets you browse all saved chats in one place.
 - Searches saved chats, code snippets, decisions, and errors without sending them anywhere.
@@ -63,6 +64,8 @@ node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension
 5. Transfer it to Clipboard, Codex, or Claude Code.
 
 Desktop app capture may trigger macOS Accessibility or Screen Recording permission prompts. Tacket uses those permissions to scroll and read the open desktop app window locally, then shows a preview with quality signals before saving. The first automated transfer may also trigger an Automation prompt so Tacket can open Terminal and paste the saved conversation after you choose a transfer target.
+
+Optional Quick Capture lives in the menu bar after you enable it in **Settings**. It can start a preview from the frontmost supported desktop chat app, or from ChatGPT, Claude, and Codex directly. It does not monitor apps in the background or save anything silently; every capture still ends in the local preview flow.
 
 Exact local transcript import does not need Accessibility or Screen Recording. It reads recent Codex App, Claude App, and Claude Code session data from your Mac when you click import, converts new sessions into `.tacket` folders, checks the local library index to skip sessions that are already saved, and indexes everything locally.
 

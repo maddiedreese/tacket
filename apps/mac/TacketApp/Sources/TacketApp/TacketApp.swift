@@ -9,6 +9,8 @@ import Vision
 struct TacketApp: App {
     @StateObject private var model = TacketModel()
     @AppStorage("appearanceMode") private var appearanceMode = AppearanceMode.system.rawValue
+    @AppStorage("quickCaptureMenuBarEnabled") private var quickCaptureMenuBarEnabled = false
+    @AppStorage("quickCaptureOpenPreviewWindow") private var quickCaptureOpenPreviewWindow = true
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +21,15 @@ struct TacketApp: App {
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 940, height: 640)
+
+        MenuBarExtra(
+            "Tacket",
+            systemImage: "pin.fill",
+            isInserted: $quickCaptureMenuBarEnabled
+        ) {
+            QuickCaptureMenuView(openPreviewWindow: quickCaptureOpenPreviewWindow)
+                .environmentObject(model)
+        }
     }
 }
 
@@ -431,6 +442,17 @@ final class TacketModel: ObservableObject {
         commandOutput = "Tacket could not find the \(source.label) desktop app on this Mac. You can still save browser chats with the Chrome extension."
     }
 
+    func showMainWindow() {
+        NSApp.unhide(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        if NSApp.windows.isEmpty {
+            NSApp.sendAction(Selector(("showMainWindow:")), to: nil, from: nil)
+        }
+        for window in NSApp.windows where window.canBecomeMain {
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+
     func openAccessibilitySettings() {
         openSystemSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
     }
@@ -439,11 +461,27 @@ final class TacketModel: ObservableObject {
         openSystemSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
     }
 
-    func captureNativeApp(_ source: NativeCaptureSource) {
+    func captureFrontmostNativeApp(openPreviewWindow: Bool) {
+        guard !isRunning else { return }
+        guard let source = frontmostNativeCaptureSource() else {
+            status = "No supported chat app in front."
+            commandOutput = "Bring ChatGPT, Claude, or Codex to the front with the chat you want to save, then choose Capture Frontmost Chat App from the Tacket menu bar item."
+            if openPreviewWindow {
+                showMainWindow()
+            }
+            return
+        }
+        captureNativeApp(source, openPreviewWindow: openPreviewWindow)
+    }
+
+    func captureNativeApp(_ source: NativeCaptureSource, openPreviewWindow: Bool = false) {
         guard !isRunning else { return }
         guard let app = runningNativeCaptureApp(for: source) else {
             status = "\(source.label) app is not open."
             commandOutput = "Open the \(source.label) desktop app, open the chat you want to save, click inside the conversation, then capture the current chat from Tacket."
+            if openPreviewWindow {
+                showMainWindow()
+            }
             return
         }
 
@@ -462,6 +500,9 @@ final class TacketModel: ObservableObject {
 
             Open Accessibility Settings or Screen Recording Settings below, allow Tacket, quit and reopen Tacket, then try Preview Current \(source.label) Chat again.
             """
+            if openPreviewWindow {
+                showMainWindow()
+            }
             return
         }
 
@@ -476,9 +517,15 @@ final class TacketModel: ObservableObject {
                 pendingNativeCaptureDraft = Self.nativeCaptureDraft(source: source, transcript: transcript)
                 status = "Review \(source.label) capture."
                 commandOutput = "Review the desktop capture preview. Save it if the visible conversation text looks right, or discard it and try again after repositioning the chat window.\n\n\(permissionSummary)"
+                if openPreviewWindow {
+                    showMainWindow()
+                }
             } catch {
                 status = "Desktop capture failed."
                 commandOutput = "\(error.localizedDescription)\n\n\(permissionSummary)\n\nIf the app is open and contains a visible chat, grant Tacket Accessibility or Screen Recording permission in System Settings, quit and reopen Tacket, then try again."
+                if openPreviewWindow {
+                    showMainWindow()
+                }
             }
 
             isRunning = false
@@ -587,6 +634,22 @@ final class TacketModel: ObservableObject {
         return apps.first { app in
             guard let name = app.localizedName?.lowercased() else { return false }
             return source.appNames.contains { name == $0.lowercased() }
+        }
+    }
+
+    private func frontmostNativeCaptureSource() -> NativeCaptureSource? {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        if app.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            return nil
+        }
+        if let bundleIdentifier = app.bundleIdentifier {
+            for source in NativeCaptureSource.allCases where source.bundleIdentifiers.contains(bundleIdentifier) {
+                return source
+            }
+        }
+        guard let name = app.localizedName?.lowercased() else { return nil }
+        return NativeCaptureSource.allCases.first { source in
+            source.appNames.contains { name == $0.lowercased() }
         }
     }
 
@@ -2898,6 +2961,72 @@ enum AppSection {
     case settings
 }
 
+struct QuickCaptureMenuView: View {
+    @EnvironmentObject private var model: TacketModel
+    let openPreviewWindow: Bool
+
+    var body: some View {
+        Button {
+            model.captureFrontmostNativeApp(openPreviewWindow: openPreviewWindow)
+        } label: {
+            Label("Capture Frontmost Chat App", systemImage: "viewfinder")
+        }
+        .disabled(model.isRunning)
+
+        Divider()
+
+        Button {
+            model.captureNativeApp(.chatgpt, openPreviewWindow: openPreviewWindow)
+        } label: {
+            Label("Capture ChatGPT", systemImage: "macwindow")
+        }
+        .disabled(model.isRunning)
+
+        Button {
+            model.captureNativeApp(.claude, openPreviewWindow: openPreviewWindow)
+        } label: {
+            Label("Capture Claude", systemImage: "macwindow")
+        }
+        .disabled(model.isRunning)
+
+        Button {
+            model.captureNativeApp(.codex, openPreviewWindow: openPreviewWindow)
+        } label: {
+            Label("Capture Codex", systemImage: "macwindow")
+        }
+        .disabled(model.isRunning)
+
+        Divider()
+
+        Button {
+            model.showMainWindow()
+        } label: {
+            Label("Open Tacket", systemImage: "app")
+        }
+
+        Button {
+            model.revealCaptureDirectory()
+        } label: {
+            Label("Open Save Folder", systemImage: "folder")
+        }
+
+        Menu("Privacy / Permissions") {
+            Button("Accessibility Settings") {
+                model.openAccessibilitySettings()
+            }
+            Button("Screen Recording Settings") {
+                model.openScreenRecordingSettings()
+            }
+        }
+
+        Divider()
+
+        Button("Quit Tacket") {
+            NSApp.terminate(nil)
+        }
+    }
+}
+
 struct HeaderView: View {
     @EnvironmentObject private var model: TacketModel
 
@@ -3662,6 +3791,8 @@ struct MetadataPill: View {
 struct SettingsPanelView: View {
     @EnvironmentObject private var model: TacketModel
     @AppStorage("appearanceMode") private var appearanceMode = AppearanceMode.system.rawValue
+    @AppStorage("quickCaptureMenuBarEnabled") private var quickCaptureMenuBarEnabled = false
+    @AppStorage("quickCaptureOpenPreviewWindow") private var quickCaptureOpenPreviewWindow = true
 
     var body: some View {
         ScrollView {
@@ -3703,6 +3834,44 @@ struct SettingsPanelView: View {
                                 model.resetCaptureDirectory()
                             }
                         }
+                    }
+                }
+
+                SectionCard(
+                    eyebrow: "Quick Capture",
+                    title: "Menu bar capture",
+                    detail: "Add an optional Tacket menu bar item for starting desktop app captures without switching back to the main window first."
+                ) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $quickCaptureMenuBarEnabled) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Show Tacket in the menu bar")
+                                    .font(.tacketBody.weight(.semibold))
+                                Text("The menu appears only when this is on. It captures only after you click a menu item.")
+                                    .font(.tacketFootnote)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .toggleStyle(.switch)
+
+                        Toggle(isOn: $quickCaptureOpenPreviewWindow) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Open Tacket when a preview is ready")
+                                    .font(.tacketBody.weight(.semibold))
+                                Text("After a menu bar capture, bring Tacket forward so you can review, save, or discard the local preview.")
+                                    .font(.tacketFootnote)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .toggleStyle(.switch)
+                        .disabled(!quickCaptureMenuBarEnabled)
+
+                        Text("Quick Capture supports ChatGPT, Claude, and Codex desktop apps. Browser chats still use the Chrome extension for exact transcripts.")
+                            .font(.tacketFootnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
