@@ -419,7 +419,7 @@ final class TacketModel: ObservableObject {
                             self.commandOutput = error.localizedDescription
                         } else {
                             self.status = "Opened \(source.label)."
-                            self.commandOutput = "Open the chat you want to save in \(source.label), click inside the conversation, then choose Capture \(source.label)."
+                            self.commandOutput = "Open the chat you want to save in \(source.label), click inside the conversation, then choose Capture Current \(source.label) Chat."
                         }
                     }
                 }
@@ -452,6 +452,17 @@ final class TacketModel: ObservableObject {
             accessibilityReady: accessibilityReady,
             screenCaptureReady: screenCaptureReady
         )
+        guard accessibilityReady || screenCaptureReady else {
+            status = "Permission needed."
+            commandOutput = """
+            Tacket needs Accessibility or Screen Recording permission before it can capture the current \(source.label) desktop app chat.
+
+            \(permissionSummary)
+
+            Open Accessibility Settings or Screen Recording Settings below, allow Tacket, quit and reopen Tacket, then try Capture Current \(source.label) Chat again.
+            """
+            return
+        }
 
         isRunning = true
         status = "Capturing \(source.label) app..."
