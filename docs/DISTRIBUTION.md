@@ -1,6 +1,6 @@
-# Distribution Plan
+# Distribution
 
-Tacket v1 will ship by direct download and GitHub, not the Mac App Store.
+Tacket ships by direct download and GitHub, not the Mac App Store.
 
 ## Direct Download
 
@@ -36,13 +36,19 @@ Tacket should not require hosted infrastructure. The public website is the stati
 - build command: `npm run website:verify`
 - publish directory: `website`
 
-No Netlify environment variables are required for v1. A custom domain can be added in Netlify later without changing the app architecture.
+No Netlify environment variables are required. The custom domain is configured in Netlify, not GitHub Pages.
+
+GitHub Pages should stay disabled now that the public website is deployed through Netlify.
+
+## Windows
+
+Windows support is planned next. The Windows release path needs separate packaging, signing, install, native messaging, file reveal, and transfer decisions. Saved `.tacket` folders should remain portable across macOS and Windows.
 
 ## Expected Costs
 
 - Apple Developer Program: yearly cost for Developer ID signing and notarization.
 - Chrome Web Store developer registration: one-time registration fee.
 - Domain: yearly registrar cost.
-- Website hosting: Netlify free tier should be enough for v1.
-- Backend: none required for v1.
-- AI/API usage: none required for v1.
+- Website hosting: Netlify free tier should be enough for the current static site.
+- Backend: none required.
+- AI/API usage: none required.

@@ -1,12 +1,14 @@
 # Tacket
 
-Tacket is a private local library for saving, searching, and reusing AI chats on your Mac.
+Tacket is a private local library for saving, searching, and reusing AI chats.
 
 Use the Chrome extension on ChatGPT, Claude, or Gemini in the browser to save full raw chat transcripts. Use the Mac app to import exact local transcripts from Codex App, Claude App, and Claude Code, or to preview and save a local capture of the current open ChatGPT, Claude, or Codex desktop app chat. Tacket stores saved chats on your Mac, paginates and searches the local library, and lets you copy or send saved conversations to Codex, Claude Code, or your clipboard when you need the context again.
 
 Tacket will always be free and open source. It has no accounts, no analytics, no telemetry, and no backend that can see your chats.
 
-Tacket has two local pieces: a Chrome extension for exact browser chat transcripts and a Mac app for storing, searching, exact local transcript import, desktop app capture previews, menu bar Quick Capture, and transfer. Browser saves go directly from the extension to the Tacket app on your Mac. Exact imports read local Codex App, Claude App, and Claude Code session data only after you click import. Desktop app capture scrolls the current app window, uses local macOS Accessibility or on-device OCR to read visible chat text, and shows a preview before saving. Saved chat text is not sent to me or to a Tacket server.
+The first release has two local pieces: a Chrome extension for exact browser chat transcripts and a Mac app for storing, searching, exact local transcript import, desktop app capture previews, menu bar Quick Capture, and transfer. Browser saves go directly from the extension to the Tacket app on your Mac. Exact imports read local Codex App, Claude App, and Claude Code session data only after you click import. Desktop app capture scrolls the current app window, uses local macOS Accessibility or on-device OCR to read visible chat text, and shows a preview before saving. Saved chat text is not sent to me or to a Tacket server.
+
+Tacket is available for macOS now. Windows support is planned next.
 
 ## Screenshots
 
@@ -34,7 +36,7 @@ Tacket is not an agent harness. It does not run agents for you or scan app sessi
 
 ## Install
 
-Public releases will be the shortest path:
+The shortest path is the public release:
 
 1. Download `Tacket.dmg` from the [latest release](https://github.com/maddiedreese/tacket/releases).
 2. Open the DMG and drag Tacket into Applications.

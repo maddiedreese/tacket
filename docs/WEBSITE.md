@@ -2,6 +2,8 @@
 
 Tacket's public website is the static `website/` directory. It is deployed by Netlify from GitHub.
 
+GitHub Pages is not used for the public website. Keep GitHub Pages disabled so `https://tacket.dev` remains the canonical site.
+
 ## Netlify Setup
 
 1. In Netlify, choose **Add new site** and import the GitHub repository.
@@ -10,7 +12,7 @@ Tacket's public website is the static `website/` directory. It is deployed by Ne
 4. Set the publish directory to `website`.
 5. Deploy.
 
-No environment variables or backend services are required for the v1 website. Netlify deploy previews can be left on for pull requests.
+No environment variables or backend services are required for the website. Netlify deploy previews can be left on for pull requests.
 
 ## Local Editing
 

@@ -4,7 +4,7 @@ All notable changes to Tacket are documented here.
 
 ## 0.1.0 - 2026-06-01
 
-Initial local-first v1.
+Initial local-first release.
 
 ### Added
 

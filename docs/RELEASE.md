@@ -1,6 +1,6 @@
 # Release Checklist
 
-Tacket v1 is direct-download and local-only.
+Tacket is direct-download and local-only.
 
 ## Before Release
 
@@ -23,11 +23,11 @@ Tacket v1 is direct-download and local-only.
 - Update `CHANGELOG.md`.
 - Review `docs/PRIVACY.md` and Chrome listing copy for consistency.
 - Confirm `npm run website:verify` passes before merging website changes for Netlify.
-- Review `docs/CHROME_WEB_STORE.md` before saving the Chrome Web Store draft.
+- Review `docs/CHROME_WEB_STORE.md` before saving or submitting Chrome Web Store changes.
 - Prepare Chrome Web Store images using `docs/STORE_ASSETS.md`.
-- Prepare or refresh the Chrome Web Store upload folder with `npm run package:release` or `npm run store:prepare`, confirm `npm run store:verify` passes, review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image, then upload the extension package and save it as a draft.
-- Do not submit the Chrome Web Store draft for review until the release decision is made.
-- After Chrome Web Store approval later, verify the published extension ID with `npm run store:verify-id -- --extension-id <chrome-extension-id>`.
+- Prepare or refresh the Chrome Web Store upload folder with `npm run package:release` or `npm run store:prepare`, confirm `npm run store:verify` passes, review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image, then upload the extension package.
+- Submit Chrome Web Store changes only after release copy, privacy disclosures, screenshots, and package verification are complete.
+- After Chrome Web Store approval, verify the published extension ID with `npm run store:verify-id -- --extension-id <chrome-extension-id>`.
 - Check the current blocker dashboard with `npm run release:status`.
 - Confirm GitHub release issue checklists match the repo tooling with `npm run release:issues`.
 - Run `npm run release:readiness` before pushing the release tag.
@@ -174,7 +174,7 @@ Run the strict remote release gate:
 npm run release:readiness
 ```
 
-This command uses GitHub CLI to confirm the working tree is clean, the public repository is reachable, Pages is enabled, latest CI passed for the local `HEAD`, the latest manual Release workflow run passed for the local `HEAD`, the `tacket-release` workflow artifact is available and its contents verify, signing/notarization Release workflow steps ran successfully when signing secrets are configured, release issue checklists are synced, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
+This command uses GitHub CLI to confirm the working tree is clean, the public repository is reachable, the Netlify website configuration is present, latest CI passed for the local `HEAD`, the latest manual Release workflow run passed for the local `HEAD`, the `tacket-release` workflow artifact is available and its contents verify, signing/notarization Release workflow steps ran successfully when signing secrets are configured, release issue checklists are synced, v0.1.0 milestone issues are closed, required signing/notarization secrets are configured, and the release tag has not already been published.
 
 When the external release gates are complete, date the changelog entry:
 

@@ -4,7 +4,7 @@ Tacket handles saved local AI chats, code, images, and attachment references. Pl
 
 ## Supported Versions
 
-Tacket is pre-1.0. Security fixes target the current `main` branch until the first tagged release.
+Tacket is pre-1.0. Security fixes target the current tagged release and the `main` branch.
 
 ## Dependency Alerts
 
@@ -23,4 +23,4 @@ Useful reports include:
 
 ## Local Data Expectations
 
-Tacket should not upload saved chat content, telemetry, analytics, crash reports, or model/API requests. Saved Tacket chat folders and the local library database are files controlled by the user and may contain sensitive data. Security fixes should preserve the v1 guarantee that library, search, and transfer paths do not summarize, redact, or remotely process conversation content.
+Tacket should not upload saved chat content, telemetry, analytics, crash reports, or model/API requests. Saved Tacket chat folders and the local library database are files controlled by the user and may contain sensitive data. Security fixes should preserve the product guarantee that library, search, and transfer paths do not summarize, redact, or remotely process conversation content.
