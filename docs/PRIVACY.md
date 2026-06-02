@@ -40,4 +40,4 @@ When saving from the ChatGPT, Claude, or Codex desktop app, Tacket may ask for A
 
 ## Local Agent Transcript Import
 
-When importing Codex App or Claude Code transcripts, Tacket reads recent local JSONL session files from `~/.codex/sessions` and `~/.claude/projects` after the user clicks the import button. This import path does not use the clipboard, Accessibility, Screen Recording, a model, or a network request.
+When importing Codex App or Claude Code transcripts, Tacket reads recent local JSONL session files from `~/.codex/sessions` and `~/.claude/projects` after the user clicks the import button. It checks Tacket's local library index so already-saved sessions are not duplicated. This import path does not use the clipboard, Accessibility, Screen Recording, a model, or a network request.

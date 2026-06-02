@@ -77,6 +77,7 @@ AI chat page
 Codex App or Claude Code local JSONL session
   -> user clicks exact local import in the Mac app
   -> Mac app reads recent session files from the user's home folder
+  -> Mac app skips sessions already saved in the local library index
   -> Mac app writes .tacket folders
   -> Mac app adds imported chats to local search
 

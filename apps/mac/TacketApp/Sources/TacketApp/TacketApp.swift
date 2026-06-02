@@ -498,11 +498,9 @@ final class TacketModel: ObservableObject {
                 } ?? libraryItems.first
                 selectedBundle = selectedLibraryItem.map { URL(fileURLWithPath: $0.path, isDirectory: true) }
                 loadSelectedBundleInfo()
-                libraryStatus = "Imported \(result.imported) \(source.label) transcript(s)."
+                libraryStatus = Self.importLibraryStatus(result, source: source)
                 status = "Imported \(source.label) transcripts."
-                commandOutput = result.imported == 0
-                    ? "No importable \(source.label) transcripts were found."
-                    : "Imported \(result.imported) \(source.label) transcript(s) from local session files."
+                commandOutput = Self.importCommandOutput(result, source: source)
             } catch {
                 status = "Import failed."
                 commandOutput = error.localizedDescription
@@ -876,45 +874,147 @@ final class TacketModel: ObservableObject {
     private nonisolated static func importLocalAgentSessions(
         _ source: LocalAgentSource,
         outputRoot: URL
-    ) throws -> (imported: Int, lastBundle: URL?) {
-        let sessions: [ImportedAgentSession]
+    ) throws -> (imported: Int, skipped: Int, lastBundle: URL?) {
+        let files: [URL]
+        let codexIndex: [String: (title: String, updatedAt: String)]
         switch source {
         case .codex:
-            sessions = try readRecentCodexSessions(limit: 20)
+            files = try recentCodexSessionFiles(limit: 20)
+            let codexRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
+            codexIndex = readCodexSessionIndex(codexRoot: codexRoot)
         case .claudeCode:
-            sessions = try readRecentClaudeCodeSessions(limit: 20)
+            files = try recentClaudeCodeSessionFiles(limit: 20)
+            codexIndex = [:]
         }
 
+        let existingBundles = existingImportedSessionBundles(outputRoot: outputRoot)
         var imported = 0
+        var skipped = 0
         var lastBundle: URL?
-        for session in sessions {
+        for file in files {
+            let sourceURL = sourceURLForLocalAgentFile(source, file: file)
+            if let existing = existingBundles[sourceURL] {
+                skipped += 1
+                lastBundle = existing
+                continue
+            }
+            let session: ImportedAgentSession?
+            switch source {
+            case .codex:
+                let sessionId = sessionIdFromCodexPath(file)
+                session = try? parseCodexSession(file, indexedTitle: codexIndex[sessionId]?.title)
+            case .claudeCode:
+                session = try? parseClaudeCodeSession(file)
+            }
+            guard let session else { continue }
             guard !session.messages.isEmpty else { continue }
             let bundleURL = try writeAgentSessionBundle(session, outputRoot: outputRoot)
             _ = try indexLibraryBundle(bundleURL)
             imported += 1
             lastBundle = bundleURL
         }
-        return (imported, lastBundle)
+        return (imported, skipped, lastBundle)
+    }
+
+    private nonisolated static func importLibraryStatus(
+        _ result: (imported: Int, skipped: Int, lastBundle: URL?),
+        source: LocalAgentSource
+    ) -> String {
+        if result.imported == 0, result.skipped > 0 {
+            return "All recent \(source.label) transcripts are already saved."
+        }
+        if result.skipped > 0 {
+            return "Imported \(result.imported) \(source.label) transcript(s); \(result.skipped) already saved."
+        }
+        return "Imported \(result.imported) \(source.label) transcript(s)."
+    }
+
+    private nonisolated static func importCommandOutput(
+        _ result: (imported: Int, skipped: Int, lastBundle: URL?),
+        source: LocalAgentSource
+    ) -> String {
+        if result.imported == 0, result.skipped == 0 {
+            return "No importable \(source.label) transcripts were found."
+        }
+        if result.imported == 0 {
+            return "No new \(source.label) transcripts were imported. \(result.skipped) recent transcript(s) are already saved in your Tacket library."
+        }
+        if result.skipped > 0 {
+            return "Imported \(result.imported) new \(source.label) transcript(s) from local session files. Skipped \(result.skipped) already-saved transcript(s)."
+        }
+        return "Imported \(result.imported) \(source.label) transcript(s) from local session files."
     }
 
     private nonisolated static func readRecentCodexSessions(limit: Int) throws -> [ImportedAgentSession] {
         let codexRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
         let index = readCodexSessionIndex(codexRoot: codexRoot)
-        let sessionsRoot = codexRoot.appendingPathComponent("sessions", isDirectory: true)
-        let files = try recentJSONLFiles(in: sessionsRoot, limit: limit * 2)
+        let files = try recentCodexSessionFiles(limit: limit)
         return files.prefix(limit).compactMap { file in
             try? parseCodexSession(file, indexedTitle: index[sessionIdFromCodexPath(file)]?.title)
         }.filter { !$0.messages.isEmpty }
     }
 
     private nonisolated static func readRecentClaudeCodeSessions(limit: Int) throws -> [ImportedAgentSession] {
-        let projectsRoot = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude/projects", isDirectory: true)
-        let files = try recentJSONLFiles(in: projectsRoot, limit: limit * 3)
-            .filter { !$0.path.contains("/subagents/") }
+        let files = try recentClaudeCodeSessionFiles(limit: limit)
         return files.prefix(limit).compactMap { file in
             try? parseClaudeCodeSession(file)
         }.filter { !$0.messages.isEmpty }
+    }
+
+    private nonisolated static func recentCodexSessionFiles(limit: Int) throws -> [URL] {
+        let codexRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
+        let sessionsRoot = codexRoot.appendingPathComponent("sessions", isDirectory: true)
+        return try recentJSONLFiles(in: sessionsRoot, limit: limit * 2)
+    }
+
+    private nonisolated static func recentClaudeCodeSessionFiles(limit: Int) throws -> [URL] {
+        let projectsRoot = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude/projects", isDirectory: true)
+        return try recentJSONLFiles(in: projectsRoot, limit: limit * 3)
+            .filter { !$0.path.contains("/subagents/") }
+    }
+
+    private nonisolated static func sourceURLForLocalAgentFile(_ source: LocalAgentSource, file: URL) -> String {
+        switch source {
+        case .codex:
+            return "codex-session://\(sessionIdFromCodexPath(file))"
+        case .claudeCode:
+            return "claude-code-session://\(file.deletingPathExtension().lastPathComponent)"
+        }
+    }
+
+    private nonisolated static func existingImportedSessionBundles(
+        outputRoot _: URL
+    ) -> [String: URL] {
+        (try? existingImportedSessionBundlesFromIndex()) ?? [:]
+    }
+
+    private nonisolated static func existingImportedSessionBundlesFromIndex() throws -> [String: URL] {
+        try ensureLibraryDatabase()
+        var bundles: [String: URL] = [:]
+        try withLibraryDatabase { db in
+            let sql = """
+                SELECT url, path
+                FROM bundles
+                WHERE url LIKE 'codex-session://%' OR url LIKE 'claude-code-session://%';
+                """
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                throw TacketAppError.libraryDatabase(sqliteError(db))
+            }
+            defer { sqlite3_finalize(statement) }
+
+            while sqlite3_step(statement) == SQLITE_ROW {
+                guard let urlCString = sqlite3_column_text(statement, 0),
+                      let pathCString = sqlite3_column_text(statement, 1) else {
+                    continue
+                }
+                let sourceURL = String(cString: urlCString)
+                let path = String(cString: pathCString)
+                bundles[sourceURL] = URL(fileURLWithPath: path, isDirectory: true)
+            }
+        }
+        return bundles
     }
 
     private nonisolated static func recentJSONLFiles(in root: URL, limit: Int) throws -> [URL] {

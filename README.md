@@ -64,7 +64,7 @@ node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension
 
 Visible desktop app capture may trigger macOS Accessibility or Screen Recording permission prompts. Tacket uses those permissions to read the open desktop app window locally. The first automated transfer may also trigger an Automation prompt so Tacket can open Terminal and paste the saved conversation after you choose a transfer target.
 
-Exact local transcript import does not need Accessibility or Screen Recording. It reads recent Codex App and Claude Code JSONL session files from your home folder when you click import, converts them into `.tacket` folders, and indexes them locally.
+Exact local transcript import does not need Accessibility or Screen Recording. It reads recent Codex App and Claude Code JSONL session files from your home folder when you click import, converts new sessions into `.tacket` folders, checks the local library index to skip sessions that are already saved, and indexes everything locally.
 
 ## Saved Files
 
