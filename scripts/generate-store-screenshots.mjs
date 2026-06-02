@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -8,27 +8,28 @@ const outDir = path.join(root, "store-assets/chrome-web-store/screenshots");
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const width = 1280;
 const height = 800;
+const iconDataUrl = `data:image/png;base64,${(await readFile(path.join(root, "website/assets/icon-180.png"))).toString("base64")}`;
 
 const scenes = [
   {
     name: "01-capture-popup-1280x800.png",
     eyebrow: "User-click save",
-    title: "Save one AI conversation only when you ask.",
-    body: "Tacket saves ChatGPT, Claude, and Gemini conversations to a private library on your Mac after you click save.",
+    title: "Save the chat you want, when you click.",
+    body: "Tacket saves the current ChatGPT, Claude, or Gemini thread to a private local library on your Mac.",
     mockup: popupMockup()
   },
   {
     name: "02-local-bundle-1280x800.png",
     eyebrow: "Local files",
-    title: "Keep saved chats as files you can inspect.",
-    body: "Each saved chat folder contains readable conversation text, structured message data, and any attachments Tacket could save.",
+    title: "Keep every saved chat as files you control.",
+    body: "Each Tacket folder contains the readable transcript, structured message data, and local attachment references.",
     mockup: bundleMockup()
   },
   {
     name: "03-local-library-1280x800.png",
     eyebrow: "Local library",
-    title: "Search every saved chat from one private place.",
-    body: "Tacket keeps your saved conversations in a searchable local library, then lets you open, copy, reveal, or transfer the full text.",
+    title: "Search saved chats from one private place.",
+    body: "Tacket indexes only the saved chats you add, then lets you open, copy, reveal, or transfer the full transcript.",
     mockup: libraryMockup()
   }
 ];
@@ -107,78 +108,13 @@ function renderScene(scene) {
         height: 48px;
         place-items: center;
         border-radius: 10px;
-        background: var(--accent);
-        position: relative;
+        background: transparent;
         overflow: hidden;
       }
-      .icon::before {
-        content: "";
-        position: absolute;
-        width: 22px;
-        height: 22px;
-        left: 7px;
-        top: 4px;
-        border-radius: 50%;
-        background: #ffd16f;
-        z-index: 2;
-      }
-      .icon::after {
-        content: "";
-        position: absolute;
-        left: 27px;
-        top: 32px;
-        width: 18px;
-        height: 15px;
-        background: #ffd16f;
-        clip-path: polygon(0 0, 42% 0, 100% 100%);
-        z-index: 0;
-      }
-      .icon span {
-        position: absolute;
-        left: 11px;
-        top: 17px;
-        width: 31px;
-        height: 18px;
-        border-radius: 3px;
-        background: #fbfaf7;
-        z-index: 1;
-      }
-      .icon span b {
-        position: absolute;
-        left: 3px;
-        width: 26px;
-        height: 2px;
-        border-radius: 2px;
-        background: #d6d9d8;
-      }
-      .icon span b:nth-child(1) {
-        top: 5px;
-      }
-      .icon span b:nth-child(2) {
-        top: 11px;
-      }
-      .icon span b:nth-child(3) {
-        top: 17px;
-      }
-      .icon i {
-        position: absolute;
-        left: 16px;
-        top: 18px;
-        width: 13px;
-        height: 8px;
-        background: #ffd16f;
-        clip-path: polygon(0 0, 38% 0, 100% 100%, 63% 100%);
-        z-index: 3;
-      }
-      .icon em {
-        position: absolute;
-        left: 6px;
-        top: 3px;
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: #fff1b6;
-        z-index: 4;
+      .icon img {
+        display: block;
+        width: 48px;
+        height: 48px;
       }
       .eyebrow {
         margin: 0 0 16px;
@@ -254,7 +190,7 @@ function renderScene(scene) {
     <div class="top"></div>
     <main>
       <section>
-        <div class="brand"><div class="icon"><span><b></b><b></b><b></b></span><i></i><em></em></div><span>Tacket</span></div>
+        <div class="brand"><div class="icon"><img src="${iconDataUrl}" alt="" /></div><span>Tacket</span></div>
         <p class="eyebrow">${escapeHtml(scene.eyebrow)}</p>
         <h1>${escapeHtml(scene.title)}</h1>
         <p>${escapeHtml(scene.body)}</p>
