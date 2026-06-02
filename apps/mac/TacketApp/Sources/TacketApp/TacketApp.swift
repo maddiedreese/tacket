@@ -165,7 +165,7 @@ final class TacketModel: ObservableObject {
 
         var label: String {
             switch self {
-            case .codex: "Codex"
+            case .codex: "Codex App"
             case .claudeCode: "Claude Code"
             }
         }
@@ -402,6 +402,28 @@ final class TacketModel: ObservableObject {
 
     func openGemini() {
         openInChrome("https://gemini.google.com")
+    }
+
+    func openDesktopApp(_ source: NativeCaptureSource) {
+        for bundleIdentifier in source.bundleIdentifiers {
+            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+                let configuration = NSWorkspace.OpenConfiguration()
+                NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) { _, error in
+                    DispatchQueue.main.async {
+                        if let error {
+                            self.status = "Could not open \(source.label)."
+                            self.commandOutput = error.localizedDescription
+                        } else {
+                            self.status = "Opened \(source.label)."
+                            self.commandOutput = "Open the chat you want to save in \(source.label), click inside the conversation, then choose Capture \(source.label)."
+                        }
+                    }
+                }
+                return
+            }
+        }
+        status = "\(source.label) app is not installed."
+        commandOutput = "Tacket could not find the \(source.label) desktop app on this Mac. You can still save browser chats with the Chrome extension."
     }
 
     func openAccessibilitySettings() {
@@ -2628,35 +2650,15 @@ struct LibraryPanelView: View {
 
                     SectionCard(
                         eyebrow: "Save",
-                        title: "Save chats from browser tabs or desktop apps",
-                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. For desktop apps, open the chat, click inside the conversation, then capture visible text locally from Tacket."
+                        title: "Save chats from browsers, app windows, and local agent logs",
+                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. Use local imports for exact Codex App and Claude Code logs. For desktop chat apps, Tacket can open the app and save the visible conversation text locally."
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
-                                HeaderButton(title: "Open ChatGPT", action: model.openChatGPT)
-                                HeaderButton(title: "Open Claude", action: model.openClaude)
-                                HeaderButton(title: "Open Gemini", action: model.openGemini)
+                                HeaderButton(title: "Open ChatGPT in Chrome", action: model.openChatGPT)
+                                HeaderButton(title: "Open Claude in Chrome", action: model.openClaude)
+                                HeaderButton(title: "Open Gemini in Chrome", action: model.openGemini)
                             }
-
-                            Divider()
-
-                            HStack(spacing: 10) {
-                                ForEach(TacketModel.NativeCaptureSource.allCases) { source in
-                                    Button {
-                                        model.captureNativeApp(source)
-                                    } label: {
-                                        Label(source.label, systemImage: "macwindow")
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(model.isRunning)
-                                    .help("Capture visible text from the open \(source.label) desktop app chat")
-                                }
-                            }
-
-                            Text("Desktop capture reads visible app text locally with macOS Accessibility and on-device OCR, then saves it as a .tacket folder.")
-                                .font(.tacketFootnote)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
 
                             Divider()
 
@@ -2667,16 +2669,51 @@ struct LibraryPanelView: View {
                                     } label: {
                                         Label("Import \(source.label)", systemImage: "tray.and.arrow.down")
                                     }
-                                    .buttonStyle(.bordered)
+                                    .buttonStyle(.borderedProminent)
                                     .disabled(model.isRunning)
-                                    .help("Import recent local \(source.label) agent transcripts into Tacket")
+                                    .help("Import recent local \(source.label) transcripts into Tacket")
                                 }
                             }
 
-                            Text("Local agent imports read recent Codex and Claude Code JSONL session files and save exact transcript bundles in your Tacket library.")
+                            Text("Exact imports read local session files that Codex App and Claude Code already store on your Mac, then save normal .tacket folders in your library.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
+
+                            Divider()
+
+                            HStack(spacing: 10) {
+                                ForEach(TacketModel.NativeCaptureSource.allCases) { source in
+                                    Button {
+                                        model.openDesktopApp(source)
+                                    } label: {
+                                        Label("Open \(source.label)", systemImage: "macwindow")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(model.isRunning)
+                                    .help("Open the \(source.label) desktop app")
+                                }
+                            }
+
+                            HStack(spacing: 10) {
+                                ForEach(TacketModel.NativeCaptureSource.allCases) { source in
+                                    Button {
+                                        model.captureNativeApp(source)
+                                    } label: {
+                                        Label("Capture \(source.label)", systemImage: "viewfinder")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(model.isRunning)
+                                    .help("Capture visible text from the open \(source.label) desktop app chat")
+                                }
+                            }
+
+                            Text("Desktop app capture is local and does not use the clipboard. It reads the open app window with macOS Accessibility and on-device OCR, so it is best for saving the chat currently visible in the app.")
+                                .font(.tacketFootnote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Divider()
 
                             HStack(spacing: 10) {
                                 Button("Accessibility Settings") {

@@ -13,7 +13,7 @@ npm run package:release
 - transcript rendering tests
 - attachment persistence tests
 - Chrome save-flow fixture tests for ChatGPT, Claude, and Gemini-like pages
-- Mac app local agent import checks for Codex and Claude Code JSONL sessions
+- Mac app exact local import checks for Codex App and Claude Code JSONL sessions
 - Mac app visible desktop capture checks for ChatGPT, Claude, and Codex desktop app windows
 - website release-link and privacy-copy checks
 - local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
@@ -102,9 +102,9 @@ For each source, confirm:
 
 ## Manual Desktop App Checks
 
-Before a release, test local agent import from:
+Before a release, test exact local import from:
 
-- Codex sessions in `~/.codex/sessions`
+- Codex App sessions in `~/.codex/sessions`
 - Claude Code sessions in `~/.claude/projects`
 
 For each local agent source, confirm:

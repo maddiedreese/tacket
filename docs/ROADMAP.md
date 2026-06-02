@@ -2,7 +2,7 @@
 
 Tacket v1 is focused on a private local library for AI chats, with full-conversation transfer to coding tools when users need to move context.
 
-Current builds support the Chrome extension browser flow, Mac app import for recent local Codex and Claude Code JSONL sessions, and Mac app visible capture for open ChatGPT, Claude, and Codex desktop app chats.
+Current builds support the Chrome extension browser flow, Mac app import for recent local Codex App and Claude Code JSONL sessions, and Mac app visible capture for open ChatGPT, Claude, and Codex desktop app chats.
 
 ## v0.1.0
 
@@ -23,7 +23,7 @@ The first public release covered:
 
 - import saved Tacket chat folders from more places
 - coding-agent to coding-agent transfer
-- richer local agent transcript import controls, including source selection and per-session review before import
+- richer exact local import controls, including source selection and per-session review before import
 - optional target-specific prompt helpers, without replacing full-conversation storage or transfer
 - additional browsers after the Chrome v1 path is stable
 - exact per-app transcript import when desktop apps expose stable local stores or richer native export APIs
