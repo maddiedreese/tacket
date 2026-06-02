@@ -27,7 +27,9 @@ for (const phrase of [
   "Local transcript library for AI chats",
   "Save AI chats locally on your Mac.",
   "Desktop app capture",
-  "macOS Accessibility and on-device OCR",
+  "Agent transcript import",
+  "Local agent imports",
+  "on-device OCR",
   "No summary step",
   "Free forever",
   "Open source",
@@ -43,8 +45,9 @@ for (const phrase of [
   "No analytics",
   "No telemetry",
   "No model/API calls",
-  "Browser conversations are sent from the extension to the Tacket",
-  "macOS Accessibility and on-device OCR",
+  "Browser conversations are sent from the extension to",
+  "local JSONL session files",
+  "on-device OCR",
   "private vulnerability reporting"
 ]) {
   if (!privacy.includes(phrase)) throw new Error(`website/privacy.html missing: ${phrase}`);

@@ -13,6 +13,7 @@ npm run package:release
 - transcript rendering tests
 - attachment persistence tests
 - Chrome save-flow fixture tests for ChatGPT, Claude, and Gemini-like pages
+- Mac app local agent import checks for Codex and Claude Code JSONL sessions
 - Mac app visible desktop capture checks for ChatGPT, Claude, and Codex desktop app windows
 - website release-link and privacy-copy checks
 - local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
@@ -100,6 +101,19 @@ For each source, confirm:
 - obvious API-key-like text is reported as a local warning in `manifest.json` without redacting the saved conversation
 
 ## Manual Desktop App Checks
+
+Before a release, test local agent import from:
+
+- Codex sessions in `~/.codex/sessions`
+- Claude Code sessions in `~/.claude/projects`
+
+For each local agent source, confirm:
+
+- import starts only after clicking the source button in Tacket
+- the saved `.tacket` folder includes `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets
+- `manifest.json` uses `source.platform` of `codex` or `claude`
+- the transcript preserves message order and code blocks from the JSONL session
+- the saved chat can be searched, copied, or transferred after import
 
 Before a release, test visible desktop capture from:
 

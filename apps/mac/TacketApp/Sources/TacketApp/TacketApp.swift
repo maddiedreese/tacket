@@ -157,6 +157,34 @@ final class TacketModel: ObservableObject {
         var sourceURL: String { "native://\(rawValue)" }
     }
 
+    enum LocalAgentSource: String, CaseIterable, Identifiable {
+        case codex
+        case claudeCode = "claude-code"
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .codex: "Codex"
+            case .claudeCode: "Claude Code"
+            }
+        }
+
+        var platform: String {
+            switch self {
+            case .codex: "codex"
+            case .claudeCode: "claude"
+            }
+        }
+
+        var sourceURLPrefix: String {
+            switch self {
+            case .codex: "codex-session://"
+            case .claudeCode: "claude-code-session://"
+            }
+        }
+    }
+
     @Published var captureDirectory: URL = FileManager.default
         .homeDirectoryForCurrentUser
         .appendingPathComponent("Documents/Tacket Captures", isDirectory: true)
@@ -425,6 +453,38 @@ final class TacketModel: ObservableObject {
                 commandOutput = "\(error.localizedDescription)\n\n\(permissionSummary)\n\nIf the app is open and contains a visible chat, grant Tacket Accessibility or Screen Recording permission in System Settings, quit and reopen Tacket, then try again."
             }
 
+            isRunning = false
+        }
+    }
+
+    func importLocalAgentSessions(_ source: LocalAgentSource) {
+        guard !isRunning else { return }
+        let outputRoot = captureDirectory
+        isRunning = true
+        status = "Importing \(source.label) transcripts..."
+        commandOutput = "Tacket is reading local \(source.label) session files on this Mac and converting recent transcripts into .tacket folders. Nothing is uploaded."
+
+        Task {
+            do {
+                let result = try await Task.detached {
+                    try Self.importLocalAgentSessions(source, outputRoot: outputRoot)
+                }.value
+                librarySearchText = ""
+                libraryItems = try queryLibrary(search: "")
+                selectedLibraryItem = result.lastBundle.flatMap { bundleURL in
+                    libraryItems.first(where: { $0.path == bundleURL.path })
+                } ?? libraryItems.first
+                selectedBundle = selectedLibraryItem.map { URL(fileURLWithPath: $0.path, isDirectory: true) }
+                loadSelectedBundleInfo()
+                libraryStatus = "Imported \(result.imported) \(source.label) transcript(s)."
+                status = "Imported \(source.label) transcripts."
+                commandOutput = result.imported == 0
+                    ? "No importable \(source.label) transcripts were found."
+                    : "Imported \(result.imported) \(source.label) transcript(s) from local session files."
+            } catch {
+                status = "Import failed."
+                commandOutput = error.localizedDescription
+            }
             isRunning = false
         }
     }
@@ -772,6 +832,443 @@ final class TacketModel: ObservableObject {
                 throw TacketAppError.invalidBundle("targets/\(target) must match transcript.md exactly.")
             }
         }
+    }
+
+    private struct ImportedAgentMessage {
+        let id: String
+        let role: String
+        let author: String
+        let createdAt: String
+        let text: String
+    }
+
+    private struct ImportedAgentSession {
+        let source: LocalAgentSource
+        let sessionId: String
+        let title: String
+        let capturedAt: String
+        let sourceURL: String
+        let messages: [ImportedAgentMessage]
+    }
+
+    private nonisolated static func importLocalAgentSessions(
+        _ source: LocalAgentSource,
+        outputRoot: URL
+    ) throws -> (imported: Int, lastBundle: URL?) {
+        let sessions: [ImportedAgentSession]
+        switch source {
+        case .codex:
+            sessions = try readRecentCodexSessions(limit: 20)
+        case .claudeCode:
+            sessions = try readRecentClaudeCodeSessions(limit: 20)
+        }
+
+        var imported = 0
+        var lastBundle: URL?
+        for session in sessions {
+            guard !session.messages.isEmpty else { continue }
+            let bundleURL = try writeAgentSessionBundle(session, outputRoot: outputRoot)
+            _ = try indexLibraryBundle(bundleURL)
+            imported += 1
+            lastBundle = bundleURL
+        }
+        return (imported, lastBundle)
+    }
+
+    private nonisolated static func readRecentCodexSessions(limit: Int) throws -> [ImportedAgentSession] {
+        let codexRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
+        let index = readCodexSessionIndex(codexRoot: codexRoot)
+        let sessionsRoot = codexRoot.appendingPathComponent("sessions", isDirectory: true)
+        let files = try recentJSONLFiles(in: sessionsRoot, limit: limit * 2)
+        return files.prefix(limit).compactMap { file in
+            try? parseCodexSession(file, indexedTitle: index[sessionIdFromCodexPath(file)]?.title)
+        }.filter { !$0.messages.isEmpty }
+    }
+
+    private nonisolated static func readRecentClaudeCodeSessions(limit: Int) throws -> [ImportedAgentSession] {
+        let projectsRoot = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude/projects", isDirectory: true)
+        let files = try recentJSONLFiles(in: projectsRoot, limit: limit * 3)
+            .filter { !$0.path.contains("/subagents/") }
+        return files.prefix(limit).compactMap { file in
+            try? parseClaudeCodeSession(file)
+        }.filter { !$0.messages.isEmpty }
+    }
+
+    private nonisolated static func recentJSONLFiles(in root: URL, limit: Int) throws -> [URL] {
+        guard FileManager.default.fileExists(atPath: root.path),
+              let enumerator = FileManager.default.enumerator(
+                at: root,
+                includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey],
+                options: [.skipsHiddenFiles]
+              ) else {
+            return []
+        }
+
+        var files: [(url: URL, date: Date)] = []
+        for case let url as URL in enumerator where url.pathExtension == "jsonl" {
+            let values = try url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey])
+            guard values.isRegularFile == true else { continue }
+            files.append((url, values.contentModificationDate ?? .distantPast))
+        }
+        return files
+            .sorted { lhs, rhs in lhs.date > rhs.date }
+            .prefix(limit)
+            .map(\.url)
+    }
+
+    private nonisolated static func readCodexSessionIndex(
+        codexRoot: URL
+    ) -> [String: (title: String, updatedAt: String)] {
+        let indexURL = codexRoot.appendingPathComponent("session_index.jsonl")
+        guard let text = try? String(contentsOf: indexURL, encoding: .utf8) else { return [:] }
+        var index: [String: (title: String, updatedAt: String)] = [:]
+        for line in text.split(separator: "\n") {
+            guard let object = try? jsonObject(from: String(line)),
+                  let id = object["id"] as? String else {
+                continue
+            }
+            index[id] = (
+                title: object["thread_name"] as? String ?? "Codex session",
+                updatedAt: object["updated_at"] as? String ?? ""
+            )
+        }
+        return index
+    }
+
+    private nonisolated static func sessionIdFromCodexPath(_ url: URL) -> String {
+        url.deletingPathExtension().lastPathComponent
+            .replacingOccurrences(of: #"^rollout-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-"#, with: "", options: .regularExpression)
+    }
+
+    private nonisolated static func parseCodexSession(
+        _ file: URL,
+        indexedTitle: String?
+    ) throws -> ImportedAgentSession {
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let fallbackId = sessionIdFromCodexPath(file)
+        var sessionId = fallbackId
+        var capturedAt = iso8601String(from: fileModificationDate(file))
+        var title = indexedTitle ?? "Codex session"
+        var messages: [ImportedAgentMessage] = []
+
+        for rawLine in text.split(separator: "\n") {
+            guard let object = try? jsonObject(from: String(rawLine)) else { continue }
+            let timestamp = object["timestamp"] as? String ?? capturedAt
+            if object["type"] as? String == "session_meta",
+               let payload = object["payload"] as? [String: Any] {
+                sessionId = payload["id"] as? String ?? sessionId
+                capturedAt = payload["timestamp"] as? String ?? capturedAt
+                continue
+            }
+            guard object["type"] as? String == "response_item",
+                  let payload = object["payload"] as? [String: Any],
+                  payload["type"] as? String == "message" else {
+                continue
+            }
+            let rawRole = payload["role"] as? String ?? "unknown"
+            let role = normalizedTacketRole(rawRole)
+            let text = textFromOpenAIContent(payload["content"])
+            guard !text.isEmpty else { continue }
+            if title == "Codex session", role == "user" {
+                title = titleFromText(text, fallback: title)
+            }
+            messages.append(ImportedAgentMessage(
+                id: "codex-\(messages.count + 1)",
+                role: role,
+                author: roleLabel(role),
+                createdAt: timestamp,
+                text: text
+            ))
+        }
+
+        return ImportedAgentSession(
+            source: .codex,
+            sessionId: sessionId,
+            title: sanitizeFileSegment(title, maxLength: 80),
+            capturedAt: capturedAt,
+            sourceURL: "codex-session://\(sessionId)",
+            messages: messages
+        )
+    }
+
+    private nonisolated static func parseClaudeCodeSession(_ file: URL) throws -> ImportedAgentSession {
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let sessionId = file.deletingPathExtension().lastPathComponent
+        var capturedAt = iso8601String(from: fileModificationDate(file))
+        var title = "Claude Code session"
+        var messages: [ImportedAgentMessage] = []
+
+        for rawLine in text.split(separator: "\n") {
+            guard let object = try? jsonObject(from: String(rawLine)),
+                  (object["type"] as? String == "user" || object["type"] as? String == "assistant"),
+                  object["isMeta"] as? Bool != true,
+                  let message = object["message"] as? [String: Any] else {
+                continue
+            }
+            let timestamp = object["timestamp"] as? String ?? capturedAt
+            if messages.isEmpty {
+                capturedAt = timestamp
+            }
+            let role = normalizedTacketRole(message["role"] as? String ?? object["type"] as? String ?? "unknown")
+            let text = textFromClaudeContent(message["content"])
+            guard !text.isEmpty else { continue }
+            if title == "Claude Code session", role == "user" {
+                title = titleFromText(text, fallback: title)
+            }
+            messages.append(ImportedAgentMessage(
+                id: "claude-code-\(messages.count + 1)",
+                role: role,
+                author: roleLabel(role),
+                createdAt: timestamp,
+                text: text
+            ))
+        }
+
+        return ImportedAgentSession(
+            source: .claudeCode,
+            sessionId: sessionId,
+            title: sanitizeFileSegment(title, maxLength: 80),
+            capturedAt: capturedAt,
+            sourceURL: "claude-code-session://\(sessionId)",
+            messages: messages
+        )
+    }
+
+    private nonisolated static func writeAgentSessionBundle(
+        _ session: ImportedAgentSession,
+        outputRoot: URL
+    ) throws -> URL {
+        try FileManager.default.createDirectory(at: outputRoot, withIntermediateDirectories: true)
+        let capturedAt = validISO8601(session.capturedAt) ?? ISO8601DateFormatter().string(from: Date())
+        let bundleURL = try reserveAgentBundleURL(
+            outputRoot: outputRoot,
+            capturedAt: dateFromISO8601(capturedAt) ?? Date(),
+            source: session.source,
+            title: session.title
+        )
+        let targetsURL = bundleURL.appendingPathComponent("targets", isDirectory: true)
+        let attachmentsURL = bundleURL.appendingPathComponent("attachments", isDirectory: true)
+        try FileManager.default.createDirectory(at: targetsURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: attachmentsURL, withIntermediateDirectories: true)
+
+        let messages = session.messages.map { message -> [String: Any] in
+            [
+                "id": message.id,
+                "role": message.role,
+                "author": message.author,
+                "createdAt": message.createdAt,
+                "source": [
+                    "platform": session.source.platform,
+                    "url": session.sourceURL
+                ],
+                "content": [
+                    [
+                        "type": "text",
+                        "text": message.text
+                    ]
+                ]
+            ]
+        }
+        let transcript = renderAgentSessionTranscript(session, capturedAt: capturedAt)
+        let manifest: [String: Any] = [
+            "schemaVersion": "0.1.0",
+            "id": sha256("\(session.source.rawValue):\(session.sessionId):\(capturedAt)"),
+            "title": session.title,
+            "source": [
+                "platform": session.source.platform,
+                "url": session.sourceURL,
+                "capture": "local-agent-session"
+            ],
+            "capturedAt": capturedAt,
+            "messageCount": messages.count,
+            "attachments": [
+                "captured": 0,
+                "referenced": 0,
+                "unavailable": 0
+            ],
+            "warnings": []
+        ]
+
+        try writeJSONObject(manifest, to: bundleURL.appendingPathComponent("manifest.json"))
+        let jsonl = try messages.map { message -> String in
+            let data = try JSONSerialization.data(withJSONObject: message, options: [.sortedKeys])
+            guard let line = String(data: data, encoding: .utf8) else {
+                throw TacketAppError.nativeCapture("Could not encode imported message.")
+            }
+            return line
+        }.joined(separator: "\n") + "\n"
+        try jsonl.write(to: bundleURL.appendingPathComponent("messages.jsonl"), atomically: true, encoding: .utf8)
+        try transcript.write(to: bundleURL.appendingPathComponent("transcript.md"), atomically: true, encoding: .utf8)
+        try transcript.write(to: targetsURL.appendingPathComponent("codex.md"), atomically: true, encoding: .utf8)
+        try transcript.write(to: targetsURL.appendingPathComponent("claude-code.md"), atomically: true, encoding: .utf8)
+        try agentSessionReadme(session, capturedAt: capturedAt)
+            .write(to: bundleURL.appendingPathComponent("README.md"), atomically: true, encoding: .utf8)
+
+        return bundleURL
+    }
+
+    private nonisolated static func reserveAgentBundleURL(
+        outputRoot: URL,
+        capturedAt: Date,
+        source: LocalAgentSource,
+        title: String
+    ) throws -> URL {
+        let baseName = [
+            fileDateFormatter.string(from: capturedAt),
+            source.label,
+            sanitizeFileSegment(title, maxLength: 80)
+        ].joined(separator: " - ")
+        for index in 1..<1000 {
+            let suffix = index == 1 ? "" : " (\(index))"
+            let candidate = outputRoot.appendingPathComponent("\(baseName)\(suffix).tacket", isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: candidate, withIntermediateDirectories: false)
+                return candidate
+            } catch CocoaError.fileWriteFileExists {
+                continue
+            } catch {
+                throw error
+            }
+        }
+        throw TacketAppError.nativeCapture("Could not create a unique saved chat folder.")
+    }
+
+    private nonisolated static func renderAgentSessionTranscript(
+        _ session: ImportedAgentSession,
+        capturedAt: String
+    ) -> String {
+        var lines: [String] = [
+            "The following is the full saved AI chat conversation being transferred into this coding session.",
+            "Continue from it. Do not treat this as a summary.",
+            "",
+            "[conversation begins]",
+            "",
+            "# \(session.title)",
+            "",
+            "Source: \(session.source.platform)",
+            "URL: \(session.sourceURL)",
+            "Captured: \(capturedAt)",
+            ""
+        ]
+
+        for message in session.messages {
+            lines.append("## \(roleLabel(message.role))")
+            lines.append("")
+            lines.append(message.text.trimmingCharacters(in: .whitespacesAndNewlines))
+            lines.append("")
+        }
+        lines.append("[conversation ends]")
+        lines.append("")
+        return lines.joined(separator: "\n")
+            .replacingOccurrences(of: #"\n{4,}"#, with: "\n\n\n", options: .regularExpression)
+    }
+
+    private nonisolated static func agentSessionReadme(
+        _ session: ImportedAgentSession,
+        capturedAt: String
+    ) -> String {
+        """
+        # \(session.title)
+
+        This is a local Tacket saved chat imported from \(session.source.label) session files on this Mac.
+
+        - Open `transcript.md` to read the full imported conversation.
+        - `targets/` contains ready-to-transfer conversation files for supported tools.
+        - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the saved chat.
+
+        Source: \(session.source.label)
+        Captured: \(capturedAt)
+        """
+    }
+
+    private nonisolated static func textFromOpenAIContent(_ value: Any?) -> String {
+        guard let parts = value as? [[String: Any]] else { return "" }
+        return parts.compactMap { part in
+            guard let text = part["text"] as? String else { return nil }
+            return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : text
+        }.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private nonisolated static func textFromClaudeContent(_ value: Any?) -> String {
+        if let text = value as? String {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard let parts = value as? [[String: Any]] else { return "" }
+        return parts.compactMap { part in
+            if let text = part["text"] as? String,
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+            if let content = part["content"] as? String,
+               !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return content
+            }
+            guard part["type"] as? String != "thinking",
+                  JSONSerialization.isValidJSONObject(part),
+                  let data = try? JSONSerialization.data(withJSONObject: part, options: [.sortedKeys]),
+                  let json = String(data: data, encoding: .utf8) else {
+                return nil
+            }
+            return json
+        }.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private nonisolated static func normalizedTacketRole(_ value: String) -> String {
+        switch value.lowercased() {
+        case "user": "user"
+        case "assistant": "assistant"
+        case "system", "developer": "system"
+        case "tool", "tool_result", "tool_use": "tool"
+        default: "unknown"
+        }
+    }
+
+    private nonisolated static func roleLabel(_ role: String) -> String {
+        switch role {
+        case "user": "User"
+        case "assistant": "Assistant"
+        case "system": "System"
+        case "tool": "Tool"
+        default: "Unknown"
+        }
+    }
+
+    private nonisolated static func titleFromText(_ text: String, fallback: String) -> String {
+        let line = text
+            .split(separator: "\n")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { $0.count >= 8 } ?? fallback
+        return sanitizeFileSegment(line, maxLength: 80)
+    }
+
+    private nonisolated static func jsonObject(from line: String) throws -> [String: Any]? {
+        guard let data = line.data(using: .utf8),
+              let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        return object
+    }
+
+    private nonisolated static func fileModificationDate(_ url: URL) -> Date {
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? Date()
+    }
+
+    private nonisolated static func iso8601String(from date: Date) -> String {
+        ISO8601DateFormatter().string(from: date)
+    }
+
+    private nonisolated static func dateFromISO8601(_ value: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: value) {
+            return date
+        }
+        return ISO8601DateFormatter().date(from: value)
+    }
+
+    private nonisolated static func validISO8601(_ value: String) -> String? {
+        dateFromISO8601(value).map { ISO8601DateFormatter().string(from: $0) }
     }
 
     private nonisolated static func writeNativeCaptureBundle(
@@ -2157,6 +2654,26 @@ struct LibraryPanelView: View {
                             }
 
                             Text("Desktop capture reads visible app text locally with macOS Accessibility and on-device OCR, then saves it as a .tacket folder.")
+                                .font(.tacketFootnote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Divider()
+
+                            HStack(spacing: 10) {
+                                ForEach(TacketModel.LocalAgentSource.allCases) { source in
+                                    Button {
+                                        model.importLocalAgentSessions(source)
+                                    } label: {
+                                        Label("Import \(source.label)", systemImage: "tray.and.arrow.down")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(model.isRunning)
+                                    .help("Import recent local \(source.label) agent transcripts into Tacket")
+                                }
+                            }
+
+                            Text("Local agent imports read recent Codex and Claude Code JSONL session files and save exact transcript bundles in your Tacket library.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

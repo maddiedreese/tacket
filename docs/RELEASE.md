@@ -10,6 +10,7 @@ Tacket v1 is direct-download and local-only.
 - Create a local live QA report with `npm run qa:live`.
 - Generate a public-safe live QA issue summary with `npm run qa:live:summary -- qa/live-capture/<report>.md`.
 - Test unpacked Chrome extension saving on ChatGPT, Claude, and Gemini.
+- Test Mac app import for recent local Codex and Claude Code JSONL sessions.
 - Test Mac app visible desktop capture on ChatGPT, Claude, and Codex desktop apps.
 - Test local Chrome app connection installation with the current draft Chrome Web Store extension ID when available.
 - Test local connection status and removal from the Mac app.
