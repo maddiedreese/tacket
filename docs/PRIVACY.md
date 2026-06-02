@@ -14,7 +14,7 @@ The extension saves content only after the user clicks the extension on a suppor
 
 The Mac app can import recent local Codex App, Claude App, and Claude Code transcripts after the user clicks import. This reads local session data from the user's Mac, converts it into local `.tacket` folders, and indexes it locally. Tacket does not scan those folders in the background or upload imported transcripts.
 
-The Mac app can also capture the current open ChatGPT, Claude, and Codex desktop app chat. Desktop capture scrolls the app window locally, reads text exposed through macOS Accessibility, and falls back to on-device OCR when needed. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
+The Mac app can also capture the current open ChatGPT, Claude, and Codex desktop app chat. Desktop capture scrolls the app window locally, reads text exposed through macOS Accessibility, and falls back to on-device OCR when needed. It shows the captured text in a local preview before saving. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
 
 The recommended extension install path is the Chrome Web Store. That means Google handles extension distribution and may have normal store/install metadata. It does not change Tacket's save path: chat content is sent to the local Tacket app, not to the developer or a Tacket server.
 
@@ -36,7 +36,7 @@ When transferring to Codex or Claude Code, Tacket copies the saved conversation 
 
 ## macOS Desktop Capture Permissions
 
-When saving from the ChatGPT, Claude, or Codex desktop app, Tacket may ask for Accessibility or Screen Recording permission. Accessibility lets Tacket read text exposed by the open app window and drive local scroll-and-read capture. Screen Recording lets Tacket use on-device OCR when an app does not expose enough text through Accessibility. Captured text is written to local `.tacket` files only.
+When saving from the ChatGPT, Claude, or Codex desktop app, Tacket may ask for Accessibility or Screen Recording permission. Accessibility lets Tacket read text exposed by the open app window and drive local scroll-and-read capture. Screen Recording lets Tacket use on-device OCR when an app does not expose enough text through Accessibility. Captured text is shown in Tacket for review before it is written to local `.tacket` files.
 
 ## Local Agent Transcript Import
 

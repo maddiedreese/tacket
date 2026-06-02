@@ -211,6 +211,7 @@ final class TacketModel: ObservableObject {
     @Published var libraryItems: [LibraryItem] = []
     @Published var selectedLibraryItem: LibraryItem?
     @Published var libraryStatus = "Add your saved chats to the Library to search them."
+    @Published var pendingNativeCaptureDraft: NativeCaptureDraft?
 
     let supportedSources = ["ChatGPT", "Claude", "Gemini", "Codex"]
 
@@ -419,7 +420,7 @@ final class TacketModel: ObservableObject {
                             self.commandOutput = error.localizedDescription
                         } else {
                             self.status = "Opened \(source.label)."
-                            self.commandOutput = "Open the chat you want to save in \(source.label), click inside the conversation, then choose Capture Current \(source.label) Chat."
+                            self.commandOutput = "Open the chat you want to save in \(source.label), click inside the conversation, then choose Preview Current \(source.label) Chat."
                         }
                     }
                 }
@@ -459,32 +460,22 @@ final class TacketModel: ObservableObject {
 
             \(permissionSummary)
 
-            Open Accessibility Settings or Screen Recording Settings below, allow Tacket, quit and reopen Tacket, then try Capture Current \(source.label) Chat again.
+            Open Accessibility Settings or Screen Recording Settings below, allow Tacket, quit and reopen Tacket, then try Preview Current \(source.label) Chat again.
             """
             return
         }
 
         isRunning = true
-        status = "Capturing \(source.label) app..."
-        commandOutput = "Tacket will scroll and read the current \(app.localizedName ?? source.label) chat locally with macOS Accessibility and on-device OCR. Nothing is uploaded.\n\n\(permissionSummary)"
+        status = "Preparing \(source.label) preview..."
+        commandOutput = "Tacket will scroll and read the current \(app.localizedName ?? source.label) chat locally with macOS Accessibility and on-device OCR. Review the preview before saving. Nothing is uploaded.\n\n\(permissionSummary)"
 
         Task {
             do {
                 let rawText = try await readConversationText(from: app, source: source)
-                let bundleURL = try Self.writeNativeCaptureBundle(
-                    source: source,
-                    rawText: rawText,
-                    outputRoot: captureDirectory
-                )
-                _ = try Self.indexLibraryBundle(bundleURL)
-                librarySearchText = ""
-                libraryItems = try queryLibrary(search: "")
-                selectedLibraryItem = libraryItems.first(where: { $0.path == bundleURL.path }) ?? libraryItems.first
-                selectedBundle = bundleURL
-                loadSelectedBundleInfo()
-                libraryStatus = "Saved \(source.label) app chat."
-                status = "Saved \(source.label) chat."
-                commandOutput = "Saved native app capture:\n\(bundleURL.path)\n\n\(permissionSummary)"
+                let transcript = Self.cleanNativeCaptureText(rawText)
+                pendingNativeCaptureDraft = Self.nativeCaptureDraft(source: source, transcript: transcript)
+                status = "Review \(source.label) capture."
+                commandOutput = "Review the desktop capture preview. Save it if the visible conversation text looks right, or discard it and try again after repositioning the chat window.\n\n\(permissionSummary)"
             } catch {
                 status = "Desktop capture failed."
                 commandOutput = "\(error.localizedDescription)\n\n\(permissionSummary)\n\nIf the app is open and contains a visible chat, grant Tacket Accessibility or Screen Recording permission in System Settings, quit and reopen Tacket, then try again."
@@ -492,6 +483,42 @@ final class TacketModel: ObservableObject {
 
             isRunning = false
         }
+    }
+
+    func saveNativeCaptureDraft() {
+        guard let draft = pendingNativeCaptureDraft, !isRunning else { return }
+        isRunning = true
+        status = "Saving \(draft.source.label) capture..."
+        Task {
+            do {
+                let bundleURL = try Self.writeNativeCaptureBundle(
+                    source: draft.source,
+                    rawText: draft.transcript,
+                    outputRoot: captureDirectory
+                )
+                _ = try Self.indexLibraryBundle(bundleURL)
+                pendingNativeCaptureDraft = nil
+                librarySearchText = ""
+                libraryItems = try queryLibrary(search: "")
+                selectedLibraryItem = libraryItems.first(where: { $0.path == bundleURL.path }) ?? libraryItems.first
+                selectedBundle = bundleURL
+                loadSelectedBundleInfo()
+                libraryStatus = "Saved \(draft.source.label) desktop capture."
+                status = "Saved \(draft.source.label) capture."
+                commandOutput = "Saved desktop capture:\n\(bundleURL.path)"
+            } catch {
+                status = "Save failed."
+                commandOutput = error.localizedDescription
+            }
+            isRunning = false
+        }
+    }
+
+    func discardNativeCaptureDraft() {
+        guard let draft = pendingNativeCaptureDraft else { return }
+        pendingNativeCaptureDraft = nil
+        status = "Discarded \(draft.source.label) preview."
+        commandOutput = "Nothing was saved. Open the chat, adjust the window or scroll position, then run another desktop capture preview."
     }
 
     func importLocalAgentSessions(_ source: LocalAgentSource) {
@@ -1699,6 +1726,32 @@ final class TacketModel: ObservableObject {
         cleanNativeCaptureText(value).count >= 20
     }
 
+    private nonisolated static func nativeCaptureDraft(
+        source: NativeCaptureSource,
+        transcript: String
+    ) -> NativeCaptureDraft {
+        let lines = nativeCaptureLines(transcript)
+        let title = nativeCaptureTitle(from: transcript, source: source)
+        let preview = String(transcript.prefix(4_000))
+        let quality: NativeCaptureDraft.Quality
+        if transcript.count >= 1_500 && lines.count >= 20 {
+            quality = .strong
+        } else if transcript.count >= 300 && lines.count >= 6 {
+            quality = .review
+        } else {
+            quality = .thin
+        }
+        return NativeCaptureDraft(
+            source: source,
+            title: title,
+            transcript: transcript,
+            preview: preview,
+            lineCount: lines.count,
+            characterCount: transcript.count,
+            quality: quality
+        )
+    }
+
     private nonisolated static func nativeWindowText(for processIdentifier: pid_t) async throws -> String {
         if accessibilityIsTrusted(prompt: false),
            let text = try? accessibilityText(for: processIdentifier),
@@ -2721,6 +2774,49 @@ struct BundleWarning: Identifiable {
     let messageIds: [String]
 }
 
+struct NativeCaptureDraft {
+    enum Quality {
+        case strong
+        case review
+        case thin
+
+        var label: String {
+            switch self {
+            case .strong: "Looks ready"
+            case .review: "Review closely"
+            case .thin: "Probably incomplete"
+            }
+        }
+
+        var detail: String {
+            switch self {
+            case .strong:
+                "Tacket found enough local text for a likely complete desktop capture."
+            case .review:
+                "Tacket found readable text, but the capture may be partial. Check the preview before saving."
+            case .thin:
+                "Tacket found only a small amount of text. Reopen the chat, widen the window, or grant permissions before saving."
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .strong: TacketColors.success
+            case .review: TacketColors.warning
+            case .thin: TacketColors.danger
+            }
+        }
+    }
+
+    let source: TacketModel.NativeCaptureSource
+    let title: String
+    let transcript: String
+    let preview: String
+    let lineCount: Int
+    let characterCount: Int
+    let quality: Quality
+}
+
 private func friendlyDate(_ value: String) -> String {
     let fractional = ISO8601DateFormatter()
     fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -3005,7 +3101,7 @@ struct LibraryPanelView: View {
                     SectionCard(
                         eyebrow: "Save",
                         title: "Save chats from browsers, app windows, and local app logs",
-                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. Use exact local imports for Codex App, Claude App, and Claude Code sessions. For desktop chat apps, Tacket can open the app and locally scroll-capture the current conversation."
+                        detail: "Use the Chrome extension for exact ChatGPT, Claude, and Gemini browser transcripts. Use exact local imports for Codex App, Claude App, and Claude Code sessions. For desktop chat apps, Tacket prepares a local capture preview before anything is saved."
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
@@ -3054,18 +3150,22 @@ struct LibraryPanelView: View {
                                     Button {
                                         model.captureNativeApp(source)
                                     } label: {
-                                        Label("Capture Current \(source.label) Chat", systemImage: "viewfinder")
+                                        Label("Preview Current \(source.label) Chat", systemImage: "viewfinder")
                                     }
                                     .buttonStyle(.bordered)
                                     .disabled(model.isRunning)
-                                    .help("Scroll-capture the current \(source.label) desktop app chat locally")
+                                    .help("Prepare a local preview of the current \(source.label) desktop app chat")
                                 }
                             }
 
-                            Text("Desktop app capture is local and does not use the clipboard. It scrolls the open app window and reads exposed text with macOS Accessibility, falling back to on-device OCR when needed.")
+                            Text("Desktop app capture is local and does not use the clipboard. It scrolls the open app window, reads exposed text with macOS Accessibility, falls back to on-device OCR when needed, and asks you to review the preview before saving.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
+
+                            if let draft = model.pendingNativeCaptureDraft {
+                                NativeCaptureReviewCard(draft: draft)
+                            }
 
                             Divider()
 
@@ -3342,6 +3442,89 @@ struct AdvancedPicker<Option: Identifiable & Hashable>: View where Option.ID == 
         default:
             option.id
         }
+    }
+}
+
+struct NativeCaptureReviewCard: View {
+    @EnvironmentObject private var model: TacketModel
+    let draft: NativeCaptureDraft
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Label("Desktop capture preview", systemImage: "doc.text.magnifyingglass")
+                    .font(.tacketBody.weight(.semibold))
+                Spacer(minLength: 0)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(draft.quality.color)
+                        .frame(width: 8, height: 8)
+                    Text(draft.quality.label)
+                        .font(.tacketFootnote.weight(.semibold))
+                        .foregroundStyle(draft.quality.color)
+                }
+            }
+
+            Text(draft.title)
+                .font(.tacketSectionTitle)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(draft.quality.detail)
+                .font(.tacketFootnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                MetadataPill(text: draft.source.label)
+                MetadataPill(text: "\(draft.lineCount) lines")
+                MetadataPill(text: "\(draft.characterCount) characters")
+            }
+
+            ScrollView {
+                Text(draft.preview)
+                    .font(.tacketMono)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+            }
+            .frame(minHeight: 120, maxHeight: 210)
+            .background(TacketColors.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(TacketColors.border, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            HStack(spacing: 10) {
+                Button {
+                    model.saveNativeCaptureDraft()
+                } label: {
+                    Label("Save Capture", systemImage: "tray.and.arrow.down")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(model.isRunning)
+
+                Button {
+                    model.discardNativeCaptureDraft()
+                } label: {
+                    Label("Discard", systemImage: "xmark")
+                }
+                .buttonStyle(.bordered)
+                .disabled(model.isRunning)
+
+                Text("For exact ChatGPT transcripts, open the thread in Chrome and use the Tacket extension.")
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .background(TacketColors.recessed)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(draft.quality.color.opacity(0.55), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
