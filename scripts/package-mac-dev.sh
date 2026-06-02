@@ -72,4 +72,6 @@ cp "$ROOT_DIR/apps/chrome-extension/src/adapters/capture.js" "$EXTENSION_RESOURC
 cp "$ROOT_DIR/apps/chrome-extension/icons/tacket-"*.png "$EXTENSION_RESOURCES_DIR/icons/"
 cp "$ROOT_DIR/README.md" "$RESOURCES_DIR/"
 
+codesign --force --deep --sign - "$APP_DIR" >/dev/null
+
 echo "$APP_DIR"

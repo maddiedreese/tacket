@@ -25,7 +25,7 @@ for (const phrase of [
   "https://twitter.com/maddiedreese",
   "./privacy.html",
   "Local transcript library for AI chats",
-  "Save AI chats from browser tabs and desktop apps on your Mac.",
+  "Save AI chats locally on your Mac.",
   "Desktop app capture",
   "macOS Accessibility and on-device OCR",
   "No summary step",

@@ -13,7 +13,7 @@ npm run package:release
 - transcript rendering tests
 - attachment persistence tests
 - Chrome save-flow fixture tests for ChatGPT, Claude, and Gemini-like pages
-- Mac app native capture checks for ChatGPT, Claude, and Codex desktop app windows
+- Mac app visible desktop capture checks for ChatGPT, Claude, and Codex desktop app windows
 - website release-link and privacy-copy checks
 - local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
 - first-run smoke coverage for local extension setup/status/remove, saved chat validation, and Codex/Claude Code dry-run transfer in isolated temporary folders
@@ -101,7 +101,7 @@ For each source, confirm:
 
 ## Manual Desktop App Checks
 
-Before a release, test native capture from:
+Before a release, test visible desktop capture from:
 
 - a ChatGPT desktop app chat with text and code
 - a Claude desktop app chat with text and code
@@ -113,7 +113,7 @@ For each desktop source, confirm:
 - capture does not use the clipboard as the transcript source
 - the saved `.tacket` folder includes `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets
 - `manifest.json` uses `source.platform` of `chatgpt`, `claude`, or `codex`
-- the transcript contains the visible/native app conversation text and can be searched in the Library
+- the transcript contains visible app conversation text and can be searched in the Library
 - the saved chat can be copied or transferred after capture
 
 ## Transfer Checks

@@ -388,21 +388,20 @@ final class TacketModel: ObservableObject {
         guard !isRunning else { return }
         guard let app = runningNativeCaptureApp(for: source) else {
             status = "\(source.label) app is not open."
-            commandOutput = "Open the \(source.label) desktop app, open the chat you want to save, click inside the conversation, then capture it from Tacket."
+            commandOutput = "Open the \(source.label) desktop app, open the chat you want to save, click inside the conversation, then capture the visible app text from Tacket."
             return
         }
 
         let accessibilityReady = Self.accessibilityIsTrusted(prompt: true)
         let screenCaptureReady = Self.screenCaptureIsTrusted(prompt: true)
-        guard accessibilityReady || screenCaptureReady else {
-            status = "Permission needed."
-            commandOutput = "Tacket needs Accessibility permission or Screen Recording permission to read desktop app chats locally. Grant permission in System Settings, reopen Tacket, then try again."
-            return
-        }
+        let permissionSummary = Self.nativeCapturePermissionSummary(
+            accessibilityReady: accessibilityReady,
+            screenCaptureReady: screenCaptureReady
+        )
 
         isRunning = true
         status = "Capturing \(source.label) app..."
-        commandOutput = "Tacket will read the \(app.localizedName ?? source.label) window locally with macOS Accessibility and on-device OCR. Nothing is uploaded."
+        commandOutput = "Tacket will read visible text from the \(app.localizedName ?? source.label) window locally with macOS Accessibility and on-device OCR. Nothing is uploaded.\n\n\(permissionSummary)"
 
         Task {
             do {
@@ -420,10 +419,10 @@ final class TacketModel: ObservableObject {
                 loadSelectedBundleInfo()
                 libraryStatus = "Saved \(source.label) app chat."
                 status = "Saved \(source.label) chat."
-                commandOutput = "Saved native app capture:\n\(bundleURL.path)"
+                commandOutput = "Saved native app capture:\n\(bundleURL.path)\n\n\(permissionSummary)"
             } catch {
-                status = "Native capture failed."
-                commandOutput = error.localizedDescription
+                status = "Desktop capture failed."
+                commandOutput = "\(error.localizedDescription)\n\n\(permissionSummary)\n\nIf the app is open and contains a visible chat, grant Tacket Accessibility or Screen Recording permission in System Settings, quit and reopen Tacket, then try again."
             }
 
             isRunning = false
@@ -867,6 +866,9 @@ final class TacketModel: ObservableObject {
            nativeCaptureTextIsUsable(text) {
             return cleanNativeCaptureText(text)
         }
+        guard screenCaptureIsTrusted(prompt: false) else {
+            throw TacketAppError.nativeCapture("The app window did not expose enough Accessibility text, and Screen Recording is not granted for local OCR.")
+        }
         let ocrText = try await ocrText(for: processIdentifier)
         return cleanNativeCaptureText(ocrText)
     }
@@ -918,6 +920,17 @@ final class TacketModel: ObservableObject {
         }
         guard prompt else { return false }
         return CGRequestScreenCaptureAccess()
+    }
+
+    private nonisolated static func nativeCapturePermissionSummary(
+        accessibilityReady: Bool,
+        screenCaptureReady: Bool
+    ) -> String {
+        """
+        Permission check:
+        Accessibility: \(accessibilityReady ? "granted" : "not granted yet")
+        Screen Recording: \(screenCaptureReady ? "granted" : "not granted yet")
+        """
     }
 
     private nonisolated static func accessibilityText(for processIdentifier: pid_t) throws -> String {
@@ -1117,7 +1130,14 @@ final class TacketModel: ObservableObject {
         process.arguments = ["-x", "-l", String(windowNumber), imageURL.path]
         do {
             try process.run()
-            process.waitUntilExit()
+            let deadline = Date().addingTimeInterval(2)
+            while process.isRunning && Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            if process.isRunning {
+                process.terminate()
+                return nil
+            }
             guard process.terminationStatus == 0,
                   let image = NSImage(contentsOf: imageURL) else {
                 return nil
@@ -1201,9 +1221,9 @@ final class TacketModel: ObservableObject {
         """
         # \(title)
 
-        This is a local Tacket saved chat captured from the \(source.label) desktop app.
+        This is a local Tacket saved chat captured from visible text in the \(source.label) desktop app.
 
-        - Open `transcript.md` to read the copied conversation text.
+        - Open `transcript.md` to read the captured visible conversation text.
         - `targets/` contains ready-to-transfer conversation files for supported tools.
         - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the saved chat.
 
@@ -2112,7 +2132,7 @@ struct LibraryPanelView: View {
                     SectionCard(
                         eyebrow: "Save",
                         title: "Save chats from browser tabs or desktop apps",
-                        detail: "Use the Chrome extension for ChatGPT, Claude, and Gemini in the browser. For desktop apps, open the chat, click inside the conversation, then capture it locally from Tacket."
+                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. For desktop apps, open the chat, click inside the conversation, then capture visible text locally from Tacket."
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
@@ -2132,11 +2152,11 @@ struct LibraryPanelView: View {
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .disabled(model.isRunning)
-                                    .help("Capture the open \(source.label) desktop app chat")
+                                    .help("Capture visible text from the open \(source.label) desktop app chat")
                                 }
                             }
 
-                            Text("Native capture reads the open desktop app locally with macOS Accessibility and on-device OCR, then saves it as a .tacket folder.")
+                            Text("Desktop capture reads visible app text locally with macOS Accessibility and on-device OCR, then saves it as a .tacket folder.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
