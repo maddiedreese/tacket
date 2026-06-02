@@ -54,21 +54,24 @@ function releaseIssues() {
   return [
     {
       number: 1,
-      title: "Live-test capture on ChatGPT, Claude, and Gemini",
-      body: `Before v0.1.0, validate the extension against the current live provider UIs and record a local QA report.
+      title: "Live-test browser capture and desktop app imports",
+      body: `Before v0.1.0, validate the extension against the current live provider UIs, validate Mac app local imports and desktop capture, and record local QA evidence.
 
 Checklist:
 
 - [ ] Run \`npm run qa:live\` and fill the generated local report without private transcript text.
 - [ ] Fill required tester/build/environment fields, including commit, macOS, Chrome, extension ID, native host, and save folder.
-- [ ] Test ChatGPT text, code, image/image-like attachment, and long-scroll capture.
-- [ ] Test Claude text, code, attached/linked file, and long-scroll capture.
-- [ ] Test Gemini text, code, and long-scroll capture.
+- [ ] Test browser ChatGPT text, code, image/image-like attachment, and long-scroll capture.
+- [ ] Test browser Claude text, code, attached/linked file, and long-scroll capture.
+- [ ] Test browser Gemini text, code, and long-scroll capture.
 - [ ] Confirm \`.tacket\` bundles validate with \`npm run qa:live:verify -- qa/live-capture/<report>.md\`.
+- [ ] Test exact local import for Codex App, Claude App, and Claude Code from the Mac app.
+- [ ] Test desktop capture for ChatGPT, Claude, and Codex desktop apps from the Mac app.
+- [ ] Confirm desktop capture clearly prompts when Accessibility or Screen Recording permission is missing.
 - [ ] Confirm Mac app bundle review can open/copy transcript and display warnings.
 - [ ] Confirm transfer to Clipboard, Codex, and Claude Code.
 - [ ] Generate a public-safe issue summary with \`npm run qa:live:summary -- qa/live-capture/<report>.md\`.
-- [ ] Open follow-up issues for any provider DOM regressions.
+- [ ] Open follow-up issues for any provider DOM, local import, or desktop capture regressions.
 
 Do not attach private chat text, saved chat paths, extension IDs, screenshots with private content, local save folders, API keys, tokens, or private file names. Use the sanitized summary output for public issue comments.`
     },
