@@ -223,6 +223,9 @@ final class TacketModel: ObservableObject {
     @Published var selectedLibraryItem: LibraryItem?
     @Published var libraryStatus = "Add your saved chats to the Library to search them."
     @Published var pendingNativeCaptureDraft: NativeCaptureDraft?
+    @Published var libraryPage = 0
+
+    let libraryPageSize = 12
 
     let supportedSources = ["ChatGPT", "Claude", "Gemini", "Codex"]
 
@@ -235,6 +238,26 @@ final class TacketModel: ObservableObject {
 
     var libraryIsFiltered: Bool {
         !librarySearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || advancedSearchIsActive
+    }
+
+    var libraryPageCount: Int {
+        max(1, Int(ceil(Double(libraryItems.count) / Double(libraryPageSize))))
+    }
+
+    var pagedLibraryItems: [LibraryItem] {
+        guard !libraryItems.isEmpty else { return [] }
+        let page = min(max(libraryPage, 0), libraryPageCount - 1)
+        let start = page * libraryPageSize
+        let end = min(start + libraryPageSize, libraryItems.count)
+        guard start < end else { return [] }
+        return Array(libraryItems[start..<end])
+    }
+
+    var libraryPageRangeText: String {
+        guard !libraryItems.isEmpty else { return "0 of 0" }
+        let start = libraryPage * libraryPageSize + 1
+        let end = min((libraryPage + 1) * libraryPageSize, libraryItems.count)
+        return "\(start)-\(end) of \(libraryItems.count)"
     }
 
     init() {
@@ -793,9 +816,10 @@ final class TacketModel: ObservableObject {
         do {
             try Self.ensureLibraryDatabase()
             libraryItems = try queryLibrary(search: librarySearchText)
+            clampLibraryPage()
             selectedLibraryItem = selectedLibraryItem.flatMap { selected in
-                libraryItems.first(where: { $0.id == selected.id })
-            } ?? libraryItems.first
+                pagedLibraryItems.first(where: { $0.id == selected.id })
+            } ?? pagedLibraryItems.first ?? libraryItems.first
             libraryStatus = libraryItems.isEmpty ? "No indexed tackets yet." : "\(libraryItems.count) indexed tacket(s)."
         } catch {
             libraryStatus = "Library refresh failed."
@@ -804,6 +828,7 @@ final class TacketModel: ObservableObject {
     }
 
     func searchLibrary() {
+        libraryPage = 0
         refreshLibrary()
     }
 
@@ -812,7 +837,24 @@ final class TacketModel: ObservableObject {
         librarySearchScope = .everywhere
         librarySourceFilter = .all
         libraryRoleFilter = .all
+        libraryPage = 0
         refreshLibrary()
+    }
+
+    func nextLibraryPage() {
+        guard libraryPage < libraryPageCount - 1 else { return }
+        libraryPage += 1
+        selectedLibraryItem = pagedLibraryItems.first
+    }
+
+    func previousLibraryPage() {
+        guard libraryPage > 0 else { return }
+        libraryPage -= 1
+        selectedLibraryItem = pagedLibraryItems.first
+    }
+
+    private func clampLibraryPage() {
+        libraryPage = min(max(libraryPage, 0), libraryPageCount - 1)
     }
 
     func indexCaptureFolderForLibrary() {
@@ -845,6 +887,7 @@ final class TacketModel: ObservableObject {
                     try Self.indexLibraryFolder(url)
                 }.value
                 librarySearchText = ""
+                libraryPage = 0
                 libraryItems = try queryLibrary(search: "")
                 selectedLibraryItem = libraryItems.first
                 libraryStatus = "Added \(result.indexed) of \(result.found) saved chat(s)."
@@ -2406,8 +2449,7 @@ final class TacketModel: ObservableObject {
             return try Self.queryLibraryItems("""
                 SELECT id, path, title, platform, url, captured_at, message_count, indexed_at, '' AS snippet
                 FROM bundles
-                ORDER BY captured_at DESC, indexed_at DESC
-                LIMIT 100;
+                ORDER BY captured_at DESC, indexed_at DESC;
                 """)
         }
         if libraryMatchMode == .phrase,
@@ -2430,7 +2472,6 @@ final class TacketModel: ObservableObject {
                     GROUP BY bundle_id
                   )
                 ORDER BY rank
-                LIMIT 100;
                 """)
         }
 
@@ -2450,7 +2491,6 @@ final class TacketModel: ObservableObject {
                 GROUP BY bundle_id
               )
             ORDER BY b.captured_at DESC, b.indexed_at DESC
-            LIMIT 100;
             """)
     }
 
@@ -3205,7 +3245,6 @@ struct MainPanelView: View {
                     }
                 }
 
-                OutputPanel()
             }
             .padding(.horizontal, 24)
             .padding(.top, 24)
@@ -3229,82 +3268,14 @@ struct LibraryPanelView: View {
 
                     SectionCard(
                         eyebrow: "Save",
-                        title: "Save chats from browsers, app windows, and local app logs",
-                        detail: "Use the Chrome extension for exact ChatGPT, Claude, and Gemini browser transcripts. Use exact local imports for Codex App, Claude App, and Claude Code sessions. For desktop chat apps, Tacket prepares a local capture preview before anything is saved."
+                        title: "Add chats",
+                        detail: "Choose the capture path that matches where the chat lives."
                     ) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 10) {
-                                HeaderButton(title: "Open ChatGPT in Chrome", action: model.openChatGPT)
-                                HeaderButton(title: "Open Claude in Chrome", action: model.openClaude)
-                                HeaderButton(title: "Open Gemini in Chrome", action: model.openGemini)
-                            }
-
-                            Divider()
-
-                            HStack(spacing: 10) {
-                                ForEach(TacketModel.LocalAgentSource.allCases) { source in
-                                    Button {
-                                        model.importLocalAgentSessions(source)
-                                    } label: {
-                                        Label("Import \(source.label)", systemImage: "tray.and.arrow.down")
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(model.isRunning)
-                                    .help("Import recent local \(source.label) transcripts into Tacket")
-                                }
-                            }
-
-                            Text("Exact imports read local session data that Codex App, Claude App, and Claude Code already store on your Mac, then save normal .tacket folders in your library.")
-                                .font(.tacketFootnote)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Divider()
-
-                            HStack(spacing: 10) {
-                                ForEach(TacketModel.NativeCaptureSource.allCases) { source in
-                                    Button {
-                                        model.openDesktopApp(source)
-                                    } label: {
-                                        Label("Open \(source.label)", systemImage: "macwindow")
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .disabled(model.isRunning)
-                                    .help("Open the \(source.label) desktop app")
-                                }
-                            }
-
-                            HStack(spacing: 10) {
-                                ForEach(TacketModel.NativeCaptureSource.allCases) { source in
-                                    Button {
-                                        model.captureNativeApp(source)
-                                    } label: {
-                                        Label("Preview Current \(source.label) Chat", systemImage: "viewfinder")
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .disabled(model.isRunning)
-                                    .help("Prepare a local preview of the current \(source.label) desktop app chat")
-                                }
-                            }
-
-                            Text("Desktop app capture is local and does not use the clipboard. It scrolls the open app window, reads exposed text with macOS Accessibility, falls back to on-device OCR when needed, and asks you to review the preview before saving.")
-                                .font(.tacketFootnote)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: 10) {
+                            AddChatsCommandBar()
 
                             if let draft = model.pendingNativeCaptureDraft {
                                 NativeCaptureReviewCard(draft: draft)
-                            }
-
-                            Divider()
-
-                            HStack(spacing: 10) {
-                                Button("Accessibility Settings") {
-                                    model.openAccessibilitySettings()
-                                }
-                                Button("Screen Recording Settings") {
-                                    model.openScreenRecordingSettings()
-                                }
                             }
                         }
                     }
@@ -3357,6 +3328,7 @@ struct LibraryPanelView: View {
                                     Label("Add Saved Chats", systemImage: "tray.and.arrow.down")
                                 }
                                 .buttonStyle(.borderedProminent)
+                                .fixedSize()
 
                                 Menu {
                                     Button("Add Another Folder") {
@@ -3371,10 +3343,10 @@ struct LibraryPanelView: View {
                                 } label: {
                                     Label("More", systemImage: "ellipsis.circle")
                                 }
+                                .fixedSize()
                             }
 
                             HStack(spacing: 8) {
-                                MetadataPill(text: "\(model.libraryItems.count) shown")
                                 if model.advancedSearchIsActive {
                                     MetadataPill(text: "advanced")
                                 }
@@ -3384,16 +3356,19 @@ struct LibraryPanelView: View {
                                     .lineLimit(2)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
+
+                            if !model.libraryItems.isEmpty {
+                                LibraryPaginationControls()
+                            }
                         }
                     }
 
                     libraryContent(isWide: geometry.size.width >= 780)
 
-                    OutputPanel()
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 18)
-                .padding(.bottom, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .background(TacketColors.content)
@@ -3441,14 +3416,14 @@ struct LibraryPanelView: View {
             title: "\(model.libraryItems.count) tacket\(model.libraryItems.count == 1 ? "" : "s")",
             detail: resultsDetail
         ) {
-            Group {
+            VStack(alignment: .leading, spacing: 12) {
                 if model.libraryItems.isEmpty {
                     LibraryEmptyState {
                         model.indexCaptureFolderForLibrary()
                     }
                 } else if model.libraryViewMode == .gallery {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 10)], spacing: 10) {
-                        ForEach(model.libraryItems) { item in
+                        ForEach(model.pagedLibraryItems) { item in
                             LibraryGalleryCard(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
                                 .onTapGesture {
                                     model.selectLibraryItem(item)
@@ -3457,7 +3432,7 @@ struct LibraryPanelView: View {
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(model.libraryItems) { item in
+                        ForEach(model.pagedLibraryItems) { item in
                             LibraryResultRow(item: item, isSelected: model.selectedLibraryItem?.id == item.id)
                                 .onTapGesture {
                                     model.selectLibraryItem(item)
@@ -3571,6 +3546,127 @@ struct AdvancedPicker<Option: Identifiable & Hashable>: View where Option.ID == 
         default:
             option.id
         }
+    }
+}
+
+struct AddChatsCommandBar: View {
+    @EnvironmentObject private var model: TacketModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Menu {
+                Button("Open ChatGPT in Chrome", action: model.openChatGPT)
+                Button("Open Claude in Chrome", action: model.openClaude)
+                Button("Open Gemini in Chrome", action: model.openGemini)
+            } label: {
+                Label("Browser", systemImage: "globe")
+            }
+            .buttonStyle(.borderedProminent)
+
+            Menu {
+                ForEach(TacketModel.LocalAgentSource.allCases) { source in
+                    Button("Import \(source.label)") {
+                        model.importLocalAgentSessions(source)
+                    }
+                    .disabled(model.isRunning)
+                }
+            } label: {
+                Label("Import", systemImage: "tray.and.arrow.down")
+            }
+            .buttonStyle(.borderedProminent)
+
+            Menu {
+                Section("Open app") {
+                    ForEach(TacketModel.NativeCaptureSource.allCases) { source in
+                        Button(source.label) {
+                            model.openDesktopApp(source)
+                        }
+                    }
+                }
+                Section("Preview current chat") {
+                    ForEach(TacketModel.NativeCaptureSource.allCases) { source in
+                        Button(source.label) {
+                            model.captureNativeApp(source)
+                        }
+                        .disabled(model.isRunning)
+                    }
+                }
+            } label: {
+                Label("Desktop", systemImage: "viewfinder")
+            }
+            .buttonStyle(.bordered)
+
+            Menu {
+                Button("Accessibility Settings") {
+                    model.openAccessibilitySettings()
+                }
+                Button("Screen Recording Settings") {
+                    model.openScreenRecordingSettings()
+                }
+            } label: {
+                Label("Permissions", systemImage: "lock")
+            }
+            .buttonStyle(.bordered)
+
+            Spacer(minLength: 0)
+        }
+        .controlSize(.regular)
+        .padding(12)
+        .background(TacketColors.recessed)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(TacketColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct ActionPanel<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let detail: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(TacketColors.accent)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.tacketBody.weight(.semibold))
+                    Text(detail)
+                        .font(.tacketFootnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            content
+                .controlSize(.small)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(TacketColors.recessed)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(TacketColors.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct FlowButtonRow<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 8)], alignment: .leading, spacing: 8) {
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -3711,6 +3807,41 @@ struct LibraryEmptyState: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(TacketColors.recessed)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct LibraryPaginationControls: View {
+    @EnvironmentObject private var model: TacketModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button {
+                model.previousLibraryPage()
+            } label: {
+                Label("Previous", systemImage: "chevron.left")
+            }
+            .buttonStyle(.bordered)
+            .disabled(model.libraryPage == 0)
+
+            Text("Page \(model.libraryPage + 1) of \(model.libraryPageCount)")
+                .font(.tacketFootnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Button {
+                model.nextLibraryPage()
+            } label: {
+                Label("Next", systemImage: "chevron.right")
+            }
+            .buttonStyle(.bordered)
+            .disabled(model.libraryPage >= model.libraryPageCount - 1)
+
+            Spacer(minLength: 0)
+
+            Text(model.libraryPageRangeText)
+                .font(.tacketFootnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.top, 2)
     }
 }
 
@@ -3930,7 +4061,6 @@ struct SettingsPanelView: View {
                     }
                 }
 
-                OutputPanel()
             }
             .padding(.horizontal, 24)
             .padding(.top, 24)
@@ -4047,30 +4177,6 @@ struct BundleSummary: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(TacketColors.recessed)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-struct OutputPanel: View {
-    @EnvironmentObject private var model: TacketModel
-
-    var body: some View {
-        if !model.commandOutput.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Details")
-                    .font(.tacketLabel)
-                    .foregroundStyle(.secondary)
-                ScrollView {
-                    Text(model.commandOutput)
-                        .font(.tacketMono)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                }
-                .frame(minHeight: 96, maxHeight: 170)
-                .background(TacketColors.recessed)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-        }
     }
 }
 
