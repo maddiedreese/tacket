@@ -10,17 +10,13 @@ Tacket has two local pieces: a Chrome extension that reads the conversation afte
 
 ## Screenshots
 
-Save a supported browser chat after you click the Tacket extension.
+Browse every saved chat in the local Mac app library.
 
-![Tacket extension save flow](docs/assets/readme/save-conversation.png)
+![Tacket Mac app library](docs/assets/readme/app-library.png)
 
-Browse and search saved chats in the Mac app.
+Use search and filters to narrow saved transcripts without sending anything off your Mac.
 
-![Tacket local library](docs/assets/readme/local-library.png)
-
-Each saved chat stays as a local folder with plain files you can inspect.
-
-![Tacket local files](docs/assets/readme/local-files.png)
+![Tacket Mac app advanced search](docs/assets/readme/app-advanced-search.png)
 
 ## What It Does
 
