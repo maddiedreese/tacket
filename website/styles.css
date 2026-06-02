@@ -354,4 +354,14 @@ footer a,
     margin-left: 18px;
     margin-right: auto;
   }
+
+  .flow-list li {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .artifact pre {
+    padding: 14px;
+    font-size: 14px;
+  }
 }

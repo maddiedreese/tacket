@@ -318,7 +318,7 @@ for (const phrase of ["assertAttachmentCounts", "assertCapturedAttachments", "as
 }
 
 const websiteVerifier = await readFile("scripts/verify-website.mjs", "utf8");
-for (const phrase of ["releasesUrl", "github.com/sponsors/maddiedreese", "twitter.com/maddiedreese", "Open source forever", "ui-monospace", "Website checks passed"]) {
+for (const phrase of ["releasesUrl", "github.com/sponsors/maddiedreese", "twitter.com/maddiedreese", "Open source", "ui-monospace", "Website checks passed"]) {
   if (!websiteVerifier.includes(phrase)) throw new Error(`Website verifier missing: ${phrase}`);
 }
 

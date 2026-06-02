@@ -8,6 +8,20 @@ Tacket will always be free and open source. It has no accounts, no analytics, no
 
 Tacket has two local pieces: a Chrome extension that reads the conversation after you click save, and a Mac app that stores, searches, and transfers it. The extension sends the saved chat directly to the Tacket app on your Mac. It is not sent to me or to a Tacket server.
 
+## Screenshots
+
+Save a supported browser chat after you click the Tacket extension.
+
+![Tacket extension save flow](docs/assets/readme/save-conversation.png)
+
+Browse and search saved chats in the Mac app.
+
+![Tacket local library](docs/assets/readme/local-library.png)
+
+Each saved chat stays as a local folder with plain files you can inspect.
+
+![Tacket local files](docs/assets/readme/local-files.png)
+
 ## What It Does
 
 - Saves ChatGPT, Claude, and Gemini conversations only after you click the extension.
@@ -18,6 +32,8 @@ Tacket has two local pieces: a Chrome extension that reads the conversation afte
 - Uses no backend, no analytics, no telemetry, and no model/API calls.
 
 Tacket is not an agent harness. It does not run agents for you or reach into private app session stores.
+
+Native Claude, ChatGPT, and Codex app capture is not part of the current Chrome-extension v1. It is planned as a Mac app feature, likely using local macOS automation/OCR or export flows so the same privacy model stays intact.
 
 ## Install
 
