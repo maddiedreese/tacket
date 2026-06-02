@@ -159,6 +159,7 @@ final class TacketModel: ObservableObject {
 
     enum LocalAgentSource: String, CaseIterable, Identifiable {
         case codex
+        case claudeApp = "claude-app"
         case claudeCode = "claude-code"
 
         var id: String { rawValue }
@@ -166,6 +167,7 @@ final class TacketModel: ObservableObject {
         var label: String {
             switch self {
             case .codex: "Codex App"
+            case .claudeApp: "Claude App"
             case .claudeCode: "Claude Code"
             }
         }
@@ -173,6 +175,7 @@ final class TacketModel: ObservableObject {
         var platform: String {
             switch self {
             case .codex: "codex"
+            case .claudeApp: "claude"
             case .claudeCode: "claude"
             }
         }
@@ -180,6 +183,7 @@ final class TacketModel: ObservableObject {
         var sourceURLPrefix: String {
             switch self {
             case .codex: "codex-session://"
+            case .claudeApp: "claude-app-conversation://"
             case .claudeCode: "claude-code-session://"
             }
         }
@@ -875,6 +879,13 @@ final class TacketModel: ObservableObject {
         _ source: LocalAgentSource,
         outputRoot: URL
     ) throws -> (imported: Int, skipped: Int, lastBundle: URL?) {
+        if source == .claudeApp {
+            return try importParsedAgentSessions(
+                try readRecentClaudeAppSessions(limit: 20),
+                outputRoot: outputRoot
+            )
+        }
+
         let files: [URL]
         let codexIndex: [String: (title: String, updatedAt: String)]
         switch source {
@@ -882,6 +893,9 @@ final class TacketModel: ObservableObject {
             files = try recentCodexSessionFiles(limit: 20)
             let codexRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
             codexIndex = readCodexSessionIndex(codexRoot: codexRoot)
+        case .claudeApp:
+            files = []
+            codexIndex = [:]
         case .claudeCode:
             files = try recentClaudeCodeSessionFiles(limit: 20)
             codexIndex = [:]
@@ -903,11 +917,36 @@ final class TacketModel: ObservableObject {
             case .codex:
                 let sessionId = sessionIdFromCodexPath(file)
                 session = try? parseCodexSession(file, indexedTitle: codexIndex[sessionId]?.title)
+            case .claudeApp:
+                session = nil
             case .claudeCode:
                 session = try? parseClaudeCodeSession(file)
             }
             guard let session else { continue }
             guard !session.messages.isEmpty else { continue }
+            let bundleURL = try writeAgentSessionBundle(session, outputRoot: outputRoot)
+            _ = try indexLibraryBundle(bundleURL)
+            imported += 1
+            lastBundle = bundleURL
+        }
+        return (imported, skipped, lastBundle)
+    }
+
+    private nonisolated static func importParsedAgentSessions(
+        _ sessions: [ImportedAgentSession],
+        outputRoot: URL
+    ) throws -> (imported: Int, skipped: Int, lastBundle: URL?) {
+        let existingBundles = existingImportedSessionBundles(outputRoot: outputRoot)
+        var imported = 0
+        var skipped = 0
+        var lastBundle: URL?
+        for session in sessions {
+            guard !session.messages.isEmpty else { continue }
+            if let existing = existingBundles[session.sourceURL] {
+                skipped += 1
+                lastBundle = existing
+                continue
+            }
             let bundleURL = try writeAgentSessionBundle(session, outputRoot: outputRoot)
             _ = try indexLibraryBundle(bundleURL)
             imported += 1
@@ -978,6 +1017,8 @@ final class TacketModel: ObservableObject {
         switch source {
         case .codex:
             return "codex-session://\(sessionIdFromCodexPath(file))"
+        case .claudeApp:
+            return ""
         case .claudeCode:
             return "claude-code-session://\(file.deletingPathExtension().lastPathComponent)"
         }
@@ -996,7 +1037,9 @@ final class TacketModel: ObservableObject {
             let sql = """
                 SELECT url, path
                 FROM bundles
-                WHERE url LIKE 'codex-session://%' OR url LIKE 'claude-code-session://%';
+                WHERE url LIKE 'codex-session://%'
+                   OR url LIKE 'claude-app-conversation://%'
+                   OR url LIKE 'claude-code-session://%';
                 """
             var statement: OpaquePointer?
             guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
@@ -1155,6 +1198,172 @@ final class TacketModel: ObservableObject {
             sourceURL: "claude-code-session://\(sessionId)",
             messages: messages
         )
+    }
+
+    private nonisolated static func readRecentClaudeAppSessions(limit: Int) throws -> [ImportedAgentSession] {
+        let storageRoot = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/Claude/Local Storage/leveldb", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: storageRoot.path),
+              let enumerator = FileManager.default.enumerator(
+                at: storageRoot,
+                includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey],
+                options: [.skipsHiddenFiles]
+              ) else {
+            return []
+        }
+
+        var files: [(url: URL, date: Date)] = []
+        for case let url as URL in enumerator where url.pathExtension == "log" || url.pathExtension == "ldb" {
+            let values = try url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey])
+            guard values.isRegularFile == true else { continue }
+            files.append((url, values.contentModificationDate ?? .distantPast))
+        }
+
+        var sessionsByURL: [String: ImportedAgentSession] = [:]
+        for file in files.sorted(by: { $0.date > $1.date }).prefix(12).map(\.url) {
+            for session in try parseClaudeAppStorageFile(file) {
+                sessionsByURL[session.sourceURL] = session
+            }
+        }
+
+        return sessionsByURL.values
+            .sorted { lhs, rhs in lhs.capturedAt > rhs.capturedAt }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    private nonisolated static func parseClaudeAppStorageFile(_ file: URL) throws -> [ImportedAgentSession] {
+        let data = try Data(contentsOf: file)
+        let text = utf16LittleEndianStringRuns(from: data, minimumScalars: 5).joined()
+        guard text.contains(#""chat_messages""#) else { return [] }
+
+        var sessions: [ImportedAgentSession] = []
+        var searchRange = text.startIndex..<text.endIndex
+        while let range = text.range(of: #"{"uuid":""#, options: [], range: searchRange) {
+            defer {
+                let nextIndex = text.index(after: range.lowerBound)
+                searchRange = nextIndex..<text.endIndex
+            }
+            guard let objectText = balancedJSONObject(in: text, from: range.lowerBound),
+                  objectText.contains(#""chat_messages""#),
+                  let data = objectText.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let session = parseClaudeAppConversationObject(object) else {
+                continue
+            }
+            sessions.append(session)
+        }
+        return sessions
+    }
+
+    private nonisolated static func parseClaudeAppConversationObject(_ object: [String: Any]) -> ImportedAgentSession? {
+        guard let sessionId = object["uuid"] as? String,
+              let rawMessages = object["chat_messages"] as? [[String: Any]] else {
+            return nil
+        }
+
+        var capturedAt = object["created_at"] as? String
+            ?? rawMessages.compactMap { $0["created_at"] as? String }.first
+            ?? ISO8601DateFormatter().string(from: Date())
+        var title = object["name"] as? String ?? "Claude App conversation"
+        var messages: [ImportedAgentMessage] = []
+
+        for rawMessage in rawMessages.sorted(by: { lhs, rhs in
+            let lhsIndex = lhs["index"] as? Int ?? Int.max
+            let rhsIndex = rhs["index"] as? Int ?? Int.max
+            return lhsIndex < rhsIndex
+        }) {
+            let sender = rawMessage["sender"] as? String ?? "unknown"
+            let role = normalizedTacketRole(sender == "human" ? "user" : sender)
+            let text = textFromClaudeContent(rawMessage["content"])
+            guard !text.isEmpty else { continue }
+            let createdAt = rawMessage["created_at"] as? String ?? capturedAt
+            if messages.isEmpty {
+                capturedAt = createdAt
+            }
+            if title == "Claude App conversation", role == "user" {
+                title = titleFromText(text, fallback: title)
+            }
+            messages.append(ImportedAgentMessage(
+                id: "claude-app-\(messages.count + 1)",
+                role: role,
+                author: roleLabel(role),
+                createdAt: createdAt,
+                text: text
+            ))
+        }
+
+        guard !messages.isEmpty else { return nil }
+        return ImportedAgentSession(
+            source: .claudeApp,
+            sessionId: sessionId,
+            title: sanitizeFileSegment(title, maxLength: 80),
+            capturedAt: capturedAt,
+            sourceURL: "claude-app-conversation://\(sessionId)",
+            messages: messages
+        )
+    }
+
+    private nonisolated static func utf16LittleEndianStringRuns(
+        from data: Data,
+        minimumScalars: Int
+    ) -> [String] {
+        let bytes = [UInt8](data)
+        var runs: [String] = []
+        var index = 0
+        while index + 1 < bytes.count {
+            let start = index
+            var runBytes: [UInt8] = []
+            var scalarCount = 0
+            while index + 1 < bytes.count {
+                let value = UInt16(bytes[index]) | (UInt16(bytes[index + 1]) << 8)
+                let isAllowed = bytes[index + 1] == 0
+                    && (value == 9 || value == 10 || value == 13 || (value >= 32 && value <= 126))
+                guard isAllowed else { break }
+                runBytes.append(bytes[index])
+                runBytes.append(bytes[index + 1])
+                scalarCount += 1
+                index += 2
+            }
+            if scalarCount >= minimumScalars,
+               let string = String(data: Data(runBytes), encoding: .utf16LittleEndian) {
+                runs.append(string)
+            }
+            index = max(index + 1, start + 1)
+        }
+        return runs
+    }
+
+    private nonisolated static func balancedJSONObject(in text: String, from start: String.Index) -> String? {
+        var index = start
+        var depth = 0
+        var isInString = false
+        var isEscaped = false
+        while index < text.endIndex {
+            let character = text[index]
+            if isInString {
+                if isEscaped {
+                    isEscaped = false
+                } else if character == "\\" {
+                    isEscaped = true
+                } else if character == "\"" {
+                    isInString = false
+                }
+            } else {
+                if character == "\"" {
+                    isInString = true
+                } else if character == "{" {
+                    depth += 1
+                } else if character == "}" {
+                    depth -= 1
+                    if depth == 0 {
+                        return String(text[start...index])
+                    }
+                }
+            }
+            index = text.index(after: index)
+        }
+        return nil
     }
 
     private nonisolated static func writeAgentSessionBundle(
@@ -2750,8 +2959,8 @@ struct LibraryPanelView: View {
 
                     SectionCard(
                         eyebrow: "Save",
-                        title: "Save chats from browsers, app windows, and local agent logs",
-                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. Use local imports for exact Codex App and Claude Code logs. For desktop chat apps, Tacket can open the app and save the visible conversation text locally."
+                        title: "Save chats from browsers, app windows, and local app logs",
+                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. Use exact local imports for Codex App, Claude App, and Claude Code sessions. For desktop chat apps, Tacket can open the app and save the visible conversation text locally."
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
@@ -2775,7 +2984,7 @@ struct LibraryPanelView: View {
                                 }
                             }
 
-                            Text("Exact imports read local session files that Codex App and Claude Code already store on your Mac, then save normal .tacket folders in your library.")
+                            Text("Exact imports read local session data that Codex App, Claude App, and Claude Code already store on your Mac, then save normal .tacket folders in your library.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

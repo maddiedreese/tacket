@@ -13,7 +13,7 @@ npm run package:release
 - transcript rendering tests
 - attachment persistence tests
 - Chrome save-flow fixture tests for ChatGPT, Claude, and Gemini-like pages
-- Mac app exact local import checks for Codex App and Claude Code JSONL sessions
+- Mac app exact local import checks for Codex App, Claude App, and Claude Code sessions
 - Mac app visible desktop capture checks for ChatGPT, Claude, and Codex desktop app windows
 - website release-link and privacy-copy checks
 - local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
@@ -105,6 +105,7 @@ For each source, confirm:
 Before a release, test exact local import from:
 
 - Codex App sessions in `~/.codex/sessions`
+- Claude App conversations in `~/Library/Application Support/Claude/Local Storage/leveldb`
 - Claude Code sessions in `~/.claude/projects`
 
 For each local agent source, confirm:
@@ -112,7 +113,7 @@ For each local agent source, confirm:
 - import starts only after clicking the source button in Tacket
 - the saved `.tacket` folder includes `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets
 - `manifest.json` uses `source.platform` of `codex` or `claude`
-- the transcript preserves message order and code blocks from the JSONL session
+- the transcript preserves message order and code blocks from the imported session
 - clicking import again reports already-saved sessions instead of creating duplicate `.tacket` folders
 - the saved chat can be searched, copied, or transferred after import
 

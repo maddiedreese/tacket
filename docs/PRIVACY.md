@@ -12,7 +12,7 @@ Tacket is local-only and local-first by design. It saves AI chat conversations a
 
 The extension saves content only after the user clicks the extension on a supported AI chat page. The popup checks the active tab and refuses to save pages outside ChatGPT, Claude, and Gemini. The saved conversation is sent to the local Tacket app, not to a backend service.
 
-The Mac app can import recent local Codex App and Claude Code transcripts after the user clicks import. This reads JSONL session files from the user's home folder, converts them into local `.tacket` folders, and indexes them locally. Tacket does not scan those folders in the background or upload imported transcripts.
+The Mac app can import recent local Codex App, Claude App, and Claude Code transcripts after the user clicks import. This reads local session data from the user's Mac, converts it into local `.tacket` folders, and indexes it locally. Tacket does not scan those folders in the background or upload imported transcripts.
 
 The Mac app can also capture visible text from open ChatGPT, Claude, and Codex desktop app chats. Desktop capture uses local macOS Accessibility and, when needed, on-device OCR from the app window. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
 
@@ -40,4 +40,4 @@ When saving from the ChatGPT, Claude, or Codex desktop app, Tacket may ask for A
 
 ## Local Agent Transcript Import
 
-When importing Codex App or Claude Code transcripts, Tacket reads recent local JSONL session files from `~/.codex/sessions` and `~/.claude/projects` after the user clicks the import button. It checks Tacket's local library index so already-saved sessions are not duplicated. This import path does not use the clipboard, Accessibility, Screen Recording, a model, or a network request.
+When importing Codex App, Claude App, or Claude Code transcripts, Tacket reads recent local session data from `~/.codex/sessions`, `~/Library/Application Support/Claude/Local Storage/leveldb`, and `~/.claude/projects` after the user clicks the import button. It checks Tacket's local library index so already-saved sessions are not duplicated. This import path does not use the clipboard, Accessibility, Screen Recording, a model, or a network request.

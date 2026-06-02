@@ -46,7 +46,7 @@ for (const phrase of [
   "No telemetry",
   "No model/API calls",
   "Browser conversations are sent from the extension to",
-  "local JSONL session files",
+  "Codex App, Claude App, and Claude Code imports read recent local session data",
   "on-device OCR",
   "private vulnerability reporting"
 ]) {
