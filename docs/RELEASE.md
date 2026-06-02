@@ -10,6 +10,7 @@ Tacket v1 is direct-download and local-only.
 - Create a local live QA report with `npm run qa:live`.
 - Generate a public-safe live QA issue summary with `npm run qa:live:summary -- qa/live-capture/<report>.md`.
 - Test unpacked Chrome extension saving on ChatGPT, Claude, and Gemini.
+- Test Mac app native capture on ChatGPT, Claude, and Codex desktop apps.
 - Test local Chrome app connection installation with the current draft Chrome Web Store extension ID when available.
 - Test local connection status and removal from the Mac app.
 - Test saved chat output in `~/Documents/Tacket Captures`.
@@ -37,7 +38,7 @@ The repository can build unsigned local artifacts without paid accounts. Public 
 - Apple Developer ID certificate for signing
 - Apple notarization credentials
 - Chrome Web Store developer account
-- live save validation against current ChatGPT, Claude, and Gemini pages
+- live save validation against current ChatGPT, Claude, and Gemini pages plus desktop capture validation for ChatGPT, Claude, and Codex apps
 
 ## Chrome Web Store
 
@@ -101,7 +102,7 @@ bash scripts/package-mac-dev.sh
 open dist/Tacket.app
 ```
 
-This creates an unsigned development `.app` bundle with the Swift app, Swift native messaging host, and Chrome extension resources. A public release still needs Developer ID signing, notarization, and a DMG packaging step.
+This creates an unsigned development `.app` bundle with the Swift app, Swift native messaging host, desktop capture support, and Chrome extension resources. A public release still needs Developer ID signing, notarization, and a DMG packaging step.
 
 Create a local DMG:
 

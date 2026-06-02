@@ -186,6 +186,7 @@ function platformLabel(platform) {
   if (platform === "chatgpt") return "ChatGPT";
   if (platform === "claude") return "Claude";
   if (platform === "gemini") return "Gemini";
+  if (platform === "codex") return "Codex";
   return "AI Chat";
 }
 

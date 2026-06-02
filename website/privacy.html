@@ -25,9 +25,11 @@
 
       <h2>Local-only by design</h2>
       <p>
-        Tacket saves AI chat conversations only when you explicitly click the extension.
-        The saved conversation is sent to the Tacket app on your Mac, written to local
-        files, and added to local search only when you choose to index it.
+        Tacket saves AI chat conversations only when you explicitly choose to save or
+        capture one. Browser conversations are sent from the extension to the Tacket
+        app on your Mac. Desktop app conversations are read locally by the Mac app
+        using macOS Accessibility and on-device OCR when needed. Saved chats are
+        written to local files and added to local search only when you choose to index them.
       </p>
 
       <h2>What Tacket does not collect</h2>
@@ -50,6 +52,14 @@
         Installing through the Chrome Web Store means Google handles extension distribution.
         Tacket does not send saved chat text to me or to a Tacket server; the saved
         conversation goes from the extension to the Tacket app on your Mac.
+      </p>
+
+      <h2>macOS permissions</h2>
+      <p>
+        Native desktop app capture may ask for Accessibility or Screen Recording
+        permission. Tacket uses those permissions to read the open ChatGPT, Claude,
+        or Codex desktop app chat locally. It does not use those permissions for
+        background monitoring, analytics, or uploading chat text.
       </p>
 
       <h2>Local files</h2>

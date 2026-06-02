@@ -2,6 +2,8 @@ import SwiftUI
 import AppKit
 import CryptoKit
 import SQLite3
+import ApplicationServices
+import Vision
 
 @main
 struct TacketApp: App {
@@ -73,6 +75,7 @@ final class TacketModel: ObservableObject {
         case chatgpt = "chatgpt"
         case claude = "claude"
         case gemini = "gemini"
+        case codex = "codex"
 
         var id: String { rawValue }
 
@@ -82,6 +85,7 @@ final class TacketModel: ObservableObject {
             case .chatgpt: "ChatGPT"
             case .claude: "Claude"
             case .gemini: "Gemini"
+            case .codex: "Codex"
             }
         }
     }
@@ -118,6 +122,41 @@ final class TacketModel: ObservableObject {
         }
     }
 
+    enum NativeCaptureSource: String, CaseIterable, Identifiable {
+        case chatgpt
+        case claude
+        case codex
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .chatgpt: "ChatGPT"
+            case .claude: "Claude"
+            case .codex: "Codex"
+            }
+        }
+
+        var appNames: [String] {
+            switch self {
+            case .chatgpt: ["ChatGPT"]
+            case .claude: ["Claude"]
+            case .codex: ["Codex"]
+            }
+        }
+
+        var bundleIdentifiers: [String] {
+            switch self {
+            case .chatgpt: ["com.openai.chat"]
+            case .claude: ["com.anthropic.claudefordesktop", "com.anthropic.claude"]
+            case .codex: ["com.openai.codex"]
+            }
+        }
+
+        var platform: String { rawValue }
+        var sourceURL: String { "native://\(rawValue)" }
+    }
+
     @Published var captureDirectory: URL = FileManager.default
         .homeDirectoryForCurrentUser
         .appendingPathComponent("Documents/Tacket Captures", isDirectory: true)
@@ -141,7 +180,7 @@ final class TacketModel: ObservableObject {
     @Published var selectedLibraryItem: LibraryItem?
     @Published var libraryStatus = "Add your saved chats to the Library to search them."
 
-    let supportedSources = ["ChatGPT", "Claude", "Gemini"]
+    let supportedSources = ["ChatGPT", "Claude", "Gemini", "Codex"]
 
     var advancedSearchIsActive: Bool {
         libraryMatchMode != .phrase ||
@@ -337,6 +376,60 @@ final class TacketModel: ObservableObject {
         openInChrome("https://gemini.google.com")
     }
 
+    func openAccessibilitySettings() {
+        openSystemSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+    }
+
+    func openScreenRecordingSettings() {
+        openSystemSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+    }
+
+    func captureNativeApp(_ source: NativeCaptureSource) {
+        guard !isRunning else { return }
+        guard let app = runningNativeCaptureApp(for: source) else {
+            status = "\(source.label) app is not open."
+            commandOutput = "Open the \(source.label) desktop app, open the chat you want to save, click inside the conversation, then capture it from Tacket."
+            return
+        }
+
+        let accessibilityReady = Self.accessibilityIsTrusted(prompt: true)
+        let screenCaptureReady = Self.screenCaptureIsTrusted(prompt: true)
+        guard accessibilityReady || screenCaptureReady else {
+            status = "Permission needed."
+            commandOutput = "Tacket needs Accessibility permission or Screen Recording permission to read desktop app chats locally. Grant permission in System Settings, reopen Tacket, then try again."
+            return
+        }
+
+        isRunning = true
+        status = "Capturing \(source.label) app..."
+        commandOutput = "Tacket will read the \(app.localizedName ?? source.label) window locally with macOS Accessibility and on-device OCR. Nothing is uploaded."
+
+        Task {
+            do {
+                let rawText = try await readConversationText(from: app, source: source)
+                let bundleURL = try Self.writeNativeCaptureBundle(
+                    source: source,
+                    rawText: rawText,
+                    outputRoot: captureDirectory
+                )
+                _ = try Self.indexLibraryBundle(bundleURL)
+                librarySearchText = ""
+                libraryItems = try queryLibrary(search: "")
+                selectedLibraryItem = libraryItems.first(where: { $0.path == bundleURL.path }) ?? libraryItems.first
+                selectedBundle = bundleURL
+                loadSelectedBundleInfo()
+                libraryStatus = "Saved \(source.label) app chat."
+                status = "Saved \(source.label) chat."
+                commandOutput = "Saved native app capture:\n\(bundleURL.path)"
+            } catch {
+                status = "Native capture failed."
+                commandOutput = error.localizedDescription
+            }
+
+            isRunning = false
+        }
+    }
+
     func openDocs() {
         if let repoRoot {
             NSWorkspace.shared.open(repoRoot.appendingPathComponent("README.md"))
@@ -356,6 +449,46 @@ final class TacketModel: ObservableObject {
             status = "Could not open Chrome."
             commandOutput = error.localizedDescription
         }
+    }
+
+    private func openSystemSettings(_ target: String) {
+        guard let url = URL(string: target) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func runningNativeCaptureApp(for source: NativeCaptureSource) -> NSRunningApplication? {
+        let apps = NSWorkspace.shared.runningApplications
+        for bundleIdentifier in source.bundleIdentifiers {
+            if let app = apps.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
+                return app
+            }
+        }
+        return apps.first { app in
+            guard let name = app.localizedName?.lowercased() else { return false }
+            return source.appNames.contains { name == $0.lowercased() }
+        }
+    }
+
+    private func readConversationText(from app: NSRunningApplication, source: NativeCaptureSource) async throws -> String {
+        app.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+        try await Task.sleep(nanoseconds: 450_000_000)
+
+        var snapshots: [String] = []
+        try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: 9, repeats: 8)
+        for _ in 0..<10 {
+            if let text = try? await Self.nativeWindowText(for: app.processIdentifier),
+               Self.nativeCaptureTextIsUsable(text) {
+                snapshots.append(text)
+            }
+            try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: -7, repeats: 2)
+        }
+
+        let merged = Self.mergeNativeCaptureSnapshots(snapshots)
+        if Self.nativeCaptureTextIsUsable(merged) {
+            return merged
+        }
+
+        throw TacketAppError.nativeCapture("Tacket could not find enough readable chat text in the \(source.label) window. Open the chat, wait for messages to finish loading, then try again.")
     }
 
     func installConnector() {
@@ -640,6 +773,450 @@ final class TacketModel: ObservableObject {
                 throw TacketAppError.invalidBundle("targets/\(target) must match transcript.md exactly.")
             }
         }
+    }
+
+    private nonisolated static func writeNativeCaptureBundle(
+        source: NativeCaptureSource,
+        rawText: String,
+        outputRoot: URL
+    ) throws -> URL {
+        let transcript = cleanNativeCaptureText(rawText)
+        guard nativeCaptureTextIsUsable(transcript) else {
+            throw TacketAppError.nativeCapture("The \(source.label) app did not expose enough readable chat text.")
+        }
+
+        try FileManager.default.createDirectory(at: outputRoot, withIntermediateDirectories: true)
+        let capturedAt = ISO8601DateFormatter().string(from: Date())
+        let title = nativeCaptureTitle(from: transcript, source: source)
+        let id = sha256("\(source.rawValue):\(capturedAt):\(transcript)")
+        let bundleURL = try reserveNativeCaptureBundleURL(
+            outputRoot: outputRoot,
+            capturedAt: Date(),
+            source: source,
+            title: title
+        )
+        let targetsURL = bundleURL.appendingPathComponent("targets", isDirectory: true)
+        let attachmentsURL = bundleURL.appendingPathComponent("attachments", isDirectory: true)
+        try FileManager.default.createDirectory(at: targetsURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: attachmentsURL, withIntermediateDirectories: true)
+
+        let message: [String: Any] = [
+            "id": "native-transcript",
+            "role": "unknown",
+            "author": source.label,
+            "createdAt": capturedAt,
+            "source": [
+                "platform": source.platform,
+                "url": source.sourceURL
+            ],
+            "content": [
+                [
+                    "type": "text",
+                    "text": transcript
+                ]
+            ]
+        ]
+        let manifest: [String: Any] = [
+            "schemaVersion": "0.1.0",
+            "id": id,
+            "title": title,
+            "source": [
+                "platform": source.platform,
+                "url": source.sourceURL,
+                "capture": "native-app"
+            ],
+            "capturedAt": capturedAt,
+            "messageCount": 1,
+            "attachments": [
+                "captured": 0,
+                "referenced": 0,
+                "unavailable": 0
+            ],
+            "warnings": []
+        ]
+
+        try writeJSONObject(manifest, to: bundleURL.appendingPathComponent("manifest.json"))
+        let messageData = try JSONSerialization.data(withJSONObject: message, options: [.sortedKeys])
+        guard let messageLine = String(data: messageData, encoding: .utf8) else {
+            throw TacketAppError.nativeCapture("Could not encode native capture message.")
+        }
+        try (messageLine + "\n").write(to: bundleURL.appendingPathComponent("messages.jsonl"), atomically: true, encoding: .utf8)
+        try transcript.write(to: bundleURL.appendingPathComponent("transcript.md"), atomically: true, encoding: .utf8)
+        try transcript.write(to: targetsURL.appendingPathComponent("codex.md"), atomically: true, encoding: .utf8)
+        try transcript.write(to: targetsURL.appendingPathComponent("claude-code.md"), atomically: true, encoding: .utf8)
+        try nativeCaptureReadme(title: title, source: source, capturedAt: capturedAt)
+            .write(to: bundleURL.appendingPathComponent("README.md"), atomically: true, encoding: .utf8)
+
+        return bundleURL
+    }
+
+    private nonisolated static func cleanNativeCaptureText(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private nonisolated static func nativeCaptureTextIsUsable(_ value: String) -> Bool {
+        cleanNativeCaptureText(value).count >= 20
+    }
+
+    private nonisolated static func nativeWindowText(for processIdentifier: pid_t) async throws -> String {
+        if accessibilityIsTrusted(prompt: false),
+           let text = try? accessibilityText(for: processIdentifier),
+           nativeCaptureTextIsUsable(text) {
+            return cleanNativeCaptureText(text)
+        }
+        let ocrText = try await ocrText(for: processIdentifier)
+        return cleanNativeCaptureText(ocrText)
+    }
+
+    private nonisolated static func scrollNativeApp(processIdentifier: pid_t, deltaY: Int32, repeats: Int) async throws {
+        guard repeats > 0 else { return }
+        for _ in 0..<repeats {
+            if let event = CGEvent(
+                scrollWheelEvent2Source: nil,
+                units: .line,
+                wheelCount: 1,
+                wheel1: deltaY,
+                wheel2: 0,
+                wheel3: 0
+            ) {
+                event.postToPid(processIdentifier)
+            }
+            try await Task.sleep(nanoseconds: 90_000_000)
+        }
+        try await Task.sleep(nanoseconds: 220_000_000)
+    }
+
+    private nonisolated static func mergeNativeCaptureSnapshots(_ snapshots: [String]) -> String {
+        var seen = Set<String>()
+        var lines: [String] = []
+        for snapshot in snapshots {
+            for rawLine in cleanNativeCaptureText(snapshot).split(separator: "\n") {
+                let line = String(rawLine).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard line.count > 1 else { continue }
+                let key = line.lowercased()
+                guard !nativeCaptureChromeNoise.contains(key), !seen.contains(key) else { continue }
+                seen.insert(key)
+                lines.append(line)
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private nonisolated static func accessibilityIsTrusted(prompt: Bool) -> Bool {
+        let options = [
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt
+        ] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
+    }
+
+    private nonisolated static func screenCaptureIsTrusted(prompt: Bool) -> Bool {
+        if CGPreflightScreenCaptureAccess() {
+            return true
+        }
+        guard prompt else { return false }
+        return CGRequestScreenCaptureAccess()
+    }
+
+    private nonisolated static func accessibilityText(for processIdentifier: pid_t) throws -> String {
+        let appElement = AXUIElementCreateApplication(processIdentifier)
+        var roots: [AXUIElement] = []
+        if let focusedWindow = axElementAttribute(appElement, kAXFocusedWindowAttribute) {
+            roots.append(focusedWindow)
+        }
+        roots.append(contentsOf: axElementArrayAttribute(appElement, kAXWindowsAttribute))
+        if roots.isEmpty {
+            roots.append(appElement)
+        }
+
+        var lines: [String] = []
+        var seen = Set<String>()
+        var visited = 0
+        for root in roots {
+            collectAccessibilityText(from: root, depth: 0, visited: &visited, lines: &lines, seen: &seen)
+        }
+
+        let transcript = lines.joined(separator: "\n")
+        guard nativeCaptureTextIsUsable(transcript) else {
+            throw TacketAppError.nativeCapture("The frontmost app window did not expose readable Accessibility text.")
+        }
+        return transcript
+    }
+
+    private nonisolated static func collectAccessibilityText(
+        from element: AXUIElement,
+        depth: Int,
+        visited: inout Int,
+        lines: inout [String],
+        seen: inout Set<String>
+    ) {
+        guard depth <= 28, visited < 5000 else { return }
+        visited += 1
+
+        let role = axStringAttribute(element, kAXRoleAttribute)
+        let shouldRead = readableAccessibilityRoles.contains(role)
+        if shouldRead {
+            for attribute in readableAccessibilityAttributes {
+                appendAccessibilityText(axStringAttribute(element, attribute), lines: &lines, seen: &seen)
+            }
+        }
+
+        for child in axElementArrayAttribute(element, kAXChildrenAttribute) {
+            collectAccessibilityText(from: child, depth: depth + 1, visited: &visited, lines: &lines, seen: &seen)
+        }
+    }
+
+    private nonisolated static var readableAccessibilityRoles: Set<String> {
+        [
+            kAXStaticTextRole as String,
+            kAXTextAreaRole as String,
+            kAXTextFieldRole as String,
+            "AXWebArea"
+        ]
+    }
+
+    private nonisolated static var readableAccessibilityAttributes: [String] {
+        [
+            kAXValueAttribute as String,
+            kAXTitleAttribute as String,
+            kAXDescriptionAttribute as String
+        ]
+    }
+
+    private nonisolated static func appendAccessibilityText(_ value: String, lines: inout [String], seen: inout Set<String>) {
+        let normalized = value
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        for line in normalized {
+            guard line.count > 1 else { continue }
+            guard !nativeCaptureChromeNoise.contains(line.lowercased()) else { continue }
+            if !seen.contains(line) {
+                seen.insert(line)
+                lines.append(line)
+            }
+        }
+    }
+
+    private nonisolated static var nativeCaptureChromeNoise: Set<String> {
+        [
+            "copy",
+            "share",
+            "edit",
+            "delete",
+            "retry",
+            "regenerate",
+            "new chat",
+            "send",
+            "stop",
+            "search",
+            "settings"
+        ]
+    }
+
+    private nonisolated static func axStringAttribute(_ element: AXUIElement, _ attribute: String) -> String {
+        guard let value = axAttribute(element, attribute) else { return "" }
+        if let text = value as? String {
+            return text
+        }
+        if CFGetTypeID(value) == AXValueGetTypeID() {
+            return ""
+        }
+        return ""
+    }
+
+    private nonisolated static func axElementAttribute(_ element: AXUIElement, _ attribute: String) -> AXUIElement? {
+        guard let value = axAttribute(element, attribute),
+              CFGetTypeID(value) == AXUIElementGetTypeID() else {
+            return nil
+        }
+        return (value as! AXUIElement)
+    }
+
+    private nonisolated static func axElementArrayAttribute(_ element: AXUIElement, _ attribute: String) -> [AXUIElement] {
+        guard let values = axAttribute(element, attribute) as? [AnyObject] else { return [] }
+        return values.compactMap { value in
+            guard CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+            return (value as! AXUIElement)
+        }
+    }
+
+    private nonisolated static func axAttribute(_ element: AXUIElement, _ attribute: String) -> AnyObject? {
+        var value: CFTypeRef?
+        let error = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
+        guard error == .success else { return nil }
+        return value
+    }
+
+    private nonisolated static func ocrText(for processIdentifier: pid_t) async throws -> String {
+        guard let image = windowImage(for: processIdentifier) else {
+            throw TacketAppError.nativeCapture("Tacket could not capture the app window for local OCR. macOS Screen Recording permission may be required.")
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let request = VNRecognizeTextRequest { request, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let observations = request.results as? [VNRecognizedTextObservation] ?? []
+                let lines = observations
+                    .sorted { lhs, rhs in
+                        let yDelta = abs(lhs.boundingBox.midY - rhs.boundingBox.midY)
+                        if yDelta > 0.015 {
+                            return lhs.boundingBox.midY > rhs.boundingBox.midY
+                        }
+                        return lhs.boundingBox.minX < rhs.boundingBox.minX
+                    }
+                    .compactMap { $0.topCandidates(1).first?.string.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                continuation.resume(returning: lines.joined(separator: "\n"))
+            }
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            do {
+                try handler.perform([request])
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
+    private nonisolated static func windowImage(for processIdentifier: pid_t) -> CGImage? {
+        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return nil
+        }
+        let candidates = windows.filter { window in
+            guard let ownerPID = window[kCGWindowOwnerPID as String] as? pid_t,
+                  ownerPID == processIdentifier,
+                  let layer = window[kCGWindowLayer as String] as? Int,
+                  layer == 0,
+                  let bounds = window[kCGWindowBounds as String] as? [String: Any],
+                  let width = bounds["Width"] as? CGFloat,
+                  let height = bounds["Height"] as? CGFloat else {
+                return false
+            }
+            return width > 320 && height > 240
+        }
+        guard let window = candidates.first,
+              let windowNumber = window[kCGWindowNumber as String] as? CGWindowID else {
+            return nil
+        }
+        let imageURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tacket-native-capture-\(processIdentifier)-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: imageURL) }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        process.arguments = ["-x", "-l", String(windowNumber), imageURL.path]
+        do {
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0,
+                  let image = NSImage(contentsOf: imageURL) else {
+                return nil
+            }
+            var rect = CGRect(origin: .zero, size: image.size)
+            return image.cgImage(forProposedRect: &rect, context: nil, hints: nil)
+        } catch {
+            return nil
+        }
+    }
+
+    private nonisolated static func nativeCaptureTitle(from transcript: String, source: NativeCaptureSource) -> String {
+        let ignored = Set([
+            source.label.lowercased(),
+            "new chat",
+            "copy",
+            "share",
+            "regenerate",
+            "you said:",
+            "assistant said:"
+        ])
+        let line = transcript
+            .split(separator: "\n")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { candidate in
+                candidate.count >= 8 && !ignored.contains(candidate.lowercased())
+            } ?? "\(source.label) app chat"
+        return sanitizeFileSegment(line, maxLength: 80)
+    }
+
+    private nonisolated static func reserveNativeCaptureBundleURL(
+        outputRoot: URL,
+        capturedAt: Date,
+        source: NativeCaptureSource,
+        title: String
+    ) throws -> URL {
+        let baseName = [
+            fileDateFormatter.string(from: capturedAt),
+            source.label,
+            sanitizeFileSegment(title, maxLength: 80)
+        ].joined(separator: " - ")
+        for index in 1..<1000 {
+            let suffix = index == 1 ? "" : " (\(index))"
+            let candidate = outputRoot.appendingPathComponent("\(baseName)\(suffix).tacket", isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: candidate, withIntermediateDirectories: false)
+                return candidate
+            } catch CocoaError.fileWriteFileExists {
+                continue
+            } catch {
+                throw error
+            }
+        }
+        throw TacketAppError.nativeCapture("Could not create a unique saved chat folder.")
+    }
+
+    private nonisolated static var fileDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH.mm"
+        return formatter
+    }
+
+    private nonisolated static func sanitizeFileSegment(_ value: String, maxLength: Int) -> String {
+        let forbidden = CharacterSet(charactersIn: #"<>:"/\|?*"#).union(.controlCharacters)
+        let cleaned = value
+            .components(separatedBy: forbidden)
+            .joined(separator: " ")
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ". ")))
+        let limited = String(cleaned.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines)
+        return limited.isEmpty ? "Untitled Thread" : limited
+    }
+
+    private nonisolated static func writeJSONObject(_ object: [String: Any], to url: URL) throws {
+        var data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
+        data.append(Data("\n".utf8))
+        try data.write(to: url)
+    }
+
+    private nonisolated static func nativeCaptureReadme(title: String, source: NativeCaptureSource, capturedAt: String) -> String {
+        """
+        # \(title)
+
+        This is a local Tacket saved chat captured from the \(source.label) desktop app.
+
+        - Open `transcript.md` to read the copied conversation text.
+        - `targets/` contains ready-to-transfer conversation files for supported tools.
+        - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the saved chat.
+
+        Source: \(source.label) desktop app
+        Captured: \(capturedAt)
+        """
+    }
+
+    private nonisolated static func appleScriptErrorMessage(_ error: NSDictionary) -> String {
+        if let message = error["NSAppleScriptErrorMessage"] as? String {
+            return message
+        }
+        return "macOS automation failed. Tacket may need Accessibility permission in System Settings."
     }
 
     private nonisolated static func indexLibraryFolder(_ folder: URL) throws -> (found: Int, indexed: Int) {
@@ -1200,6 +1777,7 @@ enum TacketAppError: LocalizedError {
     case nativeHostMissing
     case invalidBundle(String)
     case libraryDatabase(String)
+    case nativeCapture(String)
 
     var errorDescription: String? {
         switch self {
@@ -1209,6 +1787,8 @@ enum TacketAppError: LocalizedError {
             return "Saved chat is missing required files: \(message)"
         case .libraryDatabase(let message):
             return "Library database error: \(message)"
+        case .nativeCapture(let message):
+            return "Native app capture error: \(message)"
         }
     }
 }
@@ -1364,7 +1944,7 @@ struct SidebarView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 SidebarSection(title: "Flow") {
-                    WorkflowStep(number: "1", title: "Save", detail: "Save a supported chat.")
+                    WorkflowStep(number: "1", title: "Save", detail: "Save from browser or app.")
                     WorkflowStep(number: "2", title: "Find", detail: "Browse or narrow saved tackets.")
                     WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the saved chat.")
                 }
@@ -1530,6 +2110,49 @@ struct LibraryPanelView: View {
                     StatusBanner(status: model.status)
 
                     SectionCard(
+                        eyebrow: "Save",
+                        title: "Save chats from browser tabs or desktop apps",
+                        detail: "Use the Chrome extension for ChatGPT, Claude, and Gemini in the browser. For desktop apps, open the chat, click inside the conversation, then capture it locally from Tacket."
+                    ) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 10) {
+                                HeaderButton(title: "Open ChatGPT", action: model.openChatGPT)
+                                HeaderButton(title: "Open Claude", action: model.openClaude)
+                                HeaderButton(title: "Open Gemini", action: model.openGemini)
+                            }
+
+                            Divider()
+
+                            HStack(spacing: 10) {
+                                ForEach(TacketModel.NativeCaptureSource.allCases) { source in
+                                    Button {
+                                        model.captureNativeApp(source)
+                                    } label: {
+                                        Label(source.label, systemImage: "macwindow")
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(model.isRunning)
+                                    .help("Capture the open \(source.label) desktop app chat")
+                                }
+                            }
+
+                            Text("Native capture reads the open desktop app locally with macOS Accessibility and on-device OCR, then saves it as a .tacket folder.")
+                                .font(.tacketFootnote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            HStack(spacing: 10) {
+                                Button("Accessibility Settings") {
+                                    model.openAccessibilitySettings()
+                                }
+                                Button("Screen Recording Settings") {
+                                    model.openScreenRecordingSettings()
+                                }
+                            }
+                        }
+                    }
+
+                    SectionCard(
                         eyebrow: "Library",
                         title: "All Tackets",
                         detail: "Browse every saved chat in your local library. Search and filters narrow the list without sending anything off this Mac."
@@ -1608,6 +2231,8 @@ struct LibraryPanelView: View {
                     }
 
                     libraryContent(isWide: geometry.size.width >= 780)
+
+                    OutputPanel()
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 18)

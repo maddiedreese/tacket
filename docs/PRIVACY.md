@@ -12,6 +12,8 @@ Tacket is local-only and local-first by design. It saves AI chat conversations a
 
 The extension saves content only after the user clicks the extension on a supported AI chat page. The popup checks the active tab and refuses to save pages outside ChatGPT, Claude, and Gemini. The saved conversation is sent to the local Tacket app, not to a backend service.
 
+The Mac app can also capture open ChatGPT, Claude, and Codex desktop app chats. Native app capture uses local macOS Accessibility and, when needed, on-device OCR from the app window. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
+
 The recommended extension install path is the Chrome Web Store. That means Google handles extension distribution and may have normal store/install metadata. It does not change Tacket's save path: chat content is sent to the local Tacket app, not to the developer or a Tacket server.
 
 Saved chat content is stored locally in user-controlled folders. If a user chooses to place those folders inside a git repository, normal git hygiene applies.
@@ -29,3 +31,7 @@ Tacket's Chrome extension should request the narrowest practical host permission
 ## macOS Automation
 
 When transferring to Codex or Claude Code, Tacket copies the saved conversation to the local clipboard, opens Terminal, and asks macOS to paste. macOS may show Automation or Accessibility prompts for this action. These permissions are not used for saving chats, background monitoring, networking, or reading other apps.
+
+## macOS Desktop Capture Permissions
+
+When saving from the ChatGPT, Claude, or Codex desktop app, Tacket may ask for Accessibility or Screen Recording permission. Accessibility lets Tacket read text exposed by the open app window and drive local scroll-and-read capture. Screen Recording lets Tacket use on-device OCR when an app does not expose enough text through Accessibility. Captured text is written to local `.tacket` files only.

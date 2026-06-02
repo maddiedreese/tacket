@@ -14,7 +14,7 @@
       "properties": {
         "platform": {
           "type": "string",
-          "enum": ["chatgpt", "claude", "gemini", "unknown"]
+          "enum": ["chatgpt", "claude", "gemini", "codex", "unknown"]
         },
         "url": { "type": "string" }
       }

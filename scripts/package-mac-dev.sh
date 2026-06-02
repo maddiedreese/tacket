@@ -52,6 +52,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <string>NSApplication</string>
   <key>NSAppleEventsUsageDescription</key>
   <string>Tacket uses macOS automation to open Terminal and paste the saved conversation into the coding agent you choose.</string>
+  <key>NSScreenCaptureUsageDescription</key>
+  <string>Tacket uses local screen capture only when needed to read a desktop app chat with on-device OCR. Captured text is saved locally on your Mac.</string>
 </dict>
 </plist>
 PLIST

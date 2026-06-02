@@ -25,7 +25,9 @@ for (const phrase of [
   "https://twitter.com/maddiedreese",
   "./privacy.html",
   "Local transcript library for AI chats",
-  "Save full ChatGPT, Claude, and Gemini threads on your Mac.",
+  "Save AI chats from browser tabs and desktop apps on your Mac.",
+  "Desktop app capture",
+  "macOS Accessibility and on-device OCR",
   "No summary step",
   "Free forever",
   "Open source",
@@ -41,7 +43,8 @@ for (const phrase of [
   "No analytics",
   "No telemetry",
   "No model/API calls",
-  "saved conversation is sent to the Tacket app on your Mac",
+  "Browser conversations are sent from the extension to the Tacket",
+  "macOS Accessibility and on-device OCR",
   "private vulnerability reporting"
 ]) {
   if (!privacy.includes(phrase)) throw new Error(`website/privacy.html missing: ${phrase}`);
