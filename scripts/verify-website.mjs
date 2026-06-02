@@ -28,7 +28,7 @@ for (const phrase of [
   "Save AI chats locally on your Mac.",
   "Desktop app capture",
   "Exact local import",
-  "Exact Codex App imports",
+  "Exact local imports where available",
   "on-device OCR",
   "No summary step",
   "Free forever",

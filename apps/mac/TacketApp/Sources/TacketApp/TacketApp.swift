@@ -442,7 +442,7 @@ final class TacketModel: ObservableObject {
         guard !isRunning else { return }
         guard let app = runningNativeCaptureApp(for: source) else {
             status = "\(source.label) app is not open."
-            commandOutput = "Open the \(source.label) desktop app, open the chat you want to save, click inside the conversation, then capture the visible app text from Tacket."
+            commandOutput = "Open the \(source.label) desktop app, open the chat you want to save, click inside the conversation, then capture the current chat from Tacket."
             return
         }
 
@@ -455,7 +455,7 @@ final class TacketModel: ObservableObject {
 
         isRunning = true
         status = "Capturing \(source.label) app..."
-        commandOutput = "Tacket will read visible text from the \(app.localizedName ?? source.label) window locally with macOS Accessibility and on-device OCR. Nothing is uploaded.\n\n\(permissionSummary)"
+        commandOutput = "Tacket will scroll and read the current \(app.localizedName ?? source.label) chat locally with macOS Accessibility and on-device OCR. Nothing is uploaded.\n\n\(permissionSummary)"
 
         Task {
             do {
@@ -1720,19 +1720,56 @@ final class TacketModel: ObservableObject {
     }
 
     private nonisolated static func mergeNativeCaptureSnapshots(_ snapshots: [String]) -> String {
-        var seen = Set<String>()
         var lines: [String] = []
         for snapshot in snapshots {
-            for rawLine in cleanNativeCaptureText(snapshot).split(separator: "\n") {
-                let line = String(rawLine).trimmingCharacters(in: .whitespacesAndNewlines)
-                guard line.count > 1 else { continue }
-                let key = line.lowercased()
-                guard !nativeCaptureChromeNoise.contains(key), !seen.contains(key) else { continue }
-                seen.insert(key)
-                lines.append(line)
+            let snapshotLines = nativeCaptureLines(snapshot)
+            guard !snapshotLines.isEmpty else { continue }
+            if lines.isEmpty {
+                lines.append(contentsOf: snapshotLines)
+                continue
             }
+            if nativeCaptureContainsSubsequence(snapshotLines, in: lines) {
+                continue
+            }
+            let overlap = nativeCaptureOverlap(previous: lines, next: snapshotLines)
+            lines.append(contentsOf: snapshotLines.dropFirst(overlap))
         }
         return lines.joined(separator: "\n")
+    }
+
+    private nonisolated static func nativeCaptureLines(_ value: String) -> [String] {
+        cleanNativeCaptureText(value)
+            .split(separator: "\n")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { line in
+                line.count > 1 && !nativeCaptureChromeNoise.contains(line.lowercased())
+            }
+    }
+
+    private nonisolated static func nativeCaptureOverlap(previous: [String], next: [String]) -> Int {
+        let maxOverlap = min(previous.count, next.count, 120)
+        guard maxOverlap > 0 else { return 0 }
+        for count in stride(from: maxOverlap, through: 1, by: -1) {
+            let previousSuffix = previous.suffix(count).map { $0.lowercased() }
+            let nextPrefix = next.prefix(count).map { $0.lowercased() }
+            if Array(previousSuffix) == Array(nextPrefix) {
+                return count
+            }
+        }
+        return 0
+    }
+
+    private nonisolated static func nativeCaptureContainsSubsequence(_ needle: [String], in haystack: [String]) -> Bool {
+        guard !needle.isEmpty, haystack.count >= needle.count else { return false }
+        let normalizedNeedle = needle.map { $0.lowercased() }
+        let normalizedHaystack = haystack.map { $0.lowercased() }
+        for start in 0...(normalizedHaystack.count - normalizedNeedle.count) {
+            let end = start + normalizedNeedle.count
+            if Array(normalizedHaystack[start..<end]) == normalizedNeedle {
+                return true
+            }
+        }
+        return false
     }
 
     private nonisolated static func accessibilityIsTrusted(prompt: Bool) -> Bool {
@@ -1773,10 +1810,9 @@ final class TacketModel: ObservableObject {
         }
 
         var lines: [String] = []
-        var seen = Set<String>()
         var visited = 0
         for root in roots {
-            collectAccessibilityText(from: root, depth: 0, visited: &visited, lines: &lines, seen: &seen)
+            collectAccessibilityText(from: root, depth: 0, visited: &visited, lines: &lines)
         }
 
         let transcript = lines.joined(separator: "\n")
@@ -1790,8 +1826,7 @@ final class TacketModel: ObservableObject {
         from element: AXUIElement,
         depth: Int,
         visited: inout Int,
-        lines: inout [String],
-        seen: inout Set<String>
+        lines: inout [String]
     ) {
         guard depth <= 28, visited < 5000 else { return }
         visited += 1
@@ -1800,12 +1835,12 @@ final class TacketModel: ObservableObject {
         let shouldRead = readableAccessibilityRoles.contains(role)
         if shouldRead {
             for attribute in readableAccessibilityAttributes {
-                appendAccessibilityText(axStringAttribute(element, attribute), lines: &lines, seen: &seen)
+                appendAccessibilityText(axStringAttribute(element, attribute), lines: &lines)
             }
         }
 
         for child in axElementArrayAttribute(element, kAXChildrenAttribute) {
-            collectAccessibilityText(from: child, depth: depth + 1, visited: &visited, lines: &lines, seen: &seen)
+            collectAccessibilityText(from: child, depth: depth + 1, visited: &visited, lines: &lines)
         }
     }
 
@@ -1826,7 +1861,7 @@ final class TacketModel: ObservableObject {
         ]
     }
 
-    private nonisolated static func appendAccessibilityText(_ value: String, lines: inout [String], seen: inout Set<String>) {
+    private nonisolated static func appendAccessibilityText(_ value: String, lines: inout [String]) {
         let normalized = value
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
@@ -1837,8 +1872,7 @@ final class TacketModel: ObservableObject {
         for line in normalized {
             guard line.count > 1 else { continue }
             guard !nativeCaptureChromeNoise.contains(line.lowercased()) else { continue }
-            if !seen.contains(line) {
-                seen.insert(line)
+            if lines.last != line {
                 lines.append(line)
             }
         }
@@ -2049,9 +2083,9 @@ final class TacketModel: ObservableObject {
         """
         # \(title)
 
-        This is a local Tacket saved chat captured from visible text in the \(source.label) desktop app.
+        This is a local Tacket saved chat captured from the current \(source.label) desktop app conversation.
 
-        - Open `transcript.md` to read the captured visible conversation text.
+        - Open `transcript.md` to read the captured conversation text.
         - `targets/` contains ready-to-transfer conversation files for supported tools.
         - `manifest.json` and `messages.jsonl` are used by Tacket to verify and search the saved chat.
 
@@ -2960,7 +2994,7 @@ struct LibraryPanelView: View {
                     SectionCard(
                         eyebrow: "Save",
                         title: "Save chats from browsers, app windows, and local app logs",
-                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. Use exact local imports for Codex App, Claude App, and Claude Code sessions. For desktop chat apps, Tacket can open the app and save the visible conversation text locally."
+                    detail: "Use the Chrome extension for full ChatGPT, Claude, and Gemini browser transcripts. Use exact local imports for Codex App, Claude App, and Claude Code sessions. For desktop chat apps, Tacket can open the app and locally scroll-capture the current conversation."
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
@@ -3009,15 +3043,15 @@ struct LibraryPanelView: View {
                                     Button {
                                         model.captureNativeApp(source)
                                     } label: {
-                                        Label("Capture \(source.label)", systemImage: "viewfinder")
+                                        Label("Capture Current \(source.label) Chat", systemImage: "viewfinder")
                                     }
                                     .buttonStyle(.bordered)
                                     .disabled(model.isRunning)
-                                    .help("Capture visible text from the open \(source.label) desktop app chat")
+                                    .help("Scroll-capture the current \(source.label) desktop app chat locally")
                                 }
                             }
 
-                            Text("Desktop app capture is local and does not use the clipboard. It reads the open app window with macOS Accessibility and on-device OCR, so it is best for saving the chat currently visible in the app.")
+                            Text("Desktop app capture is local and does not use the clipboard. It scrolls the open app window and reads exposed text with macOS Accessibility, falling back to on-device OCR when needed.")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

@@ -2,7 +2,7 @@
 
 Tacket v1 is focused on a private local library for AI chats, with full-conversation transfer to coding tools when users need to move context.
 
-Current builds support the Chrome extension browser flow, Mac app import for recent local Codex App, Claude App, and Claude Code sessions, and Mac app visible capture for open ChatGPT, Claude, and Codex desktop app chats.
+Current builds support the Chrome extension browser flow, Mac app import for recent local Codex App, Claude App, and Claude Code sessions, and Mac app desktop capture for current open ChatGPT, Claude, and Codex desktop app chats.
 
 ## v0.1.0
 

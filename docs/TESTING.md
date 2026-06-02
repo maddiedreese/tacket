@@ -14,7 +14,7 @@ npm run package:release
 - attachment persistence tests
 - Chrome save-flow fixture tests for ChatGPT, Claude, and Gemini-like pages
 - Mac app exact local import checks for Codex App, Claude App, and Claude Code sessions
-- Mac app visible desktop capture checks for ChatGPT, Claude, and Codex desktop app windows
+- Mac app desktop capture checks for ChatGPT, Claude, and Codex desktop app windows
 - website release-link and privacy-copy checks
 - local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
 - first-run smoke coverage for local extension setup/status/remove, saved chat validation, and Codex/Claude Code dry-run transfer in isolated temporary folders
@@ -117,7 +117,7 @@ For each local agent source, confirm:
 - clicking import again reports already-saved sessions instead of creating duplicate `.tacket` folders
 - the saved chat can be searched, copied, or transferred after import
 
-Before a release, test visible desktop capture from:
+Before a release, test desktop capture from:
 
 - a ChatGPT desktop app chat with text and code
 - a Claude desktop app chat with text and code

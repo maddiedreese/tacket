@@ -49,7 +49,7 @@ The Mac app owns the direct-download user workflow:
 - browse and search saved Tacket chat folders
 - install the local Chrome app connection
 - import recent local Codex App, Claude App, and Claude Code sessions into `.tacket` folders
-- capture visible text from open desktop chat apps with local macOS Accessibility/OCR
+- scroll-capture current open desktop chat app conversations with local macOS Accessibility/OCR
 - reveal the local save folder
 - choose saved Tacket chats
 - copy full saved conversations
@@ -82,8 +82,8 @@ Codex App, Claude App, or Claude Code local session
   -> Mac app adds imported chats to local search
 
 Open desktop chat window
-  -> user clicks visible desktop capture in the Mac app
-  -> Mac app reads visible text locally with Accessibility/OCR
+  -> user clicks desktop capture in the Mac app
+  -> Mac app scrolls and reads the current conversation locally with Accessibility/OCR
   -> Mac app writes a .tacket folder
   -> Mac app adds the saved chat to local search
 ```
