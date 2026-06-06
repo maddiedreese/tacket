@@ -17,7 +17,17 @@ If the page is supported but no messages are found, reload the chat page and try
 
 ## Chrome Extension Cannot Reach the App
 
-The Chrome extension talks to the Tacket app through Chrome's local app connection system. For normal users this should be set up by the packaged app and store extension. Development builds may need manual setup.
+The Chrome extension talks to the Tacket app through Chrome's local app connection system. For normal users, open Tacket, go to **Settings**, click **Install Local Connector**, then add the published extension from the Chrome Web Store:
+
+```text
+https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh
+```
+
+If saving still fails, click **Check Connector** in Settings and confirm Chrome has the Tacket extension installed and enabled. The published extension ID is:
+
+```text
+cbpgfpcajomllnfoigagibafblmnbbdh
+```
 
 For development:
 
@@ -26,14 +36,14 @@ node apps/cli/bin/tacket.js status-native-host
 node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension-id>
 ```
 
-For development builds, use the advanced Chrome connection settings:
+For development builds, use the development-only Chrome connection settings:
 
 1. Click **Chrome Extensions**.
-2. Enable Developer Mode or install the published extension.
+2. Enable Developer Mode.
 3. Copy the extension ID.
 4. Paste it into Tacket.
-5. Click **Install Connection**.
-6. Click **Check Status**.
+5. Click **Install Development Connector**.
+6. Click **Check Connector**.
 
 Chrome extension IDs are 32 lowercase letters from `a` to `p`.
 
@@ -92,7 +102,7 @@ The production extension manifest does not include `file://` permissions. For th
 
 Tacket does not install a background service. To remove a direct-download install:
 
-1. Open Tacket and click **Remove Connection** in the advanced Chrome connection settings, or run:
+1. Open Tacket and click **Remove Connector** in Settings, or run:
 
    ```bash
    node apps/cli/bin/tacket.js uninstall-native-host

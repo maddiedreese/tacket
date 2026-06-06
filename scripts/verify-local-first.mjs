@@ -19,7 +19,8 @@ const allowedHosts = new Set([
   "chatgpt.com",
   "chat.openai.com",
   "claude.ai",
-  "gemini.google.com"
+  "gemini.google.com",
+  "chromewebstore.google.com"
 ]);
 const forbiddenPatterns = [
   ["XMLHttpRequest", /\bXMLHttpRequest\b/u],

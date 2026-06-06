@@ -7,10 +7,11 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 const cli = path.join(root, "apps", "cli", "bin", "tacket.js");
-const extensionId = option("--extension-id");
+const release = JSON.parse(await readFile(path.join(root, "release.json"), "utf8"));
+const extensionId = option("--extension-id") ?? release.chromeExtensionId;
 
 if (!extensionId) {
-  console.error("Usage: npm run store:verify-id -- --extension-id <chrome-extension-id>");
+  console.error("Usage: npm run store:verify-id [-- --extension-id <chrome-extension-id>]");
   process.exit(2);
 }
 

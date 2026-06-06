@@ -228,6 +228,9 @@ final class TacketModel: ObservableObject {
     let libraryPageSize = 12
 
     let supportedSources = ["ChatGPT", "Claude", "Gemini", "Codex"]
+    static let publishedChromeExtensionId = "cbpgfpcajomllnfoigagibafblmnbbdh"
+    static let publishedChromeExtensionOrigin = "chrome-extension://cbpgfpcajomllnfoigagibafblmnbbdh/"
+    static let chromeWebStoreURL = "https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh"
 
     var advancedSearchIsActive: Bool {
         libraryMatchMode != .phrase ||
@@ -429,6 +432,10 @@ final class TacketModel: ObservableObject {
 
     func openChromeExtensions() {
         openInChrome("chrome://extensions")
+    }
+
+    func openChromeWebStore() {
+        openInChrome(Self.chromeWebStoreURL)
     }
 
     func openChatGPT() {
@@ -698,8 +705,17 @@ final class TacketModel: ObservableObject {
         throw TacketAppError.nativeCapture("Tacket could not find enough readable chat text in the \(source.label) window. Open the chat, wait for messages to finish loading, then try again.")
     }
 
+    func installPublishedConnector() {
+        extensionId = Self.publishedChromeExtensionId
+        installConnector(extensionId: Self.publishedChromeExtensionId)
+    }
+
     func installConnector() {
-        let id = extensionId.trimmingCharacters(in: .whitespacesAndNewlines)
+        installConnector(extensionId: extensionId)
+    }
+
+    private func installConnector(extensionId rawExtensionId: String) {
+        let id = rawExtensionId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !id.isEmpty else {
             status = "Paste the Chrome extension ID first."
             return
@@ -714,7 +730,7 @@ final class TacketModel: ObservableObject {
             let path = try installNativeMessagingHost(extensionId: id)
             installedHostPath = path.path
             refreshConnectorStatus()
-            commandOutput = "Installed Chrome native messaging host:\n\(path.path)"
+            commandOutput = "Installed Chrome native messaging host for extension \(id):\n\(path.path)"
             status = "Connector installed."
         } catch {
             commandOutput = error.localizedDescription
@@ -728,9 +744,14 @@ final class TacketModel: ObservableObject {
             let data = try Data(contentsOf: manifestURL)
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
             let hostPath = json["path"] as? String ?? "unknown"
-            let origins = (json["allowed_origins"] as? [String] ?? []).joined(separator: ", ")
+            let originList = json["allowed_origins"] as? [String] ?? []
+            let origins = originList.joined(separator: ", ")
             installedHostPath = manifestURL.path
-            connectorStatus = "Installed: \(hostPath)"
+            if originList.contains(Self.publishedChromeExtensionOrigin) {
+                connectorStatus = "Installed for the published Tacket extension."
+            } else {
+                connectorStatus = "Installed: \(hostPath)"
+            }
             commandOutput = "Manifest: \(manifestURL.path)\nAllowed origins: \(origins)"
         } catch {
             installedHostPath = nil
@@ -4007,34 +4028,50 @@ struct SettingsPanelView: View {
                 }
 
                 SectionCard(
-                    eyebrow: "Advanced",
-                    title: "Chrome extension connection",
-                    detail: "Connect the Chrome extension to the Tacket app so conversations can be saved locally."
+                    eyebrow: "Browser",
+                    title: "Chrome Web Store extension",
+                    detail: "Use the approved Tacket extension to save ChatGPT, Claude, and Gemini browser chats directly to this Mac."
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
                         ConnectorStatusView()
 
+                        Text("Install the local connector once, then add Tacket from the Chrome Web Store. Browser chat text goes from Chrome to this app through Chrome's local native messaging system. It is not sent to Tacket servers.")
+                            .font(.tacketFootnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 10) {
+                                Button("Install Local Connector") {
+                                    model.installPublishedConnector()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(model.isRunning)
+
+                                Button("Open Chrome Web Store") {
+                                    model.openChromeWebStore()
+                                }
+
                                 Button("Open Chrome Extensions") {
                                     model.openChromeExtensions()
                                 }
-                                Button("Reveal Extension Folder") {
-                                    model.openExtensionFolder()
-                                }
                             }
+
                             HStack(spacing: 10) {
-                                Button("Copy Folder Path") {
-                                    model.copyExtensionFolderPath()
-                                }
                                 Button("Check Connector") {
                                     model.refreshConnectorStatus()
+                                }
+                                Button("Remove Connector") {
+                                    model.uninstallConnector()
                                 }
                             }
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Manual extension IDs are only needed for development builds. The public Chrome Web Store extension will connect automatically.")
+                            Text("Development only")
+                                .font(.tacketBody.weight(.semibold))
+
+                            Text("Use these controls only for an unpacked local extension build. The published Chrome Web Store extension ID is \(TacketModel.publishedChromeExtensionId).")
                                 .font(.tacketFootnote)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -4043,15 +4080,19 @@ struct SettingsPanelView: View {
                                 TextField("Chrome extension ID", text: $model.extensionId)
                                     .textFieldStyle(.roundedBorder)
                                     .font(.system(.body, design: .monospaced))
-                                Button("Install Connector") {
+                                Button("Install Development Connector") {
                                     model.installConnector()
                                 }
-                                .buttonStyle(.borderedProminent)
                                 .disabled(model.isRunning)
                             }
 
-                            Button("Remove Connector") {
-                                model.uninstallConnector()
+                            HStack(spacing: 10) {
+                                Button("Reveal Bundled Extension") {
+                                    model.openExtensionFolder()
+                                }
+                                Button("Copy Bundled Extension Path") {
+                                    model.copyExtensionFolderPath()
+                                }
                             }
                         }
                         .padding(12)

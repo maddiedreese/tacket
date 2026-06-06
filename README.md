@@ -40,8 +40,8 @@ The shortest path is the public release:
 
 1. Download `Tacket.dmg` from the [latest release](https://github.com/maddiedreese/tacket/releases).
 2. Open the DMG and drag Tacket into Applications.
-3. Add the Tacket Chrome extension.
-4. Open Tacket once so the app and extension can talk to each other locally.
+3. Open Tacket, go to **Settings**, and click **Install Local Connector**.
+4. Add the [Tacket Chrome extension](https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh).
 
 You can also build it from source:
 
@@ -54,7 +54,7 @@ open dist/Tacket.app
 Then load `apps/chrome-extension` as an unpacked Chrome extension and connect it to the local app:
 
 ```bash
-node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension-id>
+node apps/cli/bin/tacket.js install-native-host --extension-id cbpgfpcajomllnfoigagibafblmnbbdh
 ```
 
 ## Use
@@ -68,6 +68,8 @@ node apps/cli/bin/tacket.js install-native-host --extension-id <chrome-extension
 Desktop app capture may trigger macOS Accessibility or Screen Recording permission prompts. Tacket uses those permissions to scroll and read the open desktop app window locally, then shows a preview with quality signals before saving. The first automated transfer may also trigger an Automation prompt so Tacket can open Terminal and paste the saved conversation after you choose a transfer target.
 
 Optional Quick Capture lives in the menu bar after you enable it in **Settings**. It can start a preview from the frontmost supported desktop chat app, or from ChatGPT, Claude, and Codex directly. It does not monitor apps in the background or save anything silently; every capture still ends in the local preview flow.
+
+The approved Chrome Web Store extension ID is `cbpgfpcajomllnfoigagibafblmnbbdh`. Tacket uses that ID when you click **Install Local Connector** in Settings, so normal users do not need to copy or paste extension IDs.
 
 Exact local transcript import does not need Accessibility or Screen Recording. It reads recent Codex App, Claude App, and Claude Code session data from your Mac when you click import, converts new sessions into `.tacket` folders, checks the local library index to skip sessions that are already saved, and indexes everything locally.
 

@@ -23,7 +23,7 @@ Tacket is local-first:
 - local manifest warnings for possible secrets, without redaction or upload
 - Chrome Web Store distribution does not mean saved chat text is sent to the developer or a Tacket server
 
-The extension works with the Tacket Mac app. Install the app, add the Chrome extension, save a supported conversation, then browse, search, copy, or transfer it from your local library.
+The extension works with the Tacket Mac app. Install the app, click **Install Local Connector** in Tacket Settings, add the Chrome extension, save a supported conversation, then browse, search, copy, or transfer it from your local library.
 
 ## Single Purpose
 
@@ -66,7 +66,7 @@ Prepare Chrome Web Store screenshots showing:
 
 - extension popup before saving
 - successful save result with a local folder path
-- Tacket Mac app local connection setup
+- Tacket Mac app approved extension connector setup
 - Tacket Mac app local library search
 - Tacket Mac app selected saved chat review with local warnings
 - local Tacket chat files in Finder
@@ -95,12 +95,24 @@ npm run store:verify
 
 This checks the extension zip contents, confirms the upload zip matches `dist/tacket-chrome-extension.zip`, verifies production manifest permissions and host permissions, generated image dimensions, listing/privacy copy, and obvious secret-like text.
 
-## Published Extension ID
+## Published Extension
 
-After Chrome Web Store approval, verify the published extension ID can be used by the local app connection:
+The approved Chrome Web Store listing is:
 
-```bash
-npm run store:verify-id -- --extension-id <chrome-extension-id>
+```text
+https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh
 ```
 
-The command uses an isolated temporary home directory, installs the local Chrome app connection for that exact ID, checks the `allowed_origins` entry, then uninstalls it. It does not modify the user's real Chrome setup.
+The published extension ID is:
+
+```text
+cbpgfpcajomllnfoigagibafblmnbbdh
+```
+
+Verify the published extension ID from `release.json` can be used by the local app connection:
+
+```bash
+npm run store:verify-id
+```
+
+The command uses an isolated temporary home directory, installs the local Chrome app connection for that ID, checks the `allowed_origins` entry, then uninstalls it. It does not modify the user's real Chrome setup. Pass `-- --extension-id <chrome-extension-id>` only when testing a development extension.

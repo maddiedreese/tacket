@@ -13,6 +13,7 @@ const macApp = await readFile("apps/mac/TacketApp/Sources/TacketApp/TacketApp.sw
 const jsFormat = await readFile("packages/thread-format/src/index.js", "utf8");
 const swiftHost = await readFile("apps/mac/TacketApp/Sources/TacketNativeHost/main.swift", "utf8");
 const changelog = await readFile("CHANGELOG.md", "utf8");
+const publishedExtensionOrigin = `chrome-extension://${release.chromeExtensionId}/`;
 
 const packageFiles = [
   ["package.json", rootPackage],
@@ -27,6 +28,13 @@ for (const [file, json] of packageFiles) {
 
 assertEqual("Chrome manifest version", chromeManifest.version, release.version);
 assertEqual("Chrome dev manifest version", chromeDevManifest.version, release.version);
+
+if (!/^[a-p]{32}$/u.test(release.chromeExtensionId ?? "")) {
+  throw new Error("release.json chromeExtensionId must be a 32-letter Chrome extension ID.");
+}
+if (release.chromeWebStoreUrl !== `https://chromewebstore.google.com/detail/tacket/${release.chromeExtensionId}`) {
+  throw new Error("release.json chromeWebStoreUrl must match chromeExtensionId.");
+}
 
 for (const [file, json] of [
   ["apps/cli/package.json", cliPackage],
@@ -53,6 +61,13 @@ for (const [file, text] of [
   if (!text.includes(release.nativeHostName)) {
     throw new Error(`${file} native host name does not match release.json`);
   }
+}
+
+if (!macApp.includes(release.chromeExtensionId) || !macApp.includes(release.chromeWebStoreUrl)) {
+  throw new Error("Mac app must include the published Chrome Web Store extension ID and URL.");
+}
+if (!macApp.includes(publishedExtensionOrigin)) {
+  throw new Error("Mac app must check the published extension origin.");
 }
 
 for (const [file, text] of [

@@ -8,6 +8,7 @@ const extensionDir = path.join(root, "apps/chrome-extension/icons");
 const storeAssetsDir = path.join(root, "store-assets/chrome-web-store");
 const websiteDir = path.join(root, "website/assets");
 const iconsetDir = path.join(root, "dist/Tacket.iconset");
+const icnsPath = path.join(root, "dist/Tacket.icns");
 
 await mkdir(extensionDir, { recursive: true });
 await mkdir(storeAssetsDir, { recursive: true });
@@ -40,10 +41,37 @@ for (const [name, size] of iconsetSizes) {
   await writeFile(path.join(iconsetDir, name), await renderPng(size));
 }
 
+await writeFile(icnsPath, await renderIcns());
+
 console.log("Generated Tacket icons.");
 
 async function renderPng(size) {
   return pngFromPixels(size, size, renderIconAtSize(size));
+}
+
+async function renderIcns() {
+  const chunks = await Promise.all([
+    icnsChunk("icp4", 16),
+    icnsChunk("icp5", 32),
+    icnsChunk("icp6", 64),
+    icnsChunk("ic07", 128),
+    icnsChunk("ic08", 256),
+    icnsChunk("ic09", 512),
+    icnsChunk("ic10", 1024)
+  ]);
+  const totalLength = 8 + chunks.reduce((sum, current) => sum + current.length, 0);
+  const header = Buffer.alloc(8);
+  header.write("icns", 0, 4, "ascii");
+  header.writeUInt32BE(totalLength, 4);
+  return Buffer.concat([header, ...chunks]);
+}
+
+async function icnsChunk(type, size) {
+  const data = await renderPng(size);
+  const header = Buffer.alloc(8);
+  header.write(type, 0, 4, "ascii");
+  header.writeUInt32BE(data.length + 8, 4);
+  return Buffer.concat([header, data]);
 }
 
 async function renderPromoPng(width, height) {

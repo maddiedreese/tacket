@@ -14,7 +14,7 @@ rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 node "$ROOT_DIR/scripts/generate-icons.mjs" >/dev/null
-iconutil -c icns "$ROOT_DIR/dist/Tacket.iconset" -o "$RESOURCES_DIR/Tacket.icns"
+cp "$ROOT_DIR/dist/Tacket.icns" "$RESOURCES_DIR/Tacket.icns"
 
 swift build \
   --package-path "$ROOT_DIR/apps/mac/TacketApp" \

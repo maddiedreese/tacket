@@ -145,6 +145,9 @@ const macApp = await readFile("apps/mac/TacketApp/Sources/TacketApp/TacketApp.sw
 if (!macApp.includes("isValidChromeExtensionId")) {
   throw new Error("Mac app must validate Chrome extension IDs before writing native host manifests.");
 }
+for (const phrase of ["publishedChromeExtensionId", "chromeWebStoreURL", "installPublishedConnector", "Install Local Connector", "Install Development Connector"]) {
+  if (!macApp.includes(phrase)) throw new Error(`Mac app approved extension settings missing: ${phrase}`);
+}
 for (const phrase of ["LibraryPanelView", "library.sqlite", "messages_fts", "indexCaptureFolderForLibrary", "NativeCaptureSource", "LocalAgentSource", "importLocalAgentSessions", "Screen Recording Settings", "on-device OCR"]) {
   if (!macApp.includes(phrase)) throw new Error(`Mac app library UI missing: ${phrase}`);
 }

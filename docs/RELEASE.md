@@ -9,12 +9,12 @@ Tacket is direct-download and local-only.
 - Confirm `npm run smoke:dmg-install` passes for the packaged direct-download install rehearsal.
 - Create a local live QA report with `npm run qa:live`.
 - Generate a public-safe live QA issue summary with `npm run qa:live:summary -- qa/live-capture/<report>.md`.
-- Test unpacked Chrome extension saving on ChatGPT, Claude, and Gemini.
+- Test the published Chrome Web Store extension saving on ChatGPT, Claude, and Gemini with the packaged Mac app connector.
 - Test Mac app import for recent local Codex App, Claude App, and Claude Code sessions.
 - Test Mac app desktop capture on ChatGPT, Claude, and Codex desktop apps.
 - Test optional menu bar Quick Capture for the frontmost supported desktop chat app.
 - Test Library pagination, search, advanced filters, and selected saved chat actions.
-- Test local Chrome app connection installation with the current draft Chrome Web Store extension ID when available.
+- Test local Chrome app connection installation with the published Chrome Web Store extension ID.
 - Test local connection status and removal from the Mac app.
 - Test saved chat output in `~/Documents/Tacket Captures`.
 - Test selected saved chat review in the Mac app, including warning display and conversation open/copy actions.
@@ -27,7 +27,7 @@ Tacket is direct-download and local-only.
 - Prepare Chrome Web Store images using `docs/STORE_ASSETS.md`.
 - Prepare or refresh the Chrome Web Store upload folder with `npm run package:release` or `npm run store:prepare`, confirm `npm run store:verify` passes, review `dist/chrome-web-store/listing.md`, `privacy.md`, and every image, then upload the extension package.
 - Submit Chrome Web Store changes only after release copy, privacy disclosures, screenshots, and package verification are complete.
-- After Chrome Web Store approval, verify the published extension ID with `npm run store:verify-id -- --extension-id <chrome-extension-id>`.
+- Verify the published extension ID with `npm run store:verify-id`.
 - Check the current blocker dashboard with `npm run release:status`.
 - Confirm GitHub release issue checklists match the repo tooling with `npm run release:issues`.
 - Run `npm run release:readiness` before pushing the release tag.
@@ -40,7 +40,7 @@ The repository can build unsigned local artifacts without paid accounts. Public 
 
 - Apple Developer ID certificate for signing
 - Apple notarization credentials
-- Chrome Web Store developer account
+- approved Chrome Web Store extension
 - live save validation against current ChatGPT, Claude, and Gemini pages plus desktop capture validation for ChatGPT, Claude, and Codex apps
 
 ## Chrome Web Store

@@ -6,6 +6,7 @@ const root = path.resolve(new URL("..", import.meta.url).pathname);
 const website = path.join(root, "website");
 const repoUrl = "https://github.com/maddiedreese/tacket";
 const releasesUrl = `${repoUrl}/releases`;
+const chromeWebStoreUrl = "https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh";
 
 await assertFile(path.join(website, "index.html"));
 await assertFile(path.join(website, "privacy.html"));
@@ -20,6 +21,7 @@ const css = await readFile(path.join(website, "styles.css"), "utf8");
 
 for (const phrase of [
   releasesUrl,
+  chromeWebStoreUrl,
   repoUrl,
   "https://github.com/sponsors/maddiedreese",
   "https://twitter.com/maddiedreese",
@@ -29,6 +31,7 @@ for (const phrase of [
   "Desktop app capture",
   "Exact local import",
   "Local imports",
+  "approved Chrome Web Store extension",
   "Windows next",
   "Windows support is planned next",
   "on-device OCR",

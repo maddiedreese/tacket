@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import test from "node:test";
 
 const validExtensionId = "abcdefghijklmnopabcdefghijklmnop";
+const publishedExtensionId = "cbpgfpcajomllnfoigagibafblmnbbdh";
 
 test("verifies native messaging install contract for a Web Store extension ID", async () => {
   const result = await runVerify(["--extension-id", validExtensionId]);
@@ -16,10 +17,10 @@ test("rejects malformed Web Store extension IDs", async () => {
   assert.match(result.stderr, /Invalid Chrome extension ID/u);
 });
 
-test("requires an extension ID argument", async () => {
+test("uses the published release extension ID when no argument is supplied", async () => {
   const result = await runVerify([]);
-  assert.equal(result.code, 2);
-  assert.match(result.stderr, /Usage: npm run store:verify-id -- --extension-id <chrome-extension-id>/u);
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(`Chrome Web Store extension ID verification passed for ${publishedExtensionId}`, "u"));
 });
 
 function runVerify(args) {

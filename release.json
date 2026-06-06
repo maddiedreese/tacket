@@ -3,5 +3,7 @@
   "build": "1",
   "schemaVersion": "0.1.0",
   "bundleIdentifier": "dev.tacket.app",
-  "nativeHostName": "dev.tacket.host"
+  "nativeHostName": "dev.tacket.host",
+  "chromeExtensionId": "cbpgfpcajomllnfoigagibafblmnbbdh",
+  "chromeWebStoreUrl": "https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh"
 }
