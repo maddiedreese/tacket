@@ -110,4 +110,4 @@ jobs:
             dist/tacket-chrome-extension.zip \
             dist/SHA256SUMS \
             --title "Tacket ${GITHUB_REF_NAME#v}" \
-            --notes "See CHANGELOG.md for release notes. Verify downloads with SHA256SUMS."
+            --notes-file docs/GITHUB_RELEASE_NOTES.md

@@ -551,9 +551,21 @@ for (const phrase of [
   "dist/tacket-chrome-extension.zip",
   "dist/SHA256SUMS",
   "dist/chrome-web-store",
-  "gh release create"
+  "gh release create",
+  "--notes-file docs/GITHUB_RELEASE_NOTES.md"
 ]) {
   if (!releaseWorkflow.includes(phrase)) throw new Error(`Release workflow missing: ${phrase}`);
+}
+
+const githubReleaseNotes = await readFile("docs/GITHUB_RELEASE_NOTES.md", "utf8");
+for (const phrase of [
+  "Download `Tacket.dmg`",
+  "Install Local Connector",
+  "https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh",
+  "The Chrome extension saves browser chats from ChatGPT, Claude, and Gemini into the app",
+  "no analytics"
+]) {
+  if (!githubReleaseNotes.includes(phrase)) throw new Error(`GitHub release notes missing: ${phrase}`);
 }
 
 const verifyRelease = await readFile("scripts/verify-release.mjs", "utf8");
