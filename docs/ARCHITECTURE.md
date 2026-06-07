@@ -40,7 +40,7 @@ Tacket treats saved `.tacket` chat folders as the source of truth. The Mac app a
 ~/Library/Application Support/Tacket/library.sqlite
 ```
 
-The library uses SQLite FTS5 over saved message text and chat metadata, with local fallback matching when FTS5 is unavailable. Advanced search can switch between exact phrase, all-term, and any-term matching; scope queries to conversation text or titles; and filter by source or message role. It is explicit: users add the save folder or another chosen folder, or click an exact local import button for recent Codex App, Claude App, or Claude Code sessions. Tacket does not silently scan app session stores, summarize conversations, create embeddings, use model/API calls, or sync library data to a backend.
+The library uses SQLite FTS5 over saved message text and chat metadata, with local fallback matching when FTS5 is unavailable. Advanced search can switch between exact phrase, all-term, and any-term matching; scope queries to conversation text or titles; and filter by source or message role. It is explicit: users add the save folder or another chosen folder. Tacket does not silently scan app session stores, summarize conversations, create embeddings, use model/API calls, or sync library data to a backend.
 
 ## CLI and Mac App
 
@@ -48,7 +48,6 @@ The Mac app owns the direct-download user workflow:
 
 - browse and search saved Tacket chat folders
 - install the local Chrome app connection
-- import recent local Codex App, Claude App, and Claude Code sessions into `.tacket` folders
 - preview and save current open desktop chat app conversations with local macOS Accessibility/OCR
 - optionally expose the same desktop capture preview flow from the menu bar
 - reveal the local save folder
@@ -75,16 +74,13 @@ AI chat page
   -> Mac app/CLI adds the saved chat to local search
   -> CLI/Mac app searches locally or transfers the saved conversation to the chosen target
 
-Codex App, Claude App, or Claude Code local session
-  -> user clicks exact local import in the Mac app
-  -> Mac app reads recent session data from the user's Mac
-  -> Mac app skips sessions already saved in the local library index
-  -> Mac app writes .tacket folders
-  -> Mac app adds imported chats to local search
-
 Open desktop chat window
   -> user clicks desktop capture in the Mac app
   -> Mac app scrolls and reads the current conversation locally with Accessibility/OCR
   -> Mac app writes a .tacket folder
   -> Mac app adds the saved chat to local search
 ```
+
+## Planned Local Imports
+
+Direct imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the current working release. The intended architecture is still local-only: user-clicked source selection, local session reads, duplicate detection against the local library, normal `.tacket` output, and no model/API calls or Tacket backend.

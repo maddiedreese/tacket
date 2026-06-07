@@ -26,13 +26,12 @@
       <h2>Local-only by design</h2>
       <p>
         Tacket saves AI chat conversations only when you explicitly choose to save,
-        import, or capture one. Browser conversations are sent from the extension to
-        the Tacket app on your Mac. Codex App, Claude App, and Claude Code transcripts are
-        imported from local session data after you click import. Desktop app
-        conversations are captured locally by the Mac app using macOS Accessibility and
-        on-device OCR when needed, then shown in a local preview before saving.
-        Saved chats are written to local files and added
-        to local search only when you choose to index them.
+        capture, or add one to the library. Browser conversations are sent from the
+        extension to the Tacket app on your Mac. Desktop app conversations are
+        captured locally by the Mac app using macOS Accessibility and on-device OCR
+        when needed, then shown in a local preview before saving. Saved chats are
+        written to local files and added to local search only when you choose to
+        index them.
       </p>
 
       <h2>What Tacket does not collect</h2>
@@ -71,11 +70,12 @@
         app and does not save chats without your click.
       </p>
 
-      <h2>Exact local import</h2>
+      <h2>Planned local imports</h2>
       <p>
-        Codex App, Claude App, and Claude Code imports read recent local session data from
-        your Mac only after you click import. This path does not use the clipboard,
-        Accessibility, Screen Recording, a model, or a network request.
+        Direct imports from Codex App, Claude App, and Claude Code are planned, but
+        they are not part of the current working release. Future import work will
+        follow the same local-only rule: no Tacket backend, no analytics, and no
+        model calls.
       </p>
 
       <h2>Local files</h2>

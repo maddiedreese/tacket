@@ -29,8 +29,8 @@ for (const phrase of [
   "Local transcript library for AI chats",
   "Save AI chats locally on your Mac.",
   "Desktop app capture",
-  "Exact local import",
-  "Local imports",
+  "Local imports planned",
+  "not part of the current working release",
   "approved Chrome Web Store extension",
   "Windows next",
   "Windows support is planned next",
@@ -50,8 +50,8 @@ for (const phrase of [
   "No analytics",
   "No telemetry",
   "No model/API calls",
-  "Browser conversations are sent from the extension to",
-  "Codex App, Claude App, and Claude Code imports read recent local session data",
+  "extension to the Tacket app on your Mac",
+  "Direct imports from Codex App, Claude App, and Claude Code are planned",
   "on-device OCR",
   "private vulnerability reporting"
 ]) {

@@ -13,7 +13,6 @@ npm run package:release
 - transcript rendering tests
 - attachment persistence tests
 - Chrome save-flow fixture tests for ChatGPT, Claude, and Gemini-like pages
-- Mac app exact local import checks for Codex App, Claude App, and Claude Code sessions
 - Mac app desktop capture checks for ChatGPT, Claude, and Codex desktop app windows
 - website release-link and privacy-copy checks
 - local-first privacy checks that reject telemetry/backends and unapproved runtime network APIs
@@ -102,7 +101,7 @@ For each source, confirm:
 
 ## Manual Desktop App Checks
 
-Before a release, test exact local import from:
+Direct local imports from Codex App, Claude App, and Claude Code are pipeline work, not a supported public release flow. Before presenting them as working, test imports from:
 
 - Codex App sessions in `~/.codex/sessions`
 - Claude App conversations in `~/Library/Application Support/Claude/Local Storage/leveldb`

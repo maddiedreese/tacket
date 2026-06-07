@@ -12,8 +12,6 @@ Tacket is local-only and local-first by design. It saves AI chat conversations a
 
 The extension saves content only after the user clicks the extension on a supported AI chat page. The popup checks the active tab and refuses to save pages outside ChatGPT, Claude, and Gemini. The saved conversation is sent to the local Tacket app, not to a backend service.
 
-The Mac app can import recent local Codex App, Claude App, and Claude Code transcripts after the user clicks import. This reads local session data from the user's Mac, converts it into local `.tacket` folders, and indexes it locally. Tacket does not scan those folders in the background or upload imported transcripts.
-
 The Mac app can also capture the current open ChatGPT, Claude, and Codex desktop app chat. Desktop capture scrolls the app window locally, reads text exposed through macOS Accessibility, and falls back to on-device OCR when needed. It shows the captured text in a local preview before saving. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
 
 The optional menu bar Quick Capture feature is only a faster user-triggered way to start the same desktop capture preview. It does not watch the frontmost app continuously, capture in the background, or save without review.
@@ -40,8 +38,8 @@ When transferring to Codex or Claude Code, Tacket copies the saved conversation 
 
 When saving from the ChatGPT, Claude, or Codex desktop app, Tacket may ask for Accessibility or Screen Recording permission. Accessibility lets Tacket read text exposed by the open app window and drive local scroll-and-read capture. Screen Recording lets Tacket use on-device OCR when an app does not expose enough text through Accessibility. Captured text is shown in Tacket for review before it is written to local `.tacket` files.
 
-## Local Agent Transcript Import
+## Planned Local Agent Transcript Import
 
-When importing Codex App, Claude App, or Claude Code transcripts, Tacket reads recent local session data from `~/.codex/sessions`, `~/Library/Application Support/Claude/Local Storage/leveldb`, and `~/.claude/projects` after the user clicks the import button. It checks Tacket's local library index so already-saved sessions are not duplicated. This import path does not use the clipboard, Accessibility, Screen Recording, a model, or a network request.
+Direct imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the current working public release. When this path is enabled, it should read only local session data after the user clicks import, avoid background scanning, avoid model/API calls, and write normal local `.tacket` folders.
 
 ChatGPT desktop app chats use the desktop capture path. Tacket does not decrypt, access, or import ChatGPT's private app cache.

@@ -14,7 +14,7 @@ test("release issue checker passes when GitHub issue bodies are synced", async (
     const result = await runIssues([], { PATH: `${binDir}:${process.env.PATH}` });
 
     assert.equal(result.code, 0, result.stderr);
-    assert.match(result.stdout, /PASS #1 Live-test browser capture and desktop app imports/u);
+    assert.match(result.stdout, /PASS #1 Live-test browser capture and desktop app capture/u);
     assert.match(result.stdout, /PASS #4 Cut v0\.1\.0 signed release/u);
   } finally {
     await rm(temp, { recursive: true, force: true });
@@ -103,8 +103,8 @@ function expectedIssues() {
   return [
     {
       number: 1,
-      title: "Live-test browser capture and desktop app imports",
-      body: `Before v0.1.0, validate the extension against the current live provider UIs, validate Mac app local imports and desktop capture, and record local QA evidence.
+      title: "Live-test browser capture and desktop app capture",
+      body: `Before v0.1.0, validate the extension against the current live provider UIs, validate Mac app desktop capture, and record local QA evidence.
 
 Checklist:
 
@@ -114,7 +114,6 @@ Checklist:
 - [ ] Test browser Claude text, code, attached/linked file, and long-scroll capture.
 - [ ] Test browser Gemini text, code, and long-scroll capture.
 - [ ] Confirm \`.tacket\` bundles validate with \`npm run qa:live:verify -- qa/live-capture/<report>.md\`.
-- [ ] Test exact local import for Codex App, Claude App, and Claude Code from the Mac app.
 - [ ] Test desktop capture for ChatGPT, Claude, and Codex desktop apps from the Mac app.
 - [ ] Test optional menu bar Quick Capture for the frontmost supported desktop chat app.
 - [ ] Confirm desktop capture clearly prompts when Accessibility or Screen Recording permission is missing.
@@ -122,7 +121,7 @@ Checklist:
 - [ ] Confirm Mac app bundle review can open/copy transcript and display warnings.
 - [ ] Confirm transfer to Clipboard, Codex, and Claude Code.
 - [ ] Generate a public-safe issue summary with \`npm run qa:live:summary -- qa/live-capture/<report>.md\`.
-- [ ] Open follow-up issues for any provider DOM, local import, or desktop capture regressions.
+- [ ] Open follow-up issues for any provider DOM or desktop capture regressions.
 
 Do not attach private chat text, saved chat paths, extension IDs, screenshots with private content, local save folders, API keys, tokens, or private file names. Use the sanitized summary output for public issue comments.`
     },
