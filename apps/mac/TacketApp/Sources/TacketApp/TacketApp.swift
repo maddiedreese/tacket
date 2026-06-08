@@ -554,18 +554,37 @@ final class TacketModel: ObservableObject {
 
         isRunning = true
         selectedSection = .library
-        status = "Preparing \(source.label) preview..."
-        commandOutput = """
-        Tacket will scroll and read the current \(app.localizedName ?? source.label) chat locally with macOS Accessibility and on-device OCR. Review the preview before saving. Nothing is uploaded.
-
-        \(Self.nativeCapturePermissionSummary(
+        status = Self.nativeCaptureCanUseLocalSession(source)
+            ? "Saving \(source.label) transcript..."
+            : "Preparing \(source.label) preview..."
+        commandOutput = Self.nativeCaptureStartMessage(
+            source: source,
+            appName: app.localizedName ?? source.label,
             accessibilityReady: initialAccessibilityReady,
             screenCaptureReady: initialScreenCaptureReady
-        ))
-        """
+        )
 
         Task {
             do {
+                if let bundleURL = try await Self.saveCurrentLocalAgentSessionBundle(
+                    nativeSource: source,
+                    outputRoot: captureDirectory
+                ) {
+                    librarySearchText = ""
+                    libraryItems = try queryLibrary(search: "")
+                    selectedLibraryItem = libraryItems.first(where: { $0.path == bundleURL.path }) ?? libraryItems.first
+                    selectedBundle = bundleURL
+                    loadSelectedBundleInfo()
+                    libraryStatus = "Saved current \(source.label) transcript."
+                    status = "Saved \(source.label) transcript."
+                    commandOutput = "Saved the current \(source.label) transcript from local session files:\n\(bundleURL.path)"
+                    if openPreviewWindow {
+                        showMainWindow()
+                    }
+                    isRunning = false
+                    return
+                }
+
                 let rawText = try await readConversationText(from: app, source: source)
                 let transcript = Self.cleanNativeCaptureText(rawText)
                 pendingNativeCaptureDraft = Self.nativeCaptureDraft(source: source, transcript: transcript)
@@ -605,6 +624,37 @@ final class TacketModel: ObservableObject {
 
             isRunning = false
         }
+    }
+
+    private nonisolated static func nativeCaptureStartMessage(
+        source: NativeCaptureSource,
+        appName: String,
+        accessibilityReady: Bool,
+        screenCaptureReady: Bool
+    ) -> String {
+        if nativeCaptureCanUseLocalSession(source) {
+            return """
+            Tacket is reading the current \(source.label) transcript from local session files on this Mac. If a current local transcript is not available, Tacket will fall back to desktop capture with macOS Accessibility and on-device OCR. Nothing is uploaded.
+
+            \(nativeCapturePermissionSummary(
+                accessibilityReady: accessibilityReady,
+                screenCaptureReady: screenCaptureReady
+            ))
+            """
+        }
+
+        return """
+        Tacket will scroll and read the current \(appName) chat locally with macOS Accessibility and on-device OCR. Review the preview before saving. Nothing is uploaded.
+
+        \(nativeCapturePermissionSummary(
+            accessibilityReady: accessibilityReady,
+            screenCaptureReady: screenCaptureReady
+        ))
+        """
+    }
+
+    private nonisolated static func nativeCaptureCanUseLocalSession(_ source: NativeCaptureSource) -> Bool {
+        source == .codex || source == .claude
     }
 
     func saveNativeCaptureDraft() {
@@ -1239,6 +1289,27 @@ final class TacketModel: ObservableObject {
         return files.prefix(limit).compactMap { file in
             try? parseCodexSession(file, indexedTitle: index[sessionIdFromCodexPath(file)]?.title)
         }.filter { !$0.messages.isEmpty }
+    }
+
+    private nonisolated static func saveCurrentLocalAgentSessionBundle(
+        nativeSource: NativeCaptureSource,
+        outputRoot: URL
+    ) async throws -> URL? {
+        try await Task.detached(priority: .userInitiated) {
+            let sessions: [ImportedAgentSession]
+            switch nativeSource {
+            case .codex:
+                sessions = try readRecentCodexSessions(limit: 1)
+            case .claude:
+                sessions = try readRecentClaudeAppSessions(limit: 1)
+            case .chatgpt:
+                sessions = []
+            }
+            guard let session = sessions.first, !session.messages.isEmpty else { return nil }
+            let bundleURL = try writeAgentSessionBundle(session, outputRoot: outputRoot)
+            _ = try indexLibraryBundle(bundleURL)
+            return bundleURL
+        }.value
     }
 
     private nonisolated static func readRecentClaudeCodeSessions(limit: Int) throws -> [ImportedAgentSession] {
