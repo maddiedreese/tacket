@@ -1843,6 +1843,13 @@ final class TacketModel: ObservableObject {
     }
 
     private nonisolated static func cleanNativeCaptureText(_ value: String) -> String {
+        let cleaned = basicCleanNativeCaptureText(value)
+        let collapsed = nativeCaptureCollapseRepeatedBlocks(nativeCaptureLines(fromCleanedText: cleaned))
+        guard !collapsed.isEmpty else { return cleaned }
+        return collapsed.joined(separator: "\n")
+    }
+
+    private nonisolated static func basicCleanNativeCaptureText(_ value: String) -> String {
         value
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
@@ -1949,11 +1956,15 @@ final class TacketModel: ObservableObject {
     }
 
     private nonisolated static func nativeCaptureLines(_ value: String) -> [String] {
-        cleanNativeCaptureText(value)
+        nativeCaptureLines(fromCleanedText: basicCleanNativeCaptureText(value))
+    }
+
+    private nonisolated static func nativeCaptureLines(fromCleanedText value: String) -> [String] {
+        value
             .split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { line in
-                line.count > 1 && !nativeCaptureChromeNoise.contains(line.lowercased())
+                line.count > 1 && !nativeCaptureLineIsNoise(line)
             }
     }
 
@@ -2012,12 +2023,12 @@ final class TacketModel: ObservableObject {
             let maxBlockSize = min(remaining / 2, 180)
             if maxBlockSize > 0 {
                 for blockSize in stride(from: maxBlockSize, through: 2, by: -1) {
-                    let first = nativeCaptureNormalizedLines(Array(lines[index..<(index + blockSize)]))
+                    let first = Array(lines[index..<(index + blockSize)])
                     let secondStart = index + blockSize
                     let secondEnd = secondStart + blockSize
                     guard secondEnd <= lines.count else { continue }
-                    let second = nativeCaptureNormalizedLines(Array(lines[secondStart..<secondEnd]))
-                    if first == second {
+                    let second = Array(lines[secondStart..<secondEnd])
+                    if nativeCaptureBlocksMatch(first, second) {
                         lines.removeSubrange(secondStart..<secondEnd)
                         collapsedAtIndex = true
                         break
@@ -2033,7 +2044,29 @@ final class TacketModel: ObservableObject {
     }
 
     private nonisolated static func nativeCaptureNormalizedLines(_ lines: [String]) -> [String] {
-        lines.map { $0.lowercased() }
+        lines.map { nativeCaptureNormalizedLine($0) }
+    }
+
+    private nonisolated static func nativeCaptureNormalizedLine(_ line: String) -> String {
+        line
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    private nonisolated static func nativeCaptureBlocksMatch(_ first: [String], _ second: [String]) -> Bool {
+        guard first.count == second.count, first.count >= 2 else { return false }
+        let firstNormalized = nativeCaptureNormalizedLines(first)
+        let secondNormalized = nativeCaptureNormalizedLines(second)
+        var matching = 0
+        for index in firstNormalized.indices where firstNormalized[index] == secondNormalized[index] {
+            matching += 1
+        }
+        if matching == first.count {
+            return true
+        }
+        return first.count >= 4 && Double(matching) / Double(first.count) >= 0.8
     }
 
     private nonisolated static func nativeCaptureContainsSubsequence(_ needle: [String], in haystack: [String]) -> Bool {
@@ -2167,8 +2200,33 @@ final class TacketModel: ObservableObject {
             "send",
             "stop",
             "search",
-            "settings"
+            "settings",
+            "outputs",
+            "no artifacts yet",
+            "sources",
+            "no sources yet"
         ]
+    }
+
+    private nonisolated static func nativeCaptureLineIsNoise(_ line: String) -> Bool {
+        let normalizedLine = nativeCaptureNormalizedLine(line)
+        if normalizedLine.count <= 1, line.contains("<") || line.contains("→") || line.contains("←") {
+            return true
+        }
+        let lowercased = line.lowercased()
+        if nativeCaptureChromeNoise.contains(lowercased) {
+            return true
+        }
+        if lowercased.hasPrefix("ask for follow-up") {
+            return true
+        }
+        if lowercased.contains("full access") {
+            return true
+        }
+        if lowercased.contains("medium"), lowercased.first?.isNumber == true {
+            return true
+        }
+        return false
     }
 
     private nonisolated static func axStringAttribute(_ element: AXUIElement, _ attribute: String) -> String {
