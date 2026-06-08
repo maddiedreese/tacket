@@ -51,10 +51,6 @@ jobs:
           fi
       - name: Verify source
         run: npm run verify
-      - name: Package extension and app
-        run: |
-          bash scripts/package-extension.sh
-          bash scripts/package-mac-dev.sh
       - name: Import Developer ID certificate
         if: env.DEVELOPER_ID_CERTIFICATE_BASE64 != ''
         run: |
@@ -73,6 +69,10 @@ jobs:
             -s \
             -k "$KEYCHAIN_PASSWORD" \
             build.keychain
+      - name: Package extension and app
+        run: |
+          bash scripts/package-extension.sh
+          bash scripts/package-mac-dev.sh
       - name: Sign app
         if: env.DEVELOPER_ID_CERTIFICATE_BASE64 != ''
         run: bash scripts/sign-mac-app.sh
@@ -105,9 +105,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            dist/Tacket.dmg \
-            dist/tacket-chrome-extension.zip \
-            dist/SHA256SUMS \
-            --title "Tacket ${GITHUB_REF_NAME#v}" \
-            --notes-file docs/GITHUB_RELEASE_NOTES.md
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" \
+              --title "Tacket ${GITHUB_REF_NAME#v}" \
+              --notes-file docs/GITHUB_RELEASE_NOTES.md
+            gh release upload "$GITHUB_REF_NAME" \
+              dist/Tacket.dmg \
+              dist/tacket-chrome-extension.zip \
+              dist/SHA256SUMS \
+              --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              dist/Tacket.dmg \
+              dist/tacket-chrome-extension.zip \
+              dist/SHA256SUMS \
+              --title "Tacket ${GITHUB_REF_NAME#v}" \
+              --notes-file docs/GITHUB_RELEASE_NOTES.md
+          fi
