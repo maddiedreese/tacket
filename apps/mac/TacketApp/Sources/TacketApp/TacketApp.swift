@@ -727,7 +727,7 @@ final class TacketModel: ObservableObject {
         if let repoRoot {
             NSWorkspace.shared.open(repoRoot.appendingPathComponent("README.md"))
         } else {
-            NSWorkspace.shared.open(resourcesRoot)
+            NSWorkspace.shared.open(resourcesRoot.appendingPathComponent("README.md"))
         }
     }
 
@@ -3881,18 +3881,6 @@ struct AddChatsCommandBar: View {
                 Button("Open Gemini in Chrome", action: model.openGemini)
             } label: {
                 Label("Browser", systemImage: "globe")
-            }
-            .buttonStyle(.borderedProminent)
-
-            Menu {
-                ForEach(TacketModel.LocalAgentSource.allCases) { source in
-                    Button("Import \(source.label)") {
-                        model.importLocalAgentSessions(source)
-                    }
-                    .disabled(model.isRunning)
-                }
-            } label: {
-                Label("Import", systemImage: "tray.and.arrow.down")
             }
             .buttonStyle(.borderedProminent)
 

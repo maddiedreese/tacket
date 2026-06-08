@@ -17,6 +17,7 @@ await assertFile(path.join(app, "Contents/Info.plist"));
 await assertExecutable(path.join(app, "Contents/MacOS/Tacket"));
 await assertExecutable(path.join(app, "Contents/MacOS/TacketNativeHost"));
 await assertFile(path.join(app, "Contents/Resources/Tacket.icns"));
+await assertFile(path.join(app, "Contents/Resources/README.md"));
 await assertFile(path.join(app, "Contents/Resources/chrome-extension/manifest.json"));
 await assertFile(dmg);
 await assertFile(extensionZip);
