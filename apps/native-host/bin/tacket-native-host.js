@@ -2,6 +2,7 @@
 import os from "node:os";
 import path from "node:path";
 import { mkdir, readFile } from "node:fs/promises";
+import { indexLibraryFolder } from "@tacket/library";
 import { writeBundle } from "@tacket/thread-format";
 
 main().catch((error) => {
@@ -18,11 +19,13 @@ async function main() {
   const outputRoot = await captureDirectory();
   await mkdir(outputRoot, { recursive: true });
   const result = await writeBundle(message.capture, outputRoot);
+  const indexResult = await indexLibraryFolder(outputRoot);
   writeNativeMessage({
     ok: true,
     bundlePath: result.bundlePath,
     transcriptPath: result.transcriptPath,
-    manifest: result.manifest
+    manifest: result.manifest,
+    indexed: indexResult.indexed > 0
   });
 }
 

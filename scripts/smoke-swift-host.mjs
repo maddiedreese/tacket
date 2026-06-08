@@ -12,6 +12,7 @@ if (!hostPath) {
 
 const outputRoot = await mkdtemp(path.join(os.tmpdir(), "tacket-swift-host-"));
 const configuredRoot = await mkdtemp(path.join(os.tmpdir(), "tacket-swift-host-configured-"));
+const homeRoot = await mkdtemp(path.join(os.tmpdir(), "tacket-swift-host-home-"));
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 try {
@@ -31,9 +32,10 @@ try {
         }
       ]
     }
-  }, outputRoot);
+  }, outputRoot, null, homeRoot);
 
   if (!response.ok) throw new Error(response.error ?? "Swift host returned failure.");
+  if (response.indexed !== true) throw new Error("Swift host did not index the saved bundle.");
   if (response.manifest.messageCount !== 2) throw new Error("Swift host wrote wrong message count.");
   if (response.manifest.source.platform !== "chatgpt") throw new Error("Swift host wrote wrong platform.");
   if (response.manifest.warnings?.[0]?.kind !== "openai_api_key") {
@@ -45,6 +47,14 @@ try {
   if (lines.length !== 2) throw new Error("Swift host did not write one JSON object per line.");
   for (const line of lines) JSON.parse(line);
   await run("node", ["scripts/validate-bundle.mjs", response.bundlePath]);
+  const dbPath = path.join(homeRoot, "Library", "Application Support", "Tacket", "library.sqlite");
+  const indexedRows = await run("sqlite3", [
+    dbPath,
+    "select title from bundles where title = 'Swift Host Smoke'; select text from messages where text like '%swift host raw transfer%';"
+  ]);
+  if (!indexedRows.includes("Swift Host Smoke") || !indexedRows.includes("swift host raw transfer")) {
+    throw new Error("Swift host save was not searchable in the local library database.");
+  }
 
   const configured = await sendNativeMessage(hostPath, {
     type: "saveCapture",
@@ -58,7 +68,7 @@ try {
         }
       ]
     }
-  }, null, configuredRoot);
+  }, null, configuredRoot, homeRoot);
   if (!configured.bundlePath.startsWith(configuredRoot)) {
     throw new Error("Swift host did not honor configured capture directory.");
   }
@@ -71,7 +81,7 @@ try {
       source: { url: "https://chatgpt.com/c/invalid" },
       messages: []
     }
-  }, outputRoot);
+  }, outputRoot, null, homeRoot);
   if (invalid.ok !== false || !/at least one message/u.test(invalid.error ?? "")) {
     throw new Error("Swift host did not reject an empty capture payload.");
   }
@@ -91,7 +101,7 @@ try {
   }));
   const truncatedHeader = Buffer.alloc(4);
   truncatedHeader.writeUInt32LE(truncatedBody.length + 10, 0);
-  const truncated = await sendRawNativeBytes(hostPath, Buffer.concat([truncatedHeader, truncatedBody]), outputRoot);
+  const truncated = await sendRawNativeBytes(hostPath, Buffer.concat([truncatedHeader, truncatedBody]), outputRoot, null, homeRoot);
   if (truncated.ok !== false || !/shorter than declared length/u.test(truncated.error ?? "")) {
     throw new Error("Swift host did not reject truncated native-message input.");
   }
@@ -111,7 +121,7 @@ try {
   }));
   const trailingHeader = Buffer.alloc(4);
   trailingHeader.writeUInt32LE(trailingBody.length, 0);
-  const trailing = await sendRawNativeBytes(hostPath, Buffer.concat([trailingHeader, trailingBody, Buffer.from([0])]), outputRoot);
+  const trailing = await sendRawNativeBytes(hostPath, Buffer.concat([trailingHeader, trailingBody, Buffer.from([0])]), outputRoot, null, homeRoot);
   if (trailing.ok !== false || !/expected exactly one native message/u.test(trailing.error ?? "")) {
     throw new Error("Swift host did not reject trailing native-message input.");
   }
@@ -128,7 +138,7 @@ try {
         }
       ]
     }
-  }, outputRoot);
+  }, outputRoot, null, homeRoot);
   const warningKinds = (anthropic.manifest?.warnings ?? []).map((warning) => warning.kind);
   if (warningKinds.length !== 1 || warningKinds[0] !== "anthropic_api_key") {
     throw new Error(`Swift host misclassified Anthropic warning kinds: ${warningKinds.join(", ")}`);
@@ -154,7 +164,7 @@ try {
         }
       ]
     }
-  }, outputRoot);
+  }, outputRoot, null, homeRoot);
   if (!invalidAttachment.ok) throw new Error(invalidAttachment.error ?? "Swift host rejected invalid attachment capture.");
   if (invalidAttachment.manifest.attachments.referenced !== 1) {
     throw new Error("Swift host did not downgrade invalid attachment data URL to referenced.");
@@ -171,6 +181,7 @@ try {
 } finally {
   await rm(outputRoot, { recursive: true, force: true });
   await rm(configuredRoot, { recursive: true, force: true });
+  await rm(homeRoot, { recursive: true, force: true });
 }
 
 function run(command, args) {
@@ -197,21 +208,22 @@ async function writeConfig(configFile, captureDirectory) {
   await fs.writeFile(configFile, JSON.stringify({ captureDirectory }, null, 2));
 }
 
-async function sendNativeMessage(hostPath, message, outputRoot, configuredRoot) {
+async function sendNativeMessage(hostPath, message, outputRoot, configuredRoot, homeRoot) {
   const configFile = configuredRoot ? path.join(await mkdtemp(path.join(os.tmpdir(), "tacket-config-")), "config.json") : null;
   if (configFile) await writeConfig(configFile, configuredRoot);
   const body = Buffer.from(JSON.stringify(message));
   const header = Buffer.alloc(4);
   header.writeUInt32LE(body.length, 0);
-  return sendRawNativeBytes(hostPath, Buffer.concat([header, body]), outputRoot, configFile);
+  return sendRawNativeBytes(hostPath, Buffer.concat([header, body]), outputRoot, configFile, homeRoot);
 }
 
-function sendRawNativeBytes(hostPath, input, outputRoot, configFile) {
+function sendRawNativeBytes(hostPath, input, outputRoot, configFile, homeRoot) {
   return new Promise((resolve, reject) => {
     const child = spawn(hostPath, {
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
+        ...(homeRoot ? { HOME: homeRoot } : {}),
         ...(configFile ? { TACKET_CONFIG_FILE: configFile } : {}),
         ...(outputRoot ? { TACKET_CAPTURE_DIR: outputRoot } : {})
       }

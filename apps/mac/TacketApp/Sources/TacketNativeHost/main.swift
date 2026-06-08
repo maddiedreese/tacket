@@ -1,5 +1,7 @@
 import Foundation
 import Darwin
+import CryptoKit
+import SQLite3
 
 struct NativeResponse: Encodable {
     let ok: Bool
@@ -25,11 +27,13 @@ struct TacketNativeHost {
 
             let writer = BundleWriter()
             let result = try writer.write(capture: capture)
+            let indexed = try LibraryIndexer.indexBundle(result.bundlePath)
             try writeNativeMessage([
                 "ok": true,
                 "bundlePath": result.bundlePath.path,
                 "transcriptPath": result.transcriptPath.path,
-                "manifest": result.manifest
+                "manifest": result.manifest,
+                "indexed": indexed
             ])
         } catch {
             try? writeNativeMessage(["ok": false, "error": error.localizedDescription])
@@ -500,6 +504,244 @@ struct BundleWriter {
                 "messageIds": finding.messageIds
             ]
         }
+    }
+}
+
+struct LibraryMessage {
+    let id: String
+    let role: String
+    let text: String
+    let ordinal: Int
+}
+
+enum LibraryIndexer {
+    static var appSupportDirectoryURL: URL {
+        homeDirectoryURL
+            .appendingPathComponent("Library/Application Support/Tacket", isDirectory: true)
+    }
+
+    static var libraryDatabaseURL: URL {
+        appSupportDirectoryURL.appendingPathComponent("library.sqlite")
+    }
+
+    private static var homeDirectoryURL: URL {
+        if let home = ProcessInfo.processInfo.environment["HOME"], !home.isEmpty {
+            return URL(fileURLWithPath: NSString(string: home).expandingTildeInPath, isDirectory: true)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+    }
+
+    static func indexBundle(_ bundleURL: URL) throws -> Bool {
+        let manifestURL = bundleURL.appendingPathComponent("manifest.json")
+        let messagesURL = bundleURL.appendingPathComponent("messages.jsonl")
+        let transcriptURL = bundleURL.appendingPathComponent("transcript.md")
+        let manifestData = try Data(contentsOf: manifestURL)
+        let manifest = try JSONSerialization.jsonObject(with: manifestData) as? [String: Any] ?? [:]
+        let source = manifest["source"] as? [String: Any] ?? [:]
+        let transcript = try String(contentsOf: transcriptURL, encoding: .utf8)
+        let transcriptHash = sha256(transcript)
+        let bundleId = manifest["id"] as? String ?? stableLibraryId(bundleURL.path)
+
+        try ensureDatabase()
+        if let existing = try queryLibraryHash(path: bundleURL.path), existing == transcriptHash {
+            return false
+        }
+
+        let messagesText = try String(contentsOf: messagesURL, encoding: .utf8)
+        let messages = messagesText
+            .split(separator: "\n")
+            .enumerated()
+            .compactMap { index, line -> LibraryMessage? in
+                guard let data = String(line).data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    return nil
+                }
+                return LibraryMessage(
+                    id: "\(bundleId):\(json["id"] as? String ?? String(index + 1))",
+                    role: json["role"] as? String ?? "unknown",
+                    text: messageText(from: json),
+                    ordinal: index
+                )
+            }
+
+        let title = manifest["title"] as? String ?? bundleURL.deletingPathExtension().lastPathComponent
+        let platform = source["platform"] as? String ?? "unknown"
+        let url = source["url"] as? String ?? ""
+        let capturedAt = manifest["capturedAt"] as? String ?? ""
+        let messageCount = manifest["messageCount"] as? Int ?? messages.count
+        let indexedAt = ISO8601DateFormatter().string(from: Date())
+
+        try withDatabase { db in
+            try sqliteExec(db, "BEGIN;")
+            try sqliteExec(db, "DELETE FROM messages_fts WHERE bundle_id = \(sqliteQuote(bundleId));")
+            try sqliteExec(db, "DELETE FROM messages WHERE bundle_id = \(sqliteQuote(bundleId));")
+            try sqliteExec(db, "DELETE FROM bundles WHERE path = \(sqliteQuote(bundleURL.path)) OR id = \(sqliteQuote(bundleId));")
+            try sqliteExec(db, """
+                INSERT INTO bundles (id, path, title, platform, url, captured_at, message_count, indexed_at, transcript_hash)
+                VALUES (
+                  \(sqliteQuote(bundleId)),
+                  \(sqliteQuote(bundleURL.path)),
+                  \(sqliteQuote(title)),
+                  \(sqliteQuote(platform)),
+                  \(sqliteQuote(url)),
+                  \(sqliteQuote(capturedAt)),
+                  \(messageCount),
+                  \(sqliteQuote(indexedAt)),
+                  \(sqliteQuote(transcriptHash))
+                );
+                """)
+            for message in messages {
+                try sqliteExec(db, """
+                    INSERT INTO messages (id, bundle_id, role, text, ordinal)
+                    VALUES (
+                      \(sqliteQuote(message.id)),
+                      \(sqliteQuote(bundleId)),
+                      \(sqliteQuote(message.role)),
+                      \(sqliteQuote(message.text)),
+                      \(message.ordinal)
+                    );
+                    INSERT INTO messages_fts (bundle_id, message_id, title, platform, role, text)
+                    VALUES (
+                      \(sqliteQuote(bundleId)),
+                      \(sqliteQuote(message.id)),
+                      \(sqliteQuote(title)),
+                      \(sqliteQuote(platform)),
+                      \(sqliteQuote(message.role)),
+                      \(sqliteQuote(message.text))
+                    );
+                    """)
+            }
+            try sqliteExec(db, "COMMIT;")
+        }
+        return true
+    }
+
+    private static func ensureDatabase() throws {
+        try FileManager.default.createDirectory(at: appSupportDirectoryURL, withIntermediateDirectories: true)
+        try withDatabase { db in
+            try sqliteExec(db, """
+                PRAGMA journal_mode = WAL;
+                CREATE TABLE IF NOT EXISTS bundles (
+                  id TEXT PRIMARY KEY,
+                  path TEXT NOT NULL UNIQUE,
+                  title TEXT,
+                  platform TEXT,
+                  url TEXT,
+                  captured_at TEXT,
+                  message_count INTEGER,
+                  indexed_at TEXT,
+                  transcript_hash TEXT
+                );
+                CREATE TABLE IF NOT EXISTS messages (
+                  id TEXT PRIMARY KEY,
+                  bundle_id TEXT NOT NULL,
+                  role TEXT,
+                  text TEXT,
+                  ordinal INTEGER,
+                  FOREIGN KEY(bundle_id) REFERENCES bundles(id) ON DELETE CASCADE
+                );
+                """)
+            if supportsFTS5(db) {
+                try sqliteExec(db, """
+                    CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                      bundle_id UNINDEXED,
+                      message_id UNINDEXED,
+                      title,
+                      platform,
+                      role,
+                      text
+                    );
+                    """)
+            } else {
+                try sqliteExec(db, """
+                    CREATE TABLE IF NOT EXISTS messages_fts (
+                      bundle_id TEXT,
+                      message_id TEXT,
+                      title TEXT,
+                      platform TEXT,
+                      role TEXT,
+                      text TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS messages_fts_bundle_id ON messages_fts(bundle_id);
+                    """)
+            }
+        }
+    }
+
+    private static func queryLibraryHash(path: String) throws -> String? {
+        try withDatabase { db in
+            let sql = "SELECT transcript_hash FROM bundles WHERE path = \(sqliteQuote(path)) LIMIT 1;"
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                throw NativeHostError.invalidCapture(sqliteError(db))
+            }
+            defer { sqlite3_finalize(statement) }
+            if sqlite3_step(statement) == SQLITE_ROW {
+                return sqliteColumnText(statement, 0)
+            }
+            return nil
+        }
+    }
+
+    private static func withDatabase<T>(_ body: (OpaquePointer?) throws -> T) throws -> T {
+        var db: OpaquePointer?
+        guard sqlite3_open(libraryDatabaseURL.path, &db) == SQLITE_OK else {
+            defer { sqlite3_close(db) }
+            throw NativeHostError.invalidCapture(sqliteError(db))
+        }
+        defer { sqlite3_close(db) }
+        return try body(db)
+    }
+
+    private static func sqliteExec(_ db: OpaquePointer?, _ sql: String) throws {
+        var error: UnsafeMutablePointer<CChar>?
+        if sqlite3_exec(db, sql, nil, nil, &error) != SQLITE_OK {
+            let message = error.map { String(cString: $0) } ?? sqliteError(db)
+            sqlite3_free(error)
+            throw NativeHostError.invalidCapture(message)
+        }
+    }
+
+    private static func messageText(from json: [String: Any]) -> String {
+        let parts = json["content"] as? [[String: Any]] ?? []
+        return parts
+            .filter { ($0["type"] as? String) == "text" || ($0["type"] as? String) == "code" }
+            .map { $0["text"] as? String ?? "" }
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func sha256(_ value: String) -> String {
+        let digest = SHA256.hash(data: Data(value.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func stableLibraryId(_ value: String) -> String {
+        String(sha256(value).prefix(16))
+    }
+
+    private static func sqliteQuote(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "''"))'"
+    }
+
+    private static func supportsFTS5(_ db: OpaquePointer?) -> Bool {
+        do {
+            try sqliteExec(db, "CREATE VIRTUAL TABLE temp.tacket_fts_probe USING fts5(value);")
+            try sqliteExec(db, "DROP TABLE temp.tacket_fts_probe;")
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private static func sqliteColumnText(_ statement: OpaquePointer?, _ index: Int32) -> String {
+        guard let text = sqlite3_column_text(statement, index) else { return "" }
+        return String(cString: text)
+    }
+
+    private static func sqliteError(_ db: OpaquePointer?) -> String {
+        guard let message = sqlite3_errmsg(db) else { return "Unknown SQLite error." }
+        return String(cString: message)
     }
 }
 

@@ -2677,6 +2677,10 @@ final class TacketModel: ObservableObject {
     }
 
     private nonisolated static func findTacketBundles(in folder: URL) throws -> [URL] {
+        if try Self.isTacketBundle(folder) {
+            return [folder]
+        }
+
         guard let enumerator = FileManager.default.enumerator(
             at: folder,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -2688,14 +2692,20 @@ final class TacketModel: ObservableObject {
         for case let url as URL in enumerator {
             let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
             guard values?.isDirectory == true, url.pathExtension == "tacket" else { continue }
-            if FileManager.default.fileExists(atPath: url.appendingPathComponent("manifest.json").path),
-               FileManager.default.fileExists(atPath: url.appendingPathComponent("messages.jsonl").path),
-               FileManager.default.fileExists(atPath: url.appendingPathComponent("transcript.md").path) {
+            if try Self.isTacketBundle(url) {
                 bundles.append(url)
                 enumerator.skipDescendants()
             }
         }
         return bundles.sorted { $0.path < $1.path }
+    }
+
+    private nonisolated static func isTacketBundle(_ url: URL) throws -> Bool {
+        let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
+        guard values?.isDirectory == true, url.pathExtension == "tacket" else { return false }
+        return FileManager.default.fileExists(atPath: url.appendingPathComponent("manifest.json").path) &&
+            FileManager.default.fileExists(atPath: url.appendingPathComponent("messages.jsonl").path) &&
+            FileManager.default.fileExists(atPath: url.appendingPathComponent("transcript.md").path)
     }
 
     private nonisolated static func indexLibraryBundle(_ bundleURL: URL) throws -> Bool {

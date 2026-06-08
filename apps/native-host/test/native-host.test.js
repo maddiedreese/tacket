@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { test } from "node:test";
+import { searchLibrary } from "@tacket/library";
 
 const hostPath = path.resolve("apps/native-host/bin/tacket-native-host.js");
 
@@ -67,6 +68,27 @@ test("native host capture directory environment override wins over config file",
   }
 });
 
+test("native host indexes extension saves into the local library", async () => {
+  const homeRoot = await mkdtemp(path.join(os.tmpdir(), "tacket-node-host-home-"));
+  const outputRoot = path.join(homeRoot, "Documents", "Tacket Captures");
+  try {
+    const response = await sendNativeMessage(validCapture("Extension indexed"), {
+      homeRoot,
+      outputRoot
+    });
+    assert.equal(response.ok, true, response.error);
+    assert.equal(response.indexed, true);
+
+    const db = path.join(homeRoot, "Library", "Application Support", "Tacket", "library.sqlite");
+    const results = await searchLibrary("configured output test", { db });
+    assert.equal(results.length, 1);
+    assert.equal(results[0].title, "Extension indexed");
+    assert.equal(results[0].path, response.bundlePath);
+  } finally {
+    await rm(homeRoot, { recursive: true, force: true });
+  }
+});
+
 test("native host rejects truncated native-message input", async () => {
   const body = Buffer.from(JSON.stringify(validCapture("Truncated")));
   const header = Buffer.alloc(4);
@@ -119,6 +141,7 @@ function sendRawNativeMessage(input, options) {
     else {
       if (options?.outputRoot) env.TACKET_CAPTURE_DIR = options.outputRoot;
       if (options?.configFile) env.TACKET_CONFIG_FILE = options.configFile;
+      if (options?.homeRoot) env.HOME = options.homeRoot;
     }
     const child = spawn(process.execPath, [hostPath], {
       env,
