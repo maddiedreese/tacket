@@ -224,8 +224,11 @@ final class TacketModel: ObservableObject {
     @Published var libraryStatus = "Add your saved chats to the Library to search them."
     @Published var pendingNativeCaptureDraft: NativeCaptureDraft?
     @Published var libraryPage = 0
+    @Published var selectedSection: AppSection = .library
 
     let libraryPageSize = 12
+    private var frontmostObserver: NSObjectProtocol?
+    private var lastFrontmostNativeCaptureSource: NativeCaptureSource?
 
     let supportedSources = ["ChatGPT", "Claude", "Gemini", "Codex"]
     static let publishedChromeExtensionId = "cbpgfpcajomllnfoigagibafblmnbbdh"
@@ -265,6 +268,26 @@ final class TacketModel: ObservableObject {
 
     init() {
         captureDirectory = Self.readConfiguredCaptureDirectory() ?? Self.defaultCaptureDirectory()
+        rememberFrontmostNativeCaptureSource()
+        frontmostObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
+                return
+            }
+            Task { @MainActor in
+                self.rememberNativeCaptureSource(for: app)
+            }
+        }
+    }
+
+    deinit {
+        if let frontmostObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(frontmostObserver)
+        }
     }
 
     private static func defaultCaptureDirectory() -> URL {
@@ -493,10 +516,12 @@ final class TacketModel: ObservableObject {
 
     func captureFrontmostNativeApp(openPreviewWindow: Bool) {
         guard !isRunning else { return }
-        guard let source = frontmostNativeCaptureSource() else {
+        rememberFrontmostNativeCaptureSource()
+        guard let source = frontmostNativeCaptureSource() ?? lastFrontmostNativeCaptureSource else {
             status = "No supported chat app in front."
             commandOutput = "Bring ChatGPT, Claude, or Codex to the front with the chat you want to save, then choose Capture Frontmost Chat App from the Tacket menu bar item."
             if openPreviewWindow {
+                selectedSection = .library
                 showMainWindow()
             }
             return
@@ -510,6 +535,7 @@ final class TacketModel: ObservableObject {
             status = "\(source.label) app is not open."
             commandOutput = "Open the \(source.label) desktop app, open the chat you want to save, click inside the conversation, then capture the current chat from Tacket."
             if openPreviewWindow {
+                selectedSection = .library
                 showMainWindow()
             }
             return
@@ -531,12 +557,14 @@ final class TacketModel: ObservableObject {
             Open Accessibility Settings or Screen Recording Settings below, allow Tacket, quit and reopen Tacket, then try Preview Current \(source.label) Chat again.
             """
             if openPreviewWindow {
+                selectedSection = .library
                 showMainWindow()
             }
             return
         }
 
         isRunning = true
+        selectedSection = .library
         status = "Preparing \(source.label) preview..."
         commandOutput = "Tacket will scroll and read the current \(app.localizedName ?? source.label) chat locally with macOS Accessibility and on-device OCR. Review the preview before saving. Nothing is uploaded.\n\n\(permissionSummary)"
 
@@ -545,12 +573,14 @@ final class TacketModel: ObservableObject {
                 let rawText = try await readConversationText(from: app, source: source)
                 let transcript = Self.cleanNativeCaptureText(rawText)
                 pendingNativeCaptureDraft = Self.nativeCaptureDraft(source: source, transcript: transcript)
+                selectedSection = .library
                 status = "Review \(source.label) capture."
                 commandOutput = "Review the desktop capture preview. Save it if the visible conversation text looks right, or discard it and try again after repositioning the chat window.\n\n\(permissionSummary)"
                 if openPreviewWindow {
                     showMainWindow()
                 }
             } catch {
+                selectedSection = .library
                 status = "Desktop capture failed."
                 commandOutput = "\(error.localizedDescription)\n\n\(permissionSummary)\n\nIf the app is open and contains a visible chat, grant Tacket Accessibility or Screen Recording permission in System Settings, quit and reopen Tacket, then try again."
                 if openPreviewWindow {
@@ -669,6 +699,20 @@ final class TacketModel: ObservableObject {
 
     private func frontmostNativeCaptureSource() -> NativeCaptureSource? {
         guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        return nativeCaptureSource(for: app)
+    }
+
+    private func rememberFrontmostNativeCaptureSource() {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return }
+        rememberNativeCaptureSource(for: app)
+    }
+
+    private func rememberNativeCaptureSource(for app: NSRunningApplication) {
+        guard let source = nativeCaptureSource(for: app) else { return }
+        lastFrontmostNativeCaptureSource = source
+    }
+
+    private func nativeCaptureSource(for app: NSRunningApplication) -> NativeCaptureSource? {
         if app.processIdentifier == ProcessInfo.processInfo.processIdentifier {
             return nil
         }
@@ -3140,7 +3184,6 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @EnvironmentObject private var model: TacketModel
-    @State private var selectedSection: AppSection = .library
 
     var body: some View {
         VStack(spacing: 0) {
@@ -3148,15 +3191,15 @@ struct ContentView: View {
             Divider()
             HStack(alignment: .top, spacing: 0) {
                 VStack(spacing: 0) {
-                    SidebarView(selectedSection: $selectedSection)
+                    SidebarView(selectedSection: $model.selectedSection)
                     Divider()
-                    SidebarFooterView(selectedSection: $selectedSection)
+                    SidebarFooterView(selectedSection: $model.selectedSection)
                         .frame(height: 44)
                 }
                     .frame(width: 220)
                 Divider()
                 VStack(spacing: 0) {
-                    switch selectedSection {
+                    switch model.selectedSection {
                     case .library:
                         LibraryPanelView()
                     case .settings:
