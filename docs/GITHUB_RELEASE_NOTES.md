@@ -7,7 +7,7 @@
 5. Add the Chrome extension:
    https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh
 
-The Mac app stores and searches your saved chats locally. The Chrome extension saves browser chats from ChatGPT, Claude, and Gemini into the app.
+The Mac app stores and searches your saved chats locally. The Chrome extension saves browser chats from ChatGPT, Claude, and Gemini into the app. For desktop chats, Tacket saves Codex and Claude local transcripts when available, filtered to user and assistant messages; ChatGPT desktop and fallback capture use local Accessibility/OCR preview.
 
 ## Privacy
 

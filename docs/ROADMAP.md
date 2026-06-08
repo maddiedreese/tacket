@@ -2,7 +2,7 @@
 
 Tacket is focused on a private local library for AI chats, with full-conversation reuse when users need to move context.
 
-The current release supports the Chrome extension browser flow, Mac app desktop capture for current open ChatGPT, Claude, and Codex desktop app chats, local library browsing/search, and full-conversation copy/open/reveal actions. Direct local imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the working release yet.
+The current release supports the Chrome extension browser flow, Mac app desktop capture for current open ChatGPT, Claude, and Codex desktop app chats, local library browsing/search, and full-conversation copy/open/reveal actions. Codex and Claude desktop capture use local transcript/session files when available and filter the saved output to user and assistant messages. Bulk local imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the working release yet.
 
 ## v0.1.0
 
@@ -16,7 +16,7 @@ It includes:
 
 - live save validation for current ChatGPT, Claude, and Gemini pages
 - local library browsing, pagination, search, and advanced filters
-- desktop capture previews for current open ChatGPT, Claude, and Codex desktop app chats
+- desktop capture for current open ChatGPT, Claude, and Codex desktop app chats, including local transcript/session saves for Codex and Claude when available
 - optional menu bar Quick Capture
 - Developer ID signing and Apple notarization for direct-download Mac builds, with secrets prepared by `scripts/prepare-signing-secrets.sh`
 - Chrome Web Store package and listing assets for the browser extension
@@ -47,7 +47,7 @@ Planned work:
 ## Future
 
 - import saved Tacket chat folders from more places
-- direct local imports from Codex App, Claude App, and Claude Code once the flow is reliable enough to ship
+- bulk local imports from Codex App, Claude App, and Claude Code once the flow is reliable enough to ship
 - coding-agent to coding-agent transfer
 - richer local import controls, including source selection and per-session review before import
 - optional target-specific prompt helpers, without replacing full-conversation storage or transfer

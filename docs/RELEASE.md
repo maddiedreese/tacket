@@ -10,7 +10,7 @@ Tacket is direct-download and local-only.
 - Create a local live QA report with `npm run qa:live`.
 - Generate a public-safe live QA issue summary with `npm run qa:live:summary -- qa/live-capture/<report>.md`.
 - Test the published Chrome Web Store extension saving on ChatGPT, Claude, and Gemini with the packaged Mac app connector.
-- Test Mac app desktop capture on ChatGPT, Claude, and Codex desktop apps.
+- Test Mac app desktop capture on ChatGPT, Claude, and Codex desktop apps. Confirm Codex/Claude local transcript captures are filtered to user and assistant messages, use the Tacket save time, and do not include system/tool scaffolding.
 - Test optional menu bar Quick Capture for the frontmost supported desktop chat app.
 - Test Library pagination, search, advanced filters, and selected saved chat actions.
 - Test local Chrome app connection installation with the published Chrome Web Store extension ID.
@@ -21,7 +21,7 @@ Tacket is direct-download and local-only.
 - Confirm the macOS Automation prompt explains that Tacket opens Terminal and pastes the saved conversation.
 - Update `CHANGELOG.md`.
 - Review `docs/PRIVACY.md` and Chrome listing copy for consistency.
-- Confirm public copy does not present direct local imports as working until that flow is verified and release-ready.
+- Confirm public copy distinguishes current user-clicked desktop capture from future bulk local imports.
 - Confirm `npm run website:verify` passes before merging website changes for Netlify.
 - Review `docs/CHROME_WEB_STORE.md` before saving or submitting Chrome Web Store changes.
 - Prepare Chrome Web Store images using `docs/STORE_ASSETS.md`.
@@ -41,7 +41,7 @@ The repository can build unsigned local artifacts without paid accounts. Public 
 - Apple Developer ID certificate for signing
 - Apple notarization credentials
 - approved Chrome Web Store extension
-- live save validation against current ChatGPT, Claude, and Gemini pages plus desktop capture validation for ChatGPT, Claude, and Codex apps
+- live save validation against current ChatGPT, Claude, and Gemini pages plus desktop capture validation for ChatGPT, Claude, and Codex apps, including Codex/Claude local transcript role filtering
 
 ## Chrome Web Store
 

@@ -27,9 +27,11 @@
       <p>
         Tacket saves AI chat conversations only when you explicitly choose to save,
         capture, or add one to the library. Browser conversations are sent from the
-        extension to the Tacket app on your Mac. Desktop app conversations are
-        captured locally by the Mac app using macOS Accessibility and on-device OCR
-        when needed, then shown in a local preview before saving. Saved chats are
+        extension to the Tacket app on your Mac. Codex and Claude desktop app
+        conversations are saved from local transcript/session files when available,
+        filtered to user and assistant messages. ChatGPT desktop and fallback
+        capture use macOS Accessibility and on-device OCR when needed, then show
+        a local preview before saving. Saved chats are
         written to local files and added to local search only when you choose to
         index them.
       </p>
@@ -59,20 +61,22 @@
       <h2>macOS permissions</h2>
       <p>
         Native desktop app capture may ask for Accessibility or Screen Recording
-        permission. Tacket uses those permissions to scroll and read the open ChatGPT,
-        Claude, or Codex desktop app chat locally, then asks you to review the captured
-        text before saving. It does not use those permissions for background monitoring,
-        analytics, or uploading chat text.
+        permission when Tacket needs the preview fallback. Tacket uses those permissions
+        to scroll and read the open desktop app chat locally, then asks you to review
+        the captured text before saving. Codex and Claude local transcript saves do
+        not need those permissions when the local transcript is available. Tacket does
+        not use those permissions for background monitoring, analytics, or uploading
+        chat text.
       </p>
       <p>
-        If you enable the optional menu bar Quick Capture item, it uses the same
-        desktop capture preview flow. It does not continuously watch the frontmost
+        If you enable the optional menu bar Quick Capture item, it starts the same
+        user-clicked desktop capture flow. It does not continuously watch the frontmost
         app and does not save chats without your click.
       </p>
 
-      <h2>Planned local imports</h2>
+      <h2>Planned bulk imports</h2>
       <p>
-        Direct imports from Codex App, Claude App, and Claude Code are planned, but
+        Bulk imports from Codex App, Claude App, and Claude Code are planned, but
         they are not part of the current working release. Future import work will
         follow the same local-only rule: no Tacket backend, no analytics, and no
         model calls.

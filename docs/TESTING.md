@@ -101,20 +101,7 @@ For each source, confirm:
 
 ## Manual Desktop App Checks
 
-Direct local imports from Codex App, Claude App, and Claude Code are pipeline work, not a supported public release flow. Before presenting them as working, test imports from:
-
-- Codex App sessions in `~/.codex/sessions`
-- Claude App conversations in `~/Library/Application Support/Claude/Local Storage/leveldb`
-- Claude Code sessions in `~/.claude/projects`
-
-For each local agent source, confirm:
-
-- import starts only after clicking the source button in Tacket
-- the saved `.tacket` folder includes `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets
-- `manifest.json` uses `source.platform` of `codex` or `claude`
-- the transcript preserves message order and code blocks from the imported session
-- clicking import again reports already-saved sessions instead of creating duplicate `.tacket` folders
-- the saved chat can be searched, copied, or transferred after import
+Bulk local imports from Codex App, Claude App, and Claude Code are pipeline work, not a supported public release flow. Current desktop capture is user-clicked capture of the current open app/chat.
 
 Before a release, test desktop capture from:
 
@@ -128,8 +115,27 @@ For each desktop source, confirm:
 - capture does not use the clipboard as the transcript source
 - the saved `.tacket` folder includes `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets
 - `manifest.json` uses `source.platform` of `chatgpt`, `claude`, or `codex`
-- the transcript contains visible app conversation text and can be searched in the Library
+- Codex and Claude desktop captures use `source.capture` of `local-agent-session` when local transcripts are available
+- Codex and Claude local transcript captures contain only user and assistant messages, not system/tool scaffolding
+- saved Codex and Claude local transcript folders are dated with the Tacket save time, not only the original session start time
+- ChatGPT desktop and fallback desktop captures use `source.capture` of `native-app` and show a review preview before saving
+- the transcript contains the current app conversation text and can be searched in the Library
 - the saved chat can be copied or transferred after capture
+
+Before presenting bulk local imports as working, test imports from:
+
+- Codex App sessions in `~/.codex/sessions`
+- Claude App conversations in `~/Library/Application Support/Claude/Local Storage/leveldb`
+- Claude Code sessions in `~/.claude/projects`
+
+For each local agent source, confirm:
+
+- import starts only after clicking the source button in Tacket
+- the saved `.tacket` folder includes `manifest.json`, `messages.jsonl`, `transcript.md`, and transfer targets
+- `manifest.json` uses `source.platform` of `codex` or `claude`
+- the transcript preserves message order and code blocks from the imported session
+- clicking import again reports already-saved sessions instead of creating duplicate `.tacket` folders
+- the saved chat can be searched, copied, or transferred after import
 
 ## Transfer Checks
 

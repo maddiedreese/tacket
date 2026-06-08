@@ -40,7 +40,7 @@
 
         <aside class="download-box" aria-label="Download Tacket">
           <img src="./assets/icon-180.png" alt="" />
-          <p>Mac app + approved Chrome Web Store extension. Exact browser transcripts. Reviewed desktop captures. No account. No backend.</p>
+          <p>Mac app + approved Chrome Web Store extension. Exact browser transcripts. Local desktop transcripts for Codex and Claude. No account. No backend.</p>
           <a class="button primary" href="https://github.com/maddiedreese/tacket/releases">Download for Mac</a>
           <a class="button" href="https://chromewebstore.google.com/detail/tacket/cbpgfpcajomllnfoigagibafblmnbbdh">Add Chrome Extension</a>
           <a class="text-link" href="https://github.com/maddiedreese/tacket">Read the source</a>
@@ -65,11 +65,11 @@
           </li>
           <li>
             <span>02</span>
-            <p>Click the Tacket extension for an exact browser transcript, or click the matching desktop app button for a local capture preview.</p>
+            <p>Click the Tacket extension for an exact browser transcript, or click the matching desktop app button for local desktop capture.</p>
           </li>
           <li>
             <span>03</span>
-            <p>Tacket saves everything locally. Desktop capture scrolls the open app window, reads text with macOS Accessibility or on-device OCR, and shows a preview before saving.</p>
+            <p>Tacket saves everything locally. Codex and Claude desktop captures use local transcript files when available and keep only user and assistant messages. ChatGPT desktop and fallback capture use macOS Accessibility or on-device OCR with a preview before saving.</p>
           </li>
           <li>
             <span>04</span>
@@ -114,26 +114,27 @@
           </p>
         </div>
         <div>
-          <h2>Local imports planned</h2>
+          <h2>Bulk imports planned</h2>
           <p>
-            Direct imports from Codex App, Claude App, and Claude Code are in the
+            Bulk imports from Codex App, Claude App, and Claude Code are in the
             pipeline, but they are not part of the current working release.
           </p>
         </div>
         <div>
           <h2>Desktop app capture</h2>
           <p>
-            The Mac app can preview and save the current open ChatGPT, Claude,
-            and Codex desktop app chat locally with macOS Accessibility and
-            on-device OCR.
+            The Mac app saves the current open Codex and Claude desktop chat from
+            local transcript files when available, filtered to the user and assistant
+            conversation. ChatGPT desktop and fallback capture use macOS Accessibility
+            and on-device OCR.
           </p>
         </div>
         <div>
           <h2>Optional menu bar</h2>
           <p>
             Turn on Quick Capture in Settings to start desktop app captures from
-            the menu bar. It only runs when you click it, and every capture opens
-            a local preview before saving.
+            the menu bar. It only runs when you click it and never monitors apps
+            in the background.
           </p>
         </div>
         <div>

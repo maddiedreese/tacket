@@ -12,9 +12,9 @@ Tacket is local-only and local-first by design. It saves AI chat conversations a
 
 The extension saves content only after the user clicks the extension on a supported AI chat page. The popup checks the active tab and refuses to save pages outside ChatGPT, Claude, and Gemini. The saved conversation is sent to the local Tacket app, not to a backend service.
 
-The Mac app can also capture the current open ChatGPT, Claude, and Codex desktop app chat. Desktop capture scrolls the app window locally, reads text exposed through macOS Accessibility, and falls back to on-device OCR when needed. It shows the captured text in a local preview before saving. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
+The Mac app can also capture the current open ChatGPT, Claude, and Codex desktop app chat. For Codex and Claude desktop chats, Tacket first saves the local transcript/session file when available and filters the saved output to user and assistant messages. For ChatGPT desktop, or when a local transcript is not available, Tacket scrolls the app window locally, reads text exposed through macOS Accessibility, and falls back to on-device OCR when needed. The fallback path shows captured text in a local preview before saving. It does not call a model, upload screenshots, send chat text to a server, or monitor apps in the background.
 
-The optional menu bar Quick Capture feature is only a faster user-triggered way to start the same desktop capture preview. It does not watch the frontmost app continuously, capture in the background, or save without review.
+The optional menu bar Quick Capture feature is only a faster user-triggered way to start the same desktop capture flow. It does not watch the frontmost app continuously, capture in the background, or save without a user click.
 
 The recommended extension install path is the Chrome Web Store. That means Google handles extension distribution and may have normal store/install metadata. It does not change Tacket's save path: chat content is sent to the local Tacket app, not to the developer or a Tacket server.
 
@@ -36,10 +36,10 @@ When transferring to Codex or Claude Code, Tacket copies the saved conversation 
 
 ## macOS Desktop Capture Permissions
 
-When saving from the ChatGPT, Claude, or Codex desktop app, Tacket may ask for Accessibility or Screen Recording permission. Accessibility lets Tacket read text exposed by the open app window and drive local scroll-and-read capture. Screen Recording lets Tacket use on-device OCR when an app does not expose enough text through Accessibility. Captured text is shown in Tacket for review before it is written to local `.tacket` files.
+When saving from a desktop app, Tacket may ask for Accessibility or Screen Recording permission if it needs the preview fallback. Accessibility lets Tacket read text exposed by the open app window and drive local scroll-and-read capture. Screen Recording lets Tacket use on-device OCR when an app does not expose enough text through Accessibility. Captured fallback text is shown in Tacket for review before it is written to local `.tacket` files. Codex and Claude local transcript saves do not need those permissions when the local transcript is available.
 
 ## Planned Local Agent Transcript Import
 
-Direct imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the current working public release. When this path is enabled, it should read only local session data after the user clicks import, avoid background scanning, avoid model/API calls, and write normal local `.tacket` folders.
+Bulk imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the current working public release. Current Codex and Claude desktop capture is user-clicked capture of the current app/chat, not background library scanning. When bulk import is enabled, it should read only local session data after the user clicks import, avoid background scanning, avoid model/API calls, and write normal local `.tacket` folders.
 
 ChatGPT desktop app chats use the desktop capture path. Tacket does not decrypt, access, or import ChatGPT's private app cache.

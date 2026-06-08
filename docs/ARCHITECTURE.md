@@ -48,8 +48,9 @@ The Mac app owns the direct-download user workflow:
 
 - browse and search saved Tacket chat folders
 - install the local Chrome app connection
-- preview and save current open desktop chat app conversations with local macOS Accessibility/OCR
-- optionally expose the same desktop capture preview flow from the menu bar
+- save current open Codex and Claude desktop chat conversations from local transcript/session files when available, filtered to user and assistant messages
+- preview and save ChatGPT desktop and fallback desktop captures with local macOS Accessibility/OCR
+- optionally expose the same user-clicked desktop capture flow from the menu bar
 - reveal the local save folder
 - choose saved Tacket chats
 - copy full saved conversations
@@ -76,11 +77,12 @@ AI chat page
 
 Open desktop chat window
   -> user clicks desktop capture in the Mac app
-  -> Mac app scrolls and reads the current conversation locally with Accessibility/OCR
+  -> for Codex/Claude, Mac app saves the local transcript/session when available and filters it to user/assistant messages
+  -> for ChatGPT/fallback, Mac app scrolls and reads the current conversation locally with Accessibility/OCR and shows a preview
   -> Mac app writes a .tacket folder
   -> Mac app adds the saved chat to local search
 ```
 
-## Planned Local Imports
+## Planned Bulk Local Imports
 
-Direct imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the current working release. The intended architecture is still local-only: user-clicked source selection, local session reads, duplicate detection against the local library, normal `.tacket` output, and no model/API calls or Tacket backend.
+Bulk imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the current working release. The intended architecture is still local-only: user-clicked source selection, local session reads, duplicate detection against the local library, normal `.tacket` output, and no model/API calls or Tacket backend. This is separate from current desktop capture, which saves the current open app/chat after the user clicks capture.

@@ -17,9 +17,9 @@ Initial local-first release.
 - Advanced local search controls for match mode, search scope, source, and role.
 - Full-conversation transfer to clipboard, Codex, and Claude Code, with ordered chunking for long conversations.
 - Mac app for local extension setup, save-folder selection, local library search, saved chat review, conversation copy/open, and transfer.
-- Initial local import groundwork for Codex App, Claude App, and Claude Code sessions; this is not a supported 0.1.0 workflow yet.
-- Local desktop app capture previews for ChatGPT, Claude, and Codex desktop apps using macOS Accessibility with on-device OCR fallback.
-- Optional menu bar Quick Capture for starting desktop app previews from the frontmost supported chat app.
+- Codex and Claude desktop app capture from local transcript/session files when available, filtered to user and assistant messages.
+- Local desktop app capture previews for ChatGPT desktop and fallback capture using macOS Accessibility with on-device OCR.
+- Optional menu bar Quick Capture for starting desktop app capture from the frontmost supported chat app.
 - Light, dark, and system appearance modes.
 - CLI for native-host install/status/remove, sample bundle generation, and transfer.
 - Local possible-secret warnings in saved chat metadata without redacting saved conversation content.
@@ -29,4 +29,4 @@ Initial local-first release.
 
 ### Known Limitations
 
-- Direct local imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the working public release yet.
+- Bulk local imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the working public release yet.
