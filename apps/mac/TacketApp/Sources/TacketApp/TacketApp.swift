@@ -3452,7 +3452,7 @@ struct HeaderView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Tacket")
                     .font(.tacketTitle)
-                Text("Save, search, and transfer AI chats locally.")
+                Text("Save, search, and reuse AI chats locally.")
                     .font(.tacketBody)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -3475,10 +3475,12 @@ struct SidebarView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 SidebarSection(title: "Library") {
-                    SidebarNavRow(title: "All Tackets", systemImage: "square.grid.2x2", isSelected: selectedSection == .library)
-                        .onTapGesture {
-                            selectedSection = .library
-                        }
+                    Button {
+                        selectedSection = .library
+                    } label: {
+                        SidebarNavRow(title: "All Tackets", systemImage: "square.grid.2x2", isSelected: selectedSection == .library)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(16)
@@ -3495,10 +3497,12 @@ struct SidebarFooterView: View {
 
     var body: some View {
         HStack {
-            SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
-                .onTapGesture {
-                    selectedSection = .settings
-                }
+            Button {
+                selectedSection = .settings
+            } label: {
+                SidebarNavRow(title: "Settings", systemImage: "gearshape", isSelected: selectedSection == .settings)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

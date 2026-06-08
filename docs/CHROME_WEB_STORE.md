@@ -10,7 +10,7 @@ Save AI chats locally and search them later.
 
 ## Detailed Description
 
-Tacket saves ChatGPT, Claude, and Gemini conversations to your Mac so you can search them later and reuse the full conversation when you need the context again. Saved chats can be copied to your clipboard or sent to coding tools such as Codex and Claude Code.
+Tacket saves ChatGPT, Claude, and Gemini conversations to your Mac so you can search them later and reuse the full conversation when you need the context again. Saved chats can be copied to your clipboard, opened as local transcript files, or revealed in Finder.
 
 Tacket is local-first:
 
@@ -23,11 +23,11 @@ Tacket is local-first:
 - local manifest warnings for possible secrets, without redaction or upload
 - Chrome Web Store distribution does not mean saved chat text is sent to the developer or a Tacket server
 
-The extension works with the Tacket Mac app. Install the app, click **Install Local Connector** in Tacket Settings, add the Chrome extension, save a supported conversation, then browse, search, copy, or transfer it from your local library.
+The extension works with the Tacket Mac app. Install the app, click **Install Local Connector** in Tacket Settings, add the Chrome extension, save a supported conversation, then browse, search, copy, open, or reveal it from your local library.
 
 ## Single Purpose
 
-Tacket saves user-selected AI chat conversations from supported providers and sends the saved conversation to the local Tacket app for local storage, local search, and user-chosen transfer.
+Tacket saves user-selected AI chat conversations from supported providers and sends the saved conversation to the local Tacket app for local storage, local search, and user-chosen reuse.
 
 ## Permission Justification
 

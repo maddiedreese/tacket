@@ -1,8 +1,8 @@
 # Roadmap
 
-Tacket is focused on a private local library for AI chats, with full-conversation transfer to coding tools when users need to move context.
+Tacket is focused on a private local library for AI chats, with full-conversation reuse when users need to move context.
 
-The current release supports the Chrome extension browser flow, Mac app desktop capture for current open ChatGPT, Claude, and Codex desktop app chats, local library browsing/search, and full-conversation transfer. Direct local imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the working release yet.
+The current release supports the Chrome extension browser flow, Mac app desktop capture for current open ChatGPT, Claude, and Codex desktop app chats, local library browsing/search, and full-conversation copy/open/reveal actions. Direct local imports from Codex App, Claude App, and Claude Code are in the pipeline, but they are not part of the working release yet.
 
 ## v0.1.0
 
@@ -40,7 +40,7 @@ Planned work:
 
 - Windows app support for saving, browsing, searching, and reusing local Tacket libraries
 - Windows native messaging support for the Chrome extension
-- Windows-friendly storage locations, open/reveal actions, and transfer flows
+- Windows-friendly storage locations, open/reveal actions, and reuse flows
 - release packaging and signing research for a direct-download Windows build
 - shared cross-platform library behavior so saved `.tacket` folders stay portable
 
