@@ -3474,12 +3474,6 @@ struct SidebarView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                SidebarSection(title: "Flow") {
-                    WorkflowStep(number: "1", title: "Save", detail: "Save from browser or app.")
-                    WorkflowStep(number: "2", title: "Find", detail: "Browse or narrow saved tackets.")
-                    WorkflowStep(number: "3", title: "Transfer", detail: "Copy or send the saved chat.")
-                }
-
                 SidebarSection(title: "Library") {
                     SidebarNavRow(title: "All Tackets", systemImage: "square.grid.2x2", isSelected: selectedSection == .library)
                         .onTapGesture {
@@ -3564,56 +3558,6 @@ struct MainPanelView: View {
 
                         if let info = model.selectedBundleInfo {
                             BundleSummary(info: info)
-                        }
-                    }
-                }
-
-                SectionCard(
-                    eyebrow: "Transfer",
-                    title: "Send a saved conversation",
-                    detail: "Choose where to send the full conversation. Tacket keeps message order and code blocks intact."
-                ) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Picker("Target", selection: $model.selectedTarget) {
-                            ForEach(TacketModel.TransferTarget.allCases) { target in
-                                Text(target.label).tag(target)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Text("Chunk size")
-                                .font(.tacketBody)
-                            TextField("24000", text: $model.maxChunkCharacters)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(width: 120)
-                            Text("Used only when a conversation is too long for one paste.")
-                                .font(.tacketFootnote)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 0)
-                        }
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 10) {
-                                Button("Transfer") {
-                                    model.transferSelectedBundle()
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(model.isRunning)
-                                Button("Copy Conversation") {
-                                    model.copySelectedTranscript()
-                                }
-                            }
-                            HStack(spacing: 10) {
-                                Button("Open Conversation File") {
-                                    model.openSelectedTranscript()
-                                }
-                                Button("Reveal in Finder") {
-                                    model.revealSelectedBundle()
-                                }
-                            }
                         }
                     }
                 }
@@ -4245,14 +4189,6 @@ struct LibraryDetailCard: View {
                 PathField(label: "Saved chat folder", value: item.path)
 
                 HStack(spacing: 8) {
-                    Button {
-                        model.transferLibraryItem(item)
-                    } label: {
-                        Label("Transfer", systemImage: "arrow.right.doc.on.clipboard")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(model.isRunning)
-
                     Button {
                         model.copyLibraryTranscript(item)
                     } label: {
