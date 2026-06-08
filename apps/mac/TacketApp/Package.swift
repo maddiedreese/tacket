@@ -17,6 +17,10 @@ let package = Package(
                 .linkedLibrary("sqlite3")
             ]
         ),
-        .executableTarget(name: "TacketNativeHost")
+        .executableTarget(name: "TacketNativeHost"),
+        .testTarget(
+            name: "TacketAppTests",
+            dependencies: ["TacketApp"]
+        )
     ]
 )

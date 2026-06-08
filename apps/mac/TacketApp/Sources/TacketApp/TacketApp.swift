@@ -1910,7 +1910,7 @@ final class TacketModel: ObservableObject {
         try await Task.sleep(nanoseconds: 220_000_000)
     }
 
-    private nonisolated static func mergeNativeCaptureSnapshots(_ snapshots: [String]) -> String {
+    nonisolated static func mergeNativeCaptureSnapshots(_ snapshots: [String]) -> String {
         var lines: [String] = []
         for snapshot in snapshots {
             let snapshotLines = nativeCaptureLines(snapshot)
@@ -1922,10 +1922,30 @@ final class TacketModel: ObservableObject {
             if nativeCaptureContainsSubsequence(snapshotLines, in: lines) {
                 continue
             }
+            if let overlap = nativeCaptureBestOverlap(existing: lines, next: snapshotLines) {
+                let prefix = Array(snapshotLines.prefix(overlap.nextStart))
+                let suffixStart = overlap.nextStart + overlap.count
+                let suffix = Array(snapshotLines.dropFirst(suffixStart))
+                if !prefix.isEmpty,
+                   overlap.existingStart == 0,
+                   !nativeCaptureContainsSubsequence(prefix, in: lines) {
+                    lines.insert(contentsOf: prefix, at: 0)
+                }
+                if !suffix.isEmpty,
+                   !nativeCaptureContainsSubsequence(suffix, in: lines) {
+                    lines.append(contentsOf: suffix)
+                }
+                continue
+            }
+
             let overlap = nativeCaptureOverlap(previous: lines, next: snapshotLines)
-            lines.append(contentsOf: snapshotLines.dropFirst(overlap))
+            let newLines = Array(snapshotLines.dropFirst(overlap))
+            if !newLines.isEmpty,
+               !nativeCaptureContainsSubsequence(newLines, in: lines) {
+                lines.append(contentsOf: newLines)
+            }
         }
-        return lines.joined(separator: "\n")
+        return nativeCaptureCollapseRepeatedBlocks(lines).joined(separator: "\n")
     }
 
     private nonisolated static func nativeCaptureLines(_ value: String) -> [String] {
@@ -1950,10 +1970,76 @@ final class TacketModel: ObservableObject {
         return 0
     }
 
+    private nonisolated static func nativeCaptureBestOverlap(existing: [String], next: [String]) -> (existingStart: Int, nextStart: Int, count: Int)? {
+        let existingNormalized = nativeCaptureNormalizedLines(existing)
+        let nextNormalized = nativeCaptureNormalizedLines(next)
+        var best: (existingStart: Int, nextStart: Int, count: Int)?
+
+        for existingStart in existingNormalized.indices {
+            for nextStart in nextNormalized.indices where existingNormalized[existingStart] == nextNormalized[nextStart] {
+                var count = 0
+                while existingStart + count < existingNormalized.count,
+                      nextStart + count < nextNormalized.count,
+                      existingNormalized[existingStart + count] == nextNormalized[nextStart + count] {
+                    count += 1
+                }
+                if nativeCaptureOverlapIsUseful(lines: next, start: nextStart, count: count),
+                   best == nil || count > best!.count {
+                    best = (existingStart, nextStart, count)
+                }
+            }
+        }
+
+        return best
+    }
+
+    private nonisolated static func nativeCaptureOverlapIsUseful(lines: [String], start: Int, count: Int) -> Bool {
+        guard count > 0, start >= 0, start + count <= lines.count else { return false }
+        if count >= 2 {
+            return true
+        }
+        return lines[start].count >= 32
+    }
+
+    private nonisolated static func nativeCaptureCollapseRepeatedBlocks(_ input: [String]) -> [String] {
+        var lines = input
+        guard lines.count >= 4 else { return lines }
+
+        var index = 0
+        while index < lines.count {
+            var collapsedAtIndex = false
+            let remaining = lines.count - index
+            let maxBlockSize = min(remaining / 2, 180)
+            if maxBlockSize > 0 {
+                for blockSize in stride(from: maxBlockSize, through: 2, by: -1) {
+                    let first = nativeCaptureNormalizedLines(Array(lines[index..<(index + blockSize)]))
+                    let secondStart = index + blockSize
+                    let secondEnd = secondStart + blockSize
+                    guard secondEnd <= lines.count else { continue }
+                    let second = nativeCaptureNormalizedLines(Array(lines[secondStart..<secondEnd]))
+                    if first == second {
+                        lines.removeSubrange(secondStart..<secondEnd)
+                        collapsedAtIndex = true
+                        break
+                    }
+                }
+            }
+            if !collapsedAtIndex {
+                index += 1
+            }
+        }
+
+        return lines
+    }
+
+    private nonisolated static func nativeCaptureNormalizedLines(_ lines: [String]) -> [String] {
+        lines.map { $0.lowercased() }
+    }
+
     private nonisolated static func nativeCaptureContainsSubsequence(_ needle: [String], in haystack: [String]) -> Bool {
         guard !needle.isEmpty, haystack.count >= needle.count else { return false }
-        let normalizedNeedle = needle.map { $0.lowercased() }
-        let normalizedHaystack = haystack.map { $0.lowercased() }
+        let normalizedNeedle = nativeCaptureNormalizedLines(needle)
+        let normalizedHaystack = nativeCaptureNormalizedLines(haystack)
         for start in 0...(normalizedHaystack.count - normalizedNeedle.count) {
             let end = start + normalizedNeedle.count
             if Array(normalizedHaystack[start..<end]) == normalizedNeedle {
