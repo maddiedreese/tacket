@@ -151,6 +151,15 @@ for (const phrase of ["publishedChromeExtensionId", "chromeWebStoreURL", "instal
 for (const phrase of ["LibraryPanelView", "library.sqlite", "messages_fts", "indexCaptureFolderForLibrary", "NativeCaptureSource", "LocalAgentSource", "importLocalAgentSessions", "Screen Recording Settings", "on-device OCR"]) {
   if (!macApp.includes(phrase)) throw new Error(`Mac app library UI missing: ${phrase}`);
 }
+for (const phrase of [
+  "captureFrontmostNativeApp(openPreviewWindow: Bool)",
+  "captureNativeApp(_ source: NativeCaptureSource, openPreviewWindow: Bool = false)",
+  "showMainWindow()",
+  "If Tacket is missing from the list, add /Applications/Tacket.app",
+  "CGWindowListCreateImage"
+]) {
+  if (!macApp.includes(phrase)) throw new Error(`Mac app desktop capture handling missing: ${phrase}`);
+}
 
 const entitlements = await readFile("apps/mac/TacketApp/Tacket.entitlements", "utf8");
 if (!entitlements.includes("com.apple.security.automation.apple-events")) {
@@ -160,6 +169,11 @@ if (!entitlements.includes("com.apple.security.automation.apple-events")) {
 const signScript = await readFile("scripts/sign-mac-app.sh", "utf8");
 for (const phrase of ["--options runtime", "--entitlements", "Tacket.entitlements"]) {
   if (!signScript.includes(phrase)) throw new Error(`Signing script missing: ${phrase}`);
+}
+
+const packageMacDev = await readFile("scripts/package-mac-dev.sh", "utf8");
+for (const phrase of ["NSAccessibilityUsageDescription", "NSScreenCaptureUsageDescription", "TACKET_CODESIGN_IDENTITY", "DEVELOPER_ID_APPLICATION", "--options runtime"]) {
+  if (!packageMacDev.includes(phrase)) throw new Error(`Mac package script missing: ${phrase}`);
 }
 
 const signingSecrets = await readFile("scripts/prepare-signing-secrets.sh", "utf8");

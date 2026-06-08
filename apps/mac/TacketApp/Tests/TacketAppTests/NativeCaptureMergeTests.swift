@@ -153,6 +153,38 @@ final class NativeCaptureMergeTests: XCTestCase {
         )
     }
 
+    func testDesktopCaptureMergeDropsRepeatedLongSidebarLinesWithoutDroppingShortChatRepeats() {
+        let repeated = """
+        Brainstorm context transfer app
+        C New chat
+        User
+        yes
+        Assistant
+        I can see Tacket and Codex running. Since the menu-bar extra is separate from the main window, I'm inspecting
+        Install Linux on projector
+        Tacket's exposed menus to find the capture command path macOS can trigger reliably.
+        User
+        yes
+        Assistant
+        The capture command fired.
+        Brainstorm context transfer app
+        I can see Tacket and Codex running. Since the menu-bar extra is separate from the main window, I'm inspecting
+        Install Linux on projector
+        Tacket's exposed menus to find the capture command path macOS can trigger reliably.
+        User
+        yes
+        Assistant
+        Saved capture.
+        """
+
+        let merged = TacketModel.mergeNativeCaptureSnapshots([repeated])
+
+        XCTAssertEqual(occurrences(of: "Brainstorm context transfer app", in: merged), 1)
+        XCTAssertEqual(occurrences(of: "I can see Tacket and Codex running.", in: merged), 1)
+        XCTAssertEqual(occurrences(of: "Install Linux on projector", in: merged), 1)
+        XCTAssertEqual(occurrences(of: "\nyes", in: merged), 3)
+    }
+
     private func occurrences(of needle: String, in haystack: String) -> Int {
         haystack.components(separatedBy: needle).count - 1
     }

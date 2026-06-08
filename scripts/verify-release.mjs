@@ -65,6 +65,18 @@ async function verifyInfoPlist(plistPath) {
   if (!text.includes("open Terminal and paste the saved conversation")) {
     throw new Error("Info.plist Apple Events purpose string is missing or too vague.");
   }
+  if (!text.includes("<key>NSAccessibilityUsageDescription</key>")) {
+    throw new Error("Info.plist missing NSAccessibilityUsageDescription.");
+  }
+  if (!text.includes("scroll and read the desktop app chat")) {
+    throw new Error("Info.plist Accessibility purpose string is missing or too vague.");
+  }
+  if (!text.includes("<key>NSScreenCaptureUsageDescription</key>")) {
+    throw new Error("Info.plist missing NSScreenCaptureUsageDescription.");
+  }
+  if (!text.includes("on-device OCR")) {
+    throw new Error("Info.plist Screen Capture purpose string is missing or too vague.");
+  }
 }
 
 async function verifyMacSigningInputs() {

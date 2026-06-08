@@ -52,6 +52,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <string>NSApplication</string>
   <key>NSAppleEventsUsageDescription</key>
   <string>Tacket uses macOS automation to open Terminal and paste the saved conversation into the coding agent you choose.</string>
+  <key>NSAccessibilityUsageDescription</key>
+  <string>Tacket uses Accessibility to scroll and read the desktop app chat you choose. Captured text is saved locally on your Mac.</string>
   <key>NSScreenCaptureUsageDescription</key>
   <string>Tacket uses local screen capture only when needed to read a desktop app chat with on-device OCR. Captured text is saved locally on your Mac.</string>
 </dict>
@@ -72,6 +74,23 @@ cp "$ROOT_DIR/apps/chrome-extension/src/adapters/capture.js" "$EXTENSION_RESOURC
 cp "$ROOT_DIR/apps/chrome-extension/icons/tacket-"*.png "$EXTENSION_RESOURCES_DIR/icons/"
 cp "$ROOT_DIR/README.md" "$RESOURCES_DIR/"
 
-codesign --force --deep --sign - "$APP_DIR" >/dev/null
+SIGN_IDENTITY="${TACKET_CODESIGN_IDENTITY:-${DEVELOPER_ID_APPLICATION:-}}"
+ENTITLEMENTS_PATH="$ROOT_DIR/apps/mac/TacketApp/Tacket.entitlements"
+
+if [[ -n "$SIGN_IDENTITY" ]]; then
+  codesign \
+    --force \
+    --options runtime \
+    --sign "$SIGN_IDENTITY" \
+    "$MACOS_DIR/TacketNativeHost" >/dev/null
+  codesign \
+    --force \
+    --options runtime \
+    --entitlements "$ENTITLEMENTS_PATH" \
+    --sign "$SIGN_IDENTITY" \
+    "$APP_DIR" >/dev/null
+else
+  codesign --force --deep --sign - "$APP_DIR" >/dev/null
+fi
 
 echo "$APP_DIR"

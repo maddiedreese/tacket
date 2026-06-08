@@ -515,6 +515,10 @@ final class TacketModel: ObservableObject {
     }
 
     func captureFrontmostNativeApp(openPreviewWindow: Bool) {
+        if openPreviewWindow {
+            selectedSection = .library
+            showMainWindow()
+        }
         guard !isRunning else { return }
         rememberFrontmostNativeCaptureSource()
         guard let source = frontmostNativeCaptureSource() ?? lastFrontmostNativeCaptureSource else {
@@ -530,6 +534,10 @@ final class TacketModel: ObservableObject {
     }
 
     func captureNativeApp(_ source: NativeCaptureSource, openPreviewWindow: Bool = false) {
+        if openPreviewWindow {
+            selectedSection = .library
+            showMainWindow()
+        }
         guard !isRunning else { return }
         guard let app = runningNativeCaptureApp(for: source) else {
             status = "\(source.label) app is not open."
@@ -541,38 +549,30 @@ final class TacketModel: ObservableObject {
             return
         }
 
-        let accessibilityReady = Self.accessibilityIsTrusted(prompt: true)
-        let screenCaptureReady = Self.screenCaptureIsTrusted(prompt: true)
-        let permissionSummary = Self.nativeCapturePermissionSummary(
-            accessibilityReady: accessibilityReady,
-            screenCaptureReady: screenCaptureReady
-        )
-        guard accessibilityReady || screenCaptureReady else {
-            status = "Permission needed."
-            commandOutput = """
-            Tacket needs Accessibility or Screen Recording permission before it can capture the current \(source.label) desktop app chat.
-
-            \(permissionSummary)
-
-            Open Accessibility Settings or Screen Recording Settings below, allow Tacket, quit and reopen Tacket, then try Preview Current \(source.label) Chat again.
-            """
-            if openPreviewWindow {
-                selectedSection = .library
-                showMainWindow()
-            }
-            return
-        }
+        let initialAccessibilityReady = Self.accessibilityIsTrusted(prompt: true)
+        let initialScreenCaptureReady = Self.screenCaptureIsTrusted(prompt: true)
 
         isRunning = true
         selectedSection = .library
         status = "Preparing \(source.label) preview..."
-        commandOutput = "Tacket will scroll and read the current \(app.localizedName ?? source.label) chat locally with macOS Accessibility and on-device OCR. Review the preview before saving. Nothing is uploaded.\n\n\(permissionSummary)"
+        commandOutput = """
+        Tacket will scroll and read the current \(app.localizedName ?? source.label) chat locally with macOS Accessibility and on-device OCR. Review the preview before saving. Nothing is uploaded.
+
+        \(Self.nativeCapturePermissionSummary(
+            accessibilityReady: initialAccessibilityReady,
+            screenCaptureReady: initialScreenCaptureReady
+        ))
+        """
 
         Task {
             do {
                 let rawText = try await readConversationText(from: app, source: source)
                 let transcript = Self.cleanNativeCaptureText(rawText)
                 pendingNativeCaptureDraft = Self.nativeCaptureDraft(source: source, transcript: transcript)
+                let permissionSummary = Self.nativeCapturePermissionSummary(
+                    accessibilityReady: Self.accessibilityIsTrusted(prompt: false),
+                    screenCaptureReady: Self.screenCaptureIsTrusted(prompt: false)
+                )
                 selectedSection = .library
                 status = "Review \(source.label) capture."
                 commandOutput = "Review the desktop capture preview. Save it if the visible conversation text looks right, or discard it and try again after repositioning the chat window.\n\n\(permissionSummary)"
@@ -580,9 +580,24 @@ final class TacketModel: ObservableObject {
                     showMainWindow()
                 }
             } catch {
+                let permissionSummary = Self.nativeCapturePermissionSummary(
+                    accessibilityReady: Self.accessibilityIsTrusted(prompt: false),
+                    screenCaptureReady: Self.screenCaptureIsTrusted(prompt: false)
+                )
                 selectedSection = .library
-                status = "Desktop capture failed."
-                commandOutput = "\(error.localizedDescription)\n\n\(permissionSummary)\n\nIf the app is open and contains a visible chat, grant Tacket Accessibility or Screen Recording permission in System Settings, quit and reopen Tacket, then try again."
+                if Self.nativeCaptureErrorNeedsPermission(error) {
+                    status = "Permission needed."
+                    commandOutput = """
+                    \(error.localizedDescription)
+
+                    \(permissionSummary)
+
+                    Open Accessibility Settings or Screen Recording Settings below, allow Tacket, then quit and reopen Tacket. If Tacket is missing from the list, add /Applications/Tacket.app. If Tacket already appears enabled, turn it off and on again so macOS refreshes permission for this copy of the app.
+                    """
+                } else {
+                    status = "Desktop capture failed."
+                    commandOutput = "\(error.localizedDescription)\n\n\(permissionSummary)\n\nIf the app is open and contains a visible chat, grant Tacket Accessibility or Screen Recording permission in System Settings, then quit and reopen Tacket. If Tacket is missing from the list, add /Applications/Tacket.app. If Tacket already appears enabled, turn it off and on again so macOS refreshes permission for this copy of the app."
+                }
                 if openPreviewWindow {
                     showMainWindow()
                 }
@@ -734,10 +749,15 @@ final class TacketModel: ObservableObject {
         var snapshots: [String] = []
         var lastMergedSnapshot = ""
         var stableMergeCount = 0
+        var firstReadError: Error?
         try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: 9, repeats: 8)
         for _ in 0..<10 {
-            if let text = try? await Self.nativeWindowText(for: app.processIdentifier),
-               Self.nativeCaptureTextIsUsable(text) {
+            do {
+                let text = try await Self.nativeWindowText(for: app.processIdentifier, source: source)
+                guard Self.nativeCaptureTextIsUsable(text) else {
+                    try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: -7, repeats: 2)
+                    continue
+                }
                 snapshots.append(text)
                 let merged = Self.mergeNativeCaptureSnapshots(snapshots)
                 if merged == lastMergedSnapshot {
@@ -749,6 +769,10 @@ final class TacketModel: ObservableObject {
                 if stableMergeCount >= 2, Self.nativeCaptureTextIsUsable(merged) {
                     break
                 }
+            } catch {
+                if firstReadError == nil {
+                    firstReadError = error
+                }
             }
             try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: -7, repeats: 2)
         }
@@ -756,6 +780,9 @@ final class TacketModel: ObservableObject {
         let merged = Self.mergeNativeCaptureSnapshots(snapshots)
         if Self.nativeCaptureTextIsUsable(merged) {
             return merged
+        }
+        if let firstReadError, Self.nativeCaptureErrorNeedsPermission(firstReadError) {
+            throw firstReadError
         }
 
         throw TacketAppError.nativeCapture("Tacket could not find enough readable chat text in the \(source.label) window. Open the chat, wait for messages to finish loading, then try again.")
@@ -1900,7 +1927,9 @@ final class TacketModel: ObservableObject {
 
     private nonisolated static func cleanNativeCaptureText(_ value: String) -> String {
         let cleaned = basicCleanNativeCaptureText(value)
-        let collapsed = nativeCaptureCollapseRepeatedBlocks(nativeCaptureLines(fromCleanedText: cleaned))
+        let collapsed = nativeCaptureDropDuplicateLongLines(
+            nativeCaptureCollapseRepeatedBlocks(nativeCaptureLines(fromCleanedText: cleaned))
+        )
         guard !collapsed.isEmpty else { return cleaned }
         return collapsed.joined(separator: "\n")
     }
@@ -1942,14 +1971,15 @@ final class TacketModel: ObservableObject {
         )
     }
 
-    private nonisolated static func nativeWindowText(for processIdentifier: pid_t) async throws -> String {
+    private nonisolated static func nativeWindowText(
+        for processIdentifier: pid_t,
+        source: NativeCaptureSource
+    ) async throws -> String {
         if accessibilityIsTrusted(prompt: false),
            let text = try? accessibilityText(for: processIdentifier),
-           nativeCaptureTextIsUsable(text) {
+           nativeCaptureTextIsUsable(text),
+           !nativeCaptureAccessibilityTextLooksLikeSidebar(text, source: source) {
             return cleanNativeCaptureText(text)
-        }
-        guard screenCaptureIsTrusted(prompt: false) else {
-            throw TacketAppError.nativeCapture("The app window did not expose enough Accessibility text, and Screen Recording is not granted for local OCR.")
         }
         let ocrText = try await ocrText(for: processIdentifier)
         return cleanNativeCaptureText(ocrText)
@@ -2008,7 +2038,7 @@ final class TacketModel: ObservableObject {
                 lines.append(contentsOf: newLines)
             }
         }
-        return nativeCaptureCollapseRepeatedBlocks(lines).joined(separator: "\n")
+        return nativeCaptureDropDuplicateLongLines(nativeCaptureCollapseRepeatedBlocks(lines)).joined(separator: "\n")
     }
 
     private nonisolated static func nativeCaptureLines(_ value: String) -> [String] {
@@ -2099,6 +2129,35 @@ final class TacketModel: ObservableObject {
         return lines
     }
 
+    private nonisolated static func nativeCaptureDropDuplicateLongLines(_ input: [String]) -> [String] {
+        guard input.count >= 20 else { return input }
+        var seen = Set<String>()
+        var lines: [String] = []
+        for line in input {
+            let normalized = nativeCaptureNormalizedLine(line)
+            if normalized.count >= 24 {
+                guard !seen.contains(normalized) else { continue }
+                seen.insert(normalized)
+            }
+            lines.append(line)
+        }
+        return lines
+    }
+
+    private nonisolated static func nativeCaptureAccessibilityTextLooksLikeSidebar(
+        _ text: String,
+        source: NativeCaptureSource
+    ) -> Bool {
+        guard source == .codex else { return false }
+        let lines = nativeCaptureLines(text)
+        guard lines.count >= 30 else { return false }
+        let firstLines = lines.prefix(16).map { nativeCaptureNormalizedLine($0) }
+        let joined = firstLines.joined(separator: " ")
+        return joined.contains("plugins")
+            && joined.contains("automations")
+            && joined.contains("new project")
+    }
+
     private nonisolated static func nativeCaptureNormalizedLines(_ lines: [String]) -> [String] {
         lines.map { nativeCaptureNormalizedLine($0) }
     }
@@ -2164,13 +2223,24 @@ final class TacketModel: ObservableObject {
         """
     }
 
+    private nonisolated static func nativeCaptureErrorNeedsPermission(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        return message.contains("permission")
+            || message.contains("screen recording")
+            || message.contains("accessibility")
+            || message.contains("local ocr")
+            || message.contains("could not capture the app window")
+    }
+
     private nonisolated static func accessibilityText(for processIdentifier: pid_t) throws -> String {
         let appElement = AXUIElementCreateApplication(processIdentifier)
+        AXUIElementSetMessagingTimeout(appElement, 0.25)
         var roots: [AXUIElement] = []
         if let focusedWindow = axElementAttribute(appElement, kAXFocusedWindowAttribute) {
             roots.append(focusedWindow)
+        } else {
+            roots.append(contentsOf: axElementArrayAttribute(appElement, kAXWindowsAttribute))
         }
-        roots.append(contentsOf: axElementArrayAttribute(appElement, kAXWindowsAttribute))
         if roots.isEmpty {
             roots.append(appElement)
         }
@@ -2178,6 +2248,7 @@ final class TacketModel: ObservableObject {
         var lines: [String] = []
         var visited = 0
         for root in roots {
+            AXUIElementSetMessagingTimeout(root, 0.25)
             collectAccessibilityText(from: root, depth: 0, visited: &visited, lines: &lines)
         }
 
@@ -2194,7 +2265,7 @@ final class TacketModel: ObservableObject {
         visited: inout Int,
         lines: inout [String]
     ) {
-        guard depth <= 28, visited < 5000 else { return }
+        guard depth <= 24, visited < 1500 else { return }
         visited += 1
 
         let role = axStringAttribute(element, kAXRoleAttribute)
@@ -2375,6 +2446,16 @@ final class TacketModel: ObservableObject {
               let windowNumber = window[kCGWindowNumber as String] as? CGWindowID else {
             return nil
         }
+
+        if let image = CGWindowListCreateImage(
+            .null,
+            [.optionIncludingWindow],
+            windowNumber,
+            [.boundsIgnoreFraming, .bestResolution]
+        ) {
+            return image
+        }
+
         let imageURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("tacket-native-capture-\(processIdentifier)-\(UUID().uuidString).png")
         defer { try? FileManager.default.removeItem(at: imageURL) }
@@ -3374,7 +3455,7 @@ struct MainPanelView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                StatusBanner(status: model.status)
+                StatusBanner(status: model.status, detail: model.commandOutput)
 
                 SectionCard(
                     eyebrow: "Saved chats",
@@ -3485,7 +3566,7 @@ struct LibraryPanelView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    StatusBanner(status: model.status)
+                    StatusBanner(status: model.status, detail: model.commandOutput)
 
                     SectionCard(
                         eyebrow: "Save",
@@ -4149,7 +4230,7 @@ struct SettingsPanelView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                StatusBanner(status: model.status)
+                StatusBanner(status: model.status, detail: model.commandOutput)
 
                 SectionCard(
                     eyebrow: "Appearance",
@@ -4422,7 +4503,9 @@ struct BundleSummary: View {
 }
 
 struct StatusBanner: View {
+    @EnvironmentObject private var model: TacketModel
     let status: String
+    let detail: String
 
     private var color: Color {
         let lower = status.lowercased()
@@ -4436,15 +4519,37 @@ struct StatusBanner: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(color)
-                .frame(width: 8, height: 8)
-            Text(status)
-                .font(.tacketBody)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 8, height: 8)
+                Text(status)
+                    .font(.tacketBody)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+
+            if !detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(detail)
+                    .font(.tacketFootnote)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if status.lowercased().contains("permission") || detail.lowercased().contains("permission") {
+                    HStack(spacing: 8) {
+                        Button("Accessibility Settings") {
+                            model.openAccessibilitySettings()
+                        }
+                        Button("Screen Recording Settings") {
+                            model.openScreenRecordingSettings()
+                        }
+                    }
+                    .controlSize(.small)
+                }
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
