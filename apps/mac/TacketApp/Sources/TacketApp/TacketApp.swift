@@ -688,11 +688,23 @@ final class TacketModel: ObservableObject {
         try await Task.sleep(nanoseconds: 450_000_000)
 
         var snapshots: [String] = []
+        var lastMergedSnapshot = ""
+        var stableMergeCount = 0
         try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: 9, repeats: 8)
         for _ in 0..<10 {
             if let text = try? await Self.nativeWindowText(for: app.processIdentifier),
                Self.nativeCaptureTextIsUsable(text) {
                 snapshots.append(text)
+                let merged = Self.mergeNativeCaptureSnapshots(snapshots)
+                if merged == lastMergedSnapshot {
+                    stableMergeCount += 1
+                } else {
+                    stableMergeCount = 0
+                    lastMergedSnapshot = merged
+                }
+                if stableMergeCount >= 2, Self.nativeCaptureTextIsUsable(merged) {
+                    break
+                }
             }
             try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: -7, repeats: 2)
         }
@@ -2210,7 +2222,8 @@ final class TacketModel: ObservableObject {
 
     private nonisolated static func nativeCaptureLineIsNoise(_ line: String) -> Bool {
         let normalizedLine = nativeCaptureNormalizedLine(line)
-        if normalizedLine.count <= 1, line.contains("<") || line.contains("→") || line.contains("←") {
+        if normalizedLine.count <= 1,
+           line.contains("<") || line.contains("->") || line.contains("→") || line.contains("←") {
             return true
         }
         let lowercased = line.lowercased()

@@ -113,6 +113,46 @@ final class NativeCaptureMergeTests: XCTestCase {
         XCTAssertFalse(merged.contains("Full access"))
     }
 
+    func testDesktopCaptureMergeCollapsesRepeatedCodexWindowTextWithTruncatedTitleVariation() {
+        let repeated = """
+        +-> 0
+        Answer greeting
+        Hey Codex, how's it going?
+        Outputs
+        No artifacts yet
+        Hey Maddie! I'm here and warmed up, somewhere between "ready to debug a gnarly stack trace" and "happy to
+        Sources
+        just hang out for a minute." How's your day going?
+        No sources yet
+        Ask for follow-up changes
+        + O Full access v
+        5.5 Medium v & 1)
+        Answer greeting...
+        Hey Codex, how's it going?
+        Outputs
+        No artifacts yet
+        Hey Maddie! I'm here and warmed up, somewhere between "ready to debug a gnarly stack trace" and "happy to
+        Sources
+        just hang out for a minute." How's your day going?
+        No sources yet
+        Ask for follow-up changes
+        + O Full access v
+        5.5 Medium v ?
+        """
+
+        let merged = TacketModel.mergeNativeCaptureSnapshots([repeated])
+
+        XCTAssertEqual(
+            merged,
+            """
+            Answer greeting
+            Hey Codex, how's it going?
+            Hey Maddie! I'm here and warmed up, somewhere between "ready to debug a gnarly stack trace" and "happy to
+            just hang out for a minute." How's your day going?
+            """
+        )
+    }
+
     private func occurrences(of needle: String, in haystack: String) -> Int {
         haystack.components(separatedBy: needle).count - 1
     }
