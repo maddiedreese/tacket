@@ -554,9 +554,7 @@ final class TacketModel: ObservableObject {
 
         isRunning = true
         selectedSection = .library
-        status = Self.nativeCaptureCanUseLocalSession(source)
-            ? "Saving \(source.label) transcript..."
-            : "Preparing \(source.label) preview..."
+        status = "Preparing \(source.label) preview..."
         commandOutput = Self.nativeCaptureStartMessage(
             source: source,
             appName: app.localizedName ?? source.label,
@@ -577,7 +575,7 @@ final class TacketModel: ObservableObject {
                     loadSelectedBundleInfo()
                     libraryStatus = "Saved current \(source.label) transcript."
                     status = "Saved \(source.label) transcript."
-                    commandOutput = "Saved the current \(source.label) transcript from local session files:\n\(bundleURL.path)"
+                    commandOutput = "Saved the current \(source.label) transcript from local session files without app sidebar text:\n\(bundleURL.path)"
                     if openPreviewWindow {
                         showMainWindow()
                     }
@@ -632,9 +630,9 @@ final class TacketModel: ObservableObject {
         accessibilityReady: Bool,
         screenCaptureReady: Bool
     ) -> String {
-        if nativeCaptureCanUseLocalSession(source) {
+        if source == .codex || source == .claude {
             return """
-            Tacket is reading the current \(source.label) transcript from local session files on this Mac. If a current local transcript is not available, Tacket will fall back to desktop capture with macOS Accessibility and on-device OCR. Nothing is uploaded.
+            Tacket will first try to save the full \(source.label) conversation from local session files on this Mac, filtered to user and assistant messages. If a current local transcript is not available, Tacket will fall back to desktop capture with macOS Accessibility and on-device OCR. Nothing is uploaded.
 
             \(nativeCapturePermissionSummary(
                 accessibilityReady: accessibilityReady,
@@ -651,10 +649,6 @@ final class TacketModel: ObservableObject {
             screenCaptureReady: screenCaptureReady
         ))
         """
-    }
-
-    private nonisolated static func nativeCaptureCanUseLocalSession(_ source: NativeCaptureSource) -> Bool {
-        source == .codex || source == .claude
     }
 
     func saveNativeCaptureDraft() {
@@ -800,8 +794,8 @@ final class TacketModel: ObservableObject {
         var lastMergedSnapshot = ""
         var stableMergeCount = 0
         var firstReadError: Error?
-        try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: 9, repeats: 8)
-        for _ in 0..<10 {
+        try await Self.scrollNativeApp(processIdentifier: app.processIdentifier, deltaY: 9, repeats: 16)
+        for _ in 0..<24 {
             do {
                 let text = try await Self.nativeWindowText(for: app.processIdentifier, source: source)
                 guard Self.nativeCaptureTextIsUsable(text) else {
@@ -1452,6 +1446,7 @@ final class TacketModel: ObservableObject {
             }
             let rawRole = payload["role"] as? String ?? "unknown"
             let role = normalizedTacketRole(rawRole)
+            guard nativeCaptureLocalSessionRoleIsVisible(role) else { continue }
             let text = textFromOpenAIContent(payload["content"])
             guard !text.isEmpty else { continue }
             if title == "Codex session", role == "user" {
@@ -1495,6 +1490,7 @@ final class TacketModel: ObservableObject {
                 capturedAt = timestamp
             }
             let role = normalizedTacketRole(message["role"] as? String ?? object["type"] as? String ?? "unknown")
+            guard nativeCaptureLocalSessionRoleIsVisible(role) else { continue }
             let text = textFromClaudeContent(message["content"])
             guard !text.isEmpty else { continue }
             if title == "Claude Code session", role == "user" {
@@ -1594,6 +1590,7 @@ final class TacketModel: ObservableObject {
         }) {
             let sender = rawMessage["sender"] as? String ?? "unknown"
             let role = normalizedTacketRole(sender == "human" ? "user" : sender)
+            guard nativeCaptureLocalSessionRoleIsVisible(role) else { continue }
             let text = textFromClaudeContent(rawMessage["content"])
             guard !text.isEmpty else { continue }
             let createdAt = rawMessage["created_at"] as? String ?? capturedAt
@@ -1690,10 +1687,11 @@ final class TacketModel: ObservableObject {
         outputRoot: URL
     ) throws -> URL {
         try FileManager.default.createDirectory(at: outputRoot, withIntermediateDirectories: true)
-        let capturedAt = validISO8601(session.capturedAt) ?? ISO8601DateFormatter().string(from: Date())
+        let savedAt = Date()
+        let capturedAt = ISO8601DateFormatter().string(from: savedAt)
         let bundleURL = try reserveAgentBundleURL(
             outputRoot: outputRoot,
-            capturedAt: dateFromISO8601(capturedAt) ?? Date(),
+            capturedAt: savedAt,
             source: session.source,
             title: session.title
         )
@@ -1884,6 +1882,10 @@ final class TacketModel: ObservableObject {
         }
     }
 
+    private nonisolated static func nativeCaptureLocalSessionRoleIsVisible(_ role: String) -> Bool {
+        role == "user" || role == "assistant"
+    }
+
     private nonisolated static func titleFromText(_ text: String, fallback: String) -> String {
         let line = text
             .split(separator: "\n")
@@ -2052,7 +2054,7 @@ final class TacketModel: ObservableObject {
            !nativeCaptureAccessibilityTextLooksLikeSidebar(text, source: source) {
             return cleanNativeCaptureText(text)
         }
-        let ocrText = try await ocrText(for: processIdentifier)
+        let ocrText = try await ocrText(for: processIdentifier, source: source)
         return cleanNativeCaptureText(ocrText)
     }
 
@@ -2462,7 +2464,7 @@ final class TacketModel: ObservableObject {
         return value
     }
 
-    private nonisolated static func ocrText(for processIdentifier: pid_t) async throws -> String {
+    private nonisolated static func ocrText(for processIdentifier: pid_t, source: NativeCaptureSource) async throws -> String {
         guard let image = windowImage(for: processIdentifier) else {
             throw TacketAppError.nativeCapture("Tacket could not capture the app window for local OCR. macOS Screen Recording permission may be required.")
         }
@@ -2475,6 +2477,7 @@ final class TacketModel: ObservableObject {
                 }
                 let observations = request.results as? [VNRecognizedTextObservation] ?? []
                 let lines = observations
+                    .filter { nativeCaptureOCRObservationIsInConversation($0, source: source) }
                     .sorted { lhs, rhs in
                         let yDelta = abs(lhs.boundingBox.midY - rhs.boundingBox.midY)
                         if yDelta > 0.015 {
@@ -2494,6 +2497,22 @@ final class TacketModel: ObservableObject {
             } catch {
                 continuation.resume(throwing: error)
             }
+        }
+    }
+
+    private nonisolated static func nativeCaptureOCRObservationIsInConversation(
+        _ observation: VNRecognizedTextObservation,
+        source: NativeCaptureSource
+    ) -> Bool {
+        let box = observation.boundingBox
+        guard box.width > 0.015, box.height > 0.008 else { return false }
+        guard box.midY > 0.10, box.midY < 0.94 else { return false }
+
+        switch source {
+        case .codex:
+            return box.midX > 0.13 && box.midX < 0.76
+        case .chatgpt, .claude:
+            return box.midX > 0.10 && box.midX < 0.90
         }
     }
 
